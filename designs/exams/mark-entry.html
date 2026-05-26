@@ -1,0 +1,941 @@
+<!doctype html>
+<html lang="en" style="">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+            name="viewport"
+        />
+        <title>ARMS - Marks Entry</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: "#000000",
+                            "tertiary-fixed": "#e6e1df",
+                            "on-surface-variant": "#444748",
+                            "surface-container": "#f1edec",
+                            "surface-variant": "#e5e2e1",
+                            "surface-tint": "#5f5e5e",
+                            "error-container": "#ffdad6",
+                            "secondary-fixed": "#dbe1ff",
+                            "outline-variant": "#c4c7c7",
+                            "on-secondary-fixed-variant": "#003ea8",
+                            "on-error": "#ffffff",
+                            "on-primary-container": "#858383",
+                            "primary-container": "#1c1b1b",
+                            "surface-container-lowest": "#ffffff",
+                            "primary-fixed": "#e5e2e1",
+                            "on-error-container": "#93000a",
+                            "surface-container-highest": "#e5e2e1",
+                            "on-tertiary": "#ffffff",
+                            "inverse-primary": "#c9c6c5",
+                            error: "#ba1a1a",
+                            tertiary: "#000000",
+                            surface: "#fdf8f8",
+                            "on-primary": "#ffffff",
+                            "surface-container-low": "#f7f3f2",
+                            "on-tertiary-fixed-variant": "#484645",
+                            "on-tertiary-container": "#868381",
+                            "surface-bright": "#fdf8f8",
+                            "primary-fixed-dim": "#c9c6c5",
+                            "on-secondary": "#ffffff",
+                            "on-background": "#1c1b1b",
+                            "on-primary-fixed": "#1c1b1b",
+                            "on-tertiary-fixed": "#1d1b1a",
+                            "on-primary-fixed-variant": "#474646",
+                            secondary: "#0051d5",
+                            "tertiary-container": "#1d1b1a",
+                            "secondary-container": "#316bf3",
+                            "secondary-fixed-dim": "#b4c5ff",
+                            "on-surface": "#1c1b1b",
+                            "inverse-surface": "#313030",
+                            "inverse-on-surface": "#f4f0ef",
+                            background: "#fdf8f8",
+                            "on-secondary-container": "#fefcff",
+                            "surface-container-high": "#ebe7e6",
+                            "tertiary-fixed-dim": "#cac6c3",
+                            "on-secondary-fixed": "#00174b",
+                            outline: "#747878",
+                            "surface-dim": "#ddd9d8",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            full: "9999px",
+                        },
+                        spacing: {
+                            "stack-md": "16px",
+                            "padding-input": "12px 24px",
+                            "gutter-card": "16px",
+                            unit: "4px",
+                            "stack-sm": "8px",
+                            "margin-page": "24px",
+                            "stack-lg": "32px",
+                        },
+                        fontFamily: {
+                            "header-sm": ["Plus Jakarta Sans"],
+                            "label-xs": ["Plus Jakarta Sans"],
+                            "body-md": ["Plus Jakarta Sans"],
+                            "label-xs-uppercase": ["Plus Jakarta Sans"],
+                            "display-lg": ["Plus Jakarta Sans"],
+                            "display-lg-mobile": ["Plus Jakarta Sans"],
+                        },
+                        fontSize: {
+                            "header-sm": [
+                                "18px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "-0.01em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "label-xs": [
+                                "14px",
+                                {
+                                    lineHeight: "20px",
+                                    letterSpacing: "0.01em",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "body-md": [
+                                "16px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "0",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "label-xs-uppercase": [
+                                "12px",
+                                {
+                                    lineHeight: "16px",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "display-lg": [
+                                "32px",
+                                {
+                                    lineHeight: "36px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "display-lg-mobile": [
+                                "28px",
+                                {
+                                    lineHeight: "32px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            body {
+                font-family: "Plus Jakarta Sans", sans-serif;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .no-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .config-locked {
+                pointer-events: none;
+                opacity: 0.7;
+            }
+            input[type="number"]::-webkit-inner-spin-button,
+            input[type="number"]::-webkit-outer-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body class="bg-surface text-on-surface">
+        <!-- Top Navigation Bar -->
+        <header
+            class="w-full top-0 sticky z-50 bg-surface flex items-center justify-between px-margin-page h-16 border-b border-outline-variant/10"
+        >
+            <div class="flex items-center gap-2">
+                <button
+                    class="material-symbols-outlined text-primary p-2 hover:bg-surface-variant/50 rounded-full transition-colors"
+                >
+                    arrow_back
+                </button>
+                <h1 class="font-header-sm text-header-sm text-primary">
+                    Marks Entry
+                </h1>
+            </div>
+            <div class="flex items-center gap-1">
+                <button
+                    class="material-symbols-outlined text-primary p-2 hover:bg-surface-variant/50 rounded-full transition-colors"
+                >
+                    history
+                </button>
+                <div
+                    class="h-8 w-8 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden"
+                >
+                    <img
+                        alt="User Profile"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBry1edBbR2wk8jO2zdqeJN0qHoUkWlCjj9UigngCoK6hPqrOS6H__tTuRX8_APSUo7skawHD-vRImG1NEy9vMsxRcU5nF4HazSzTAyHn4asZrSD7mxsRuBVO-pMMFuBQJ86JBB69NnAlbZl-7OBrZ3b2IoLTbl592unUWL39k4cG4MDE_MB60kECbXiltA4oOziRqvk-k4iCXTZfnGzcbGHXO7IuOkfEJbyw2UuKNOaIlObSANJ4WF0v9i4CtT6FSadZIXVTrO0uei"
+                    />
+                </div>
+            </div>
+        </header>
+        <!-- Sticky Draft Indicator -->
+        <div
+            class="bg-surface-container-high/80 backdrop-blur-sm px-margin-page py-2 flex items-center justify-center sticky top-16 z-40"
+        >
+            <div class="flex items-center gap-2 text-on-surface-variant">
+                <span class="material-symbols-outlined text-[16px]"
+                    >cloud_done</span
+                >
+                <span class="font-label-xs text-label-xs"
+                    >Draft saved at 10:45:22</span
+                >
+            </div>
+        </div>
+        <main class="flex flex-col gap-stack-lg pb-40">
+            <!-- Configuration Header Section -->
+            <section class="px-margin-page pt-4">
+                <div
+                    class="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/10 relative overflow-hidden"
+                    ondblclick="toggleConfig(this)"
+                >
+                    <div
+                        class="absolute inset-0 bg-transparent flex flex-col items-center justify-center z-10 cursor-pointer group"
+                        id="config-overlay"
+                    >
+                        <div
+                            class="bg-white/90 px-3 py-1.5 rounded-full shadow-sm border border-outline-variant/30 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                            <span class="material-symbols-outlined text-sm"
+                                >lock</span
+                            >
+                            <span
+                                class="text-[10px] font-bold uppercase tracking-wider"
+                                >Double-tap to edit configuration</span
+                            >
+                        </div>
+                    </div>
+                    <div
+                        class="config-locked grid grid-cols-2 gap-4"
+                        id="config-content"
+                    >
+                        <div
+                            class="col-span-2 flex justify-between items-center mb-2"
+                        >
+                            <h2
+                                class="font-label-xs-uppercase text-label-xs-uppercase text-on-surface-variant"
+                            >
+                                Exam Configuration
+                            </h2>
+                            <div
+                                class="flex items-center gap-2 text-secondary font-bold text-[12px]"
+                            >
+                                <span class="">Auto Total:</span>
+                                <span
+                                    class="bg-secondary/10 px-2 py-0.5 rounded"
+                                    >100</span
+                                >
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60"
+                                >Series</label
+                            >
+                            <select
+                                class="bg-transparent border-b border-outline-variant/30 text-sm font-bold p-0 focus:ring-0 focus:border-secondary"
+                            >
+                                <option>Mid-Term 2024</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60"
+                                >Date</label
+                            >
+                            <input
+                                class="bg-transparent border-b border-outline-variant/30 text-sm font-bold p-0 focus:ring-0 focus:border-secondary"
+                                type="date"
+                                value="2024-10-25"
+                            />
+                        </div>
+                        <div class="col-span-2 flex flex-col gap-2">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60"
+                                >Selected Subjects</label
+                            >
+                            <div class="flex flex-wrap gap-2">
+                                <span
+                                    class="bg-secondary text-on-secondary px-3 py-1 rounded-full text-[12px] font-bold flex items-center gap-1"
+                                >
+                                    Mathematics
+                                    <span
+                                        class="material-symbols-outlined text-sm"
+                                        >close</span
+                                    >
+                                </span>
+                                <span
+                                    class="bg-secondary text-on-secondary px-3 py-1 rounded-full text-[12px] font-bold flex items-center gap-1"
+                                >
+                                    Physics
+                                    <span
+                                        class="material-symbols-outlined text-sm"
+                                        >close</span
+                                    >
+                                </span>
+                                <button
+                                    class="border border-dashed border-outline text-outline px-3 py-1 rounded-full text-[12px] font-bold"
+                                >
+                                    + Add
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60"
+                                >School</label
+                            >
+                            <span class="text-sm font-bold">Main Campus</span>
+                        </div>
+                        <div class="flex flex-col gap-1 text-right">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60"
+                                >Class &amp; Sec</label
+                            >
+                            <span class="text-sm font-bold">Grade 10 - B</span>
+                        </div>
+                        <div
+                            class="col-span-2 border-t border-outline-variant/10 pt-4 mt-2 grid grid-cols-2 gap-4"
+                        >
+                            <div class="col-span-2 flex flex-col gap-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase text-on-surface-variant/60"
+                                    >Exam Name</label
+                                >
+                                <span class="text-sm font-bold"
+                                    >Quarterly Formative Assessment</span
+                                >
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase text-on-surface-variant/60"
+                                    >Full Marks</label
+                                >
+                                <span class="text-sm font-bold"
+                                    >100 (50+50)</span
+                                >
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase text-on-surface-variant/60"
+                                    >Topic</label
+                                >
+                                <span class="text-sm font-bold truncate"
+                                    >Calculus &amp; Mechanics</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Reference Documents Section -->
+            <section class="px-margin-page">
+                <h3
+                    class="font-label-xs-uppercase text-label-xs-uppercase text-on-surface-variant mb-3"
+                >
+                    Reference Documents
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div
+                        class="bg-surface-container-low rounded-xl p-3 flex flex-col gap-2 border border-outline-variant/10"
+                    >
+                        <div
+                            class="aspect-video bg-surface-container-highest rounded-lg overflow-hidden flex items-center justify-center relative"
+                        >
+                            <img
+                                alt="Attendance List"
+                                class="opacity-40 grayscale"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaDtGkI6hpgqxLGvVPRcRgkLGR1fMxJQQnnwRN6EVW4-uLR-nJL_v3MwX7zmE4Dho4JH_6udB5BH1_OsQ0-mSsHt74tU-4FoeUAVjA4jIIKzfHlHDlJsNKNkg4W5oDbgk067BvekCkaaj1GuRQLFjy6h48c_9vJ3gx98vVwkw9ORZb-9gpj9muQ1suYCD2KqXtMUMP6T6t3Jay6Z283Usw-ZfTCvvFkXBAmF7Pvf_pqBTdTDO4EDboQYSIqOsigBQG4zEL7qA7FUq7"
+                            />
+                            <span
+                                class="material-symbols-outlined absolute text-primary"
+                                >picture_as_pdf</span
+                            >
+                        </div>
+                        <div class="flex flex-col">
+                            <span
+                                class="text-[11px] font-bold text-on-surface truncate"
+                                >Attendance_List.pdf</span
+                            >
+                            <button
+                                class="text-secondary text-[10px] font-bold uppercase mt-1 self-start"
+                            >
+                                Replace
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-surface-container-low rounded-xl p-3 flex flex-col gap-2 border border-outline-variant/10"
+                    >
+                        <div
+                            class="aspect-video bg-surface-container-highest rounded-lg overflow-hidden flex items-center justify-center relative"
+                        >
+                            <img
+                                alt="Question Paper"
+                                class="opacity-40 grayscale"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrzv5yCL6_KgcAjUCVArIid_4CtHa2zBT_iIoXxoTtsBVEQL-skJvKCATtrmm4MfJ5SSFt6z9bi7tJBf-hU909KM2YvkhRJ4W5yQuNksSsbxFQmsO0jshQDYyZZ9XwehonB7s3SVlZrPQyEfTyz5SZlwFBdbPowRDp_NuNstmeV6qAZ6qo2Vp0NdOlLTZ6C7TH-ZNRBlXPE9hVDuwpJxZUdtmadtD8bvwiMLHZ2s3KeDqOM1_t0IiKxLbTiRC-f8CmV7i44EQyNHzV"
+                            />
+                            <span
+                                class="material-symbols-outlined absolute text-primary"
+                                >description</span
+                            >
+                        </div>
+                        <div class="flex flex-col">
+                            <span
+                                class="text-[11px] font-bold text-on-surface truncate"
+                                >MidTerm_Math.pdf</span
+                            >
+                            <button
+                                class="text-secondary text-[10px] font-bold uppercase mt-1 self-start"
+                            >
+                                Replace
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Student List (Vertical Card Layout) -->
+            <div class="px-margin-page mb-2">
+                <div class="relative flex-1">
+                    <span
+                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
+                        >search</span
+                    ><input
+                        class="w-full pl-10 pr-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/30 focus:ring-2 focus:ring-secondary focus:border-transparent text-body-md"
+                        placeholder="Search Roll No or Name"
+                        type="text"
+                    />
+                </div>
+            </div>
+            <section class="px-margin-page flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h3
+                        class="font-label-xs-uppercase text-label-xs-uppercase text-on-surface-variant"
+                    >
+                        Student Marks
+                    </h3>
+                    <button
+                        class="flex items-center gap-2 bg-secondary/10 text-secondary px-4 py-2 rounded-full font-bold text-[12px] hover:bg-secondary/20 transition-colors"
+                        id="upload-excel-btn"
+                    >
+                        <span class="material-symbols-outlined text-[18px]"
+                            >upload_file</span
+                        >
+                        UPLOAD EXCEL
+                    </button>
+                </div>
+                <!-- Student Card 1 -->
+                <div
+                    class="student-card bg-[#F5F5F5] rounded-2xl p-4 border border-outline-variant/10 shadow-sm flex flex-col gap-4"
+                >
+                    <div class="flex justify-between items-start">
+                        <div class="flex flex-col">
+                            <span class="font-header-sm text-primary"
+                                >Alice Chen</span
+                            >
+                            <span
+                                class="text-[12px] text-on-surface-variant font-medium"
+                                >Roll No: 001</span
+                            >
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <button
+                                class="absent-btn px-4 py-1.5 rounded-full bg-surface-container text-label-xs-uppercase text-[11px] font-bold text-on-surface-variant border border-outline-variant/20 transition-colors"
+                                onclick="toggleStudentAbsent(this)"
+                            >
+                                MARK ABSENT
+                            </button>
+                            <button
+                                class="status-btn px-4 py-1.5 rounded-full bg-surface-container text-label-xs-uppercase text-[11px] font-bold text-on-surface-variant border border-outline-variant/20 w-full"
+                                onclick="cycleStatus(this)"
+                            >
+                                NORMAL
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-2">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60 px-1"
+                                >Mathematics</label
+                            >
+                            <div class="relative flex-1">
+                                <input
+                                    class="w-full h-12 bg-white text-center rounded-xl border border-outline-variant/30 font-header-sm text-header-sm focus:ring-2 focus:ring-secondary focus:border-transparent transition-opacity"
+                                    placeholder="00"
+                                    type="number"
+                                />
+                                <div
+                                    class="absolute inset-y-0 right-2 flex flex-col justify-center gap-1 opacity-40"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_less</span
+                                    >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_more</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60 px-1"
+                                >Physics</label
+                            >
+                            <div class="relative flex-1">
+                                <input
+                                    class="w-full h-12 bg-white text-center rounded-xl border border-outline-variant/30 font-header-sm text-header-sm focus:ring-2 focus:ring-secondary focus:border-transparent transition-opacity"
+                                    placeholder="00"
+                                    type="number"
+                                />
+                                <div
+                                    class="absolute inset-y-0 right-2 flex flex-col justify-center gap-1 opacity-40"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_less</span
+                                    >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_more</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Student Card 2 -->
+                <div
+                    class="student-card bg-[#F5F5F5] rounded-2xl p-4 border border-outline-variant/10 shadow-sm flex flex-col gap-4"
+                >
+                    <div class="flex justify-between items-start">
+                        <div class="flex flex-col">
+                            <span class="font-header-sm text-primary"
+                                >Bob Smith</span
+                            >
+                            <span
+                                class="text-[12px] text-on-surface-variant font-medium"
+                                >Roll No: 002</span
+                            >
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <button
+                                class="absent-btn px-4 py-1.5 rounded-full bg-surface-container text-label-xs-uppercase text-[11px] font-bold text-on-surface-variant border border-outline-variant/20 transition-colors"
+                                onclick="toggleStudentAbsent(this)"
+                            >
+                                MARK ABSENT
+                            </button>
+                            <button
+                                class="status-btn px-4 py-1.5 rounded-full bg-surface-container text-label-xs-uppercase text-[11px] font-bold text-on-surface-variant border border-outline-variant/20 w-full"
+                                onclick="cycleStatus(this)"
+                            >
+                                NORMAL
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-2">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60 px-1"
+                                >Mathematics</label
+                            >
+                            <div class="relative flex-1">
+                                <input
+                                    class="w-full h-12 bg-white text-center rounded-xl border border-outline-variant/30 font-header-sm text-header-sm focus:ring-2 focus:ring-secondary focus:border-transparent transition-opacity"
+                                    placeholder="00"
+                                    type="number"
+                                />
+                                <div
+                                    class="absolute inset-y-0 right-2 flex flex-col justify-center gap-1 opacity-40"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_less</span
+                                    >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_more</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60 px-1"
+                                >Physics</label
+                            >
+                            <div class="relative flex-1">
+                                <input
+                                    class="w-full h-12 bg-white text-center rounded-xl border border-outline-variant/30 font-header-sm text-header-sm focus:ring-2 focus:ring-secondary focus:border-transparent transition-opacity"
+                                    placeholder="00"
+                                    type="number"
+                                />
+                                <div
+                                    class="absolute inset-y-0 right-2 flex flex-col justify-center gap-1 opacity-40"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_less</span
+                                    >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_more</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Student Card 3 -->
+                <div
+                    class="student-card bg-[#F5F5F5] rounded-2xl p-4 border border-outline-variant/10 shadow-sm flex flex-col gap-4"
+                >
+                    <div class="flex justify-between items-start">
+                        <div class="flex flex-col">
+                            <span class="font-header-sm text-primary"
+                                >David Wang</span
+                            >
+                            <span
+                                class="text-[12px] text-on-surface-variant font-medium"
+                                >Roll No: 003</span
+                            >
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <button
+                                class="absent-btn px-4 py-1.5 rounded-full bg-surface-container text-label-xs-uppercase text-[11px] font-bold text-on-surface-variant border border-outline-variant/20 transition-colors"
+                                onclick="toggleStudentAbsent(this)"
+                            >
+                                MARK ABSENT
+                            </button>
+                            <button
+                                class="status-btn px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-label-xs-uppercase text-[11px] font-bold border border-secondary/20 w-full"
+                                onclick="cycleStatus(this)"
+                            >
+                                RNFP
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-2">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60 px-1"
+                                >Mathematics</label
+                            >
+                            <div class="relative flex-1">
+                                <input
+                                    class="w-full h-12 bg-white text-center rounded-xl border border-outline-variant/30 font-header-sm text-header-sm focus:ring-2 focus:ring-secondary focus:border-transparent transition-opacity"
+                                    placeholder="00"
+                                    type="number"
+                                />
+                                <div
+                                    class="absolute inset-y-0 right-2 flex flex-col justify-center gap-1 opacity-40"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_less</span
+                                    >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_more</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label
+                                class="text-[10px] font-bold uppercase text-on-surface-variant/60 px-1"
+                                >Physics</label
+                            >
+                            <div class="relative flex-1">
+                                <input
+                                    class="w-full h-12 bg-white text-center rounded-xl border border-outline-variant/30 font-header-sm text-header-sm focus:ring-2 focus:ring-secondary focus:border-transparent transition-opacity"
+                                    placeholder="00"
+                                    type="number"
+                                />
+                                <div
+                                    class="absolute inset-y-0 right-2 flex flex-col justify-center gap-1 opacity-40"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_less</span
+                                    >
+                                    <span
+                                        class="material-symbols-outlined text-[12px] leading-none"
+                                        >expand_more</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <!-- Fixed Bottom Action Bar -->
+        <footer
+            class="fixed bottom-0 left-0 w-full bg-surface-container-low/95 backdrop-blur-md p-margin-page z-50 border-t border-outline-variant/10"
+        >
+            <button
+                class="w-full py-4 bg-secondary text-on-secondary rounded-full font-header-sm text-header-sm transition-all active:scale-[0.98] shadow-lg shadow-secondary/20"
+            >
+                Save &amp; Close
+            </button>
+        </footer>
+        <script>
+            function toggleConfig(container) {
+                const content = container.querySelector("#config-content");
+                const overlay = container.querySelector("#config-overlay");
+                const isLocked = content.classList.contains("config-locked");
+
+                if (isLocked) {
+                    content.classList.remove("config-locked");
+                    overlay.classList.add("hidden");
+                    container.classList.add("ring-2", "ring-secondary");
+                } else {
+                    content.classList.add("config-locked");
+                    overlay.classList.remove("hidden");
+                    container.classList.remove("ring-2", "ring-secondary");
+                }
+            }
+
+            function toggleStudentAbsent(btn) {
+                const card = btn.closest(".student-card");
+                const inputs = card.querySelectorAll('input[type="number"]');
+                const isActive = btn.classList.contains("bg-error");
+
+                if (!isActive) {
+                    btn.classList.remove(
+                        "bg-surface-container",
+                        "text-on-surface-variant",
+                        "border-outline-variant/20",
+                    );
+                    btn.classList.add(
+                        "bg-error",
+                        "text-on-error",
+                        "border-error",
+                    );
+                    btn.innerText = "ABSENT";
+
+                    inputs.forEach((input) => {
+                        input.value = "";
+                        input.disabled = true;
+                        input.classList.add(
+                            "opacity-30",
+                            "bg-surface-container-high",
+                        );
+                    });
+                } else {
+                    btn.classList.add(
+                        "bg-surface-container",
+                        "text-on-surface-variant",
+                        "border-outline-variant/20",
+                    );
+                    btn.classList.remove(
+                        "bg-error",
+                        "text-on-error",
+                        "border-error",
+                    );
+                    btn.innerText = "MARK ABSENT";
+
+                    inputs.forEach((input) => {
+                        input.disabled = false;
+                        input.classList.remove(
+                            "opacity-30",
+                            "bg-surface-container-high",
+                        );
+                    });
+                }
+            }
+
+            const statuses = ["NORMAL", "RNFP", "MLP"];
+            function cycleStatus(btn) {
+                let current = btn.innerText;
+                let nextIndex =
+                    (statuses.indexOf(current) + 1) % statuses.length;
+                btn.innerText = statuses[nextIndex];
+
+                if (statuses[nextIndex] === "NORMAL") {
+                    btn.className =
+                        "status-btn px-4 py-1.5 rounded-full bg-surface-container text-label-xs-uppercase text-[11px] font-bold text-on-surface-variant border border-outline-variant/20 w-full";
+                } else if (statuses[nextIndex] === "RNFP") {
+                    btn.className =
+                        "status-btn px-4 py-1.5 rounded-full bg-secondary-container text-on-secondary-container text-label-xs-uppercase text-[11px] font-bold border border-secondary/20 w-full";
+                } else {
+                    btn.className =
+                        "status-btn px-4 py-1.5 rounded-full bg-error-container text-on-error-container text-label-xs-uppercase text-[11px] font-bold border border-error/20 w-full";
+                    btn.innerText = "MALPRACTICE";
+                }
+            }
+        </script>
+        <div class="fixed inset-0 z-[60] hidden" id="excel-modal">
+            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+            <div
+                class="absolute bottom-0 left-0 w-full bg-surface rounded-t-3xl p-margin-page flex flex-col gap-6 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
+            >
+                <div class="flex justify-between items-center">
+                    <h2 class="font-header-sm text-header-sm">
+                        Upload Excel Marks
+                    </h2>
+                    <button
+                        class="material-symbols-outlined p-2"
+                        onclick="
+                            document
+                                .getElementById('excel-modal')
+                                .classList.add('hidden')
+                        "
+                    >
+                        close
+                    </button>
+                </div>
+                <p
+                    class="text-label-xs text-on-surface-variant bg-surface-container-low p-3 rounded-lg border border-outline-variant/10"
+                >
+                    Ensure your Excel follows the expected format. Data starts
+                    at <b>Row 2</b>. Column mapping is required.
+                </p>
+                <div class="flex flex-col gap-3">
+                    <span
+                        class="text-[10px] font-bold uppercase text-on-surface-variant"
+                        >Download Templates</span
+                    >
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            class="border border-outline-variant px-3 py-1.5 rounded-lg text-[12px] flex items-center gap-1 hover:bg-surface-variant"
+                        >
+                            One Subject
+                            <span class="material-symbols-outlined text-sm"
+                                >download</span
+                            >
+                        </button>
+                        <button
+                            class="border border-outline-variant px-3 py-1.5 rounded-lg text-[12px] flex items-center gap-1 hover:bg-surface-variant"
+                        >
+                            JEE
+                            <span class="material-symbols-outlined text-sm"
+                                >download</span
+                            >
+                        </button>
+                        <button
+                            class="border border-outline-variant px-3 py-1.5 rounded-lg text-[12px] flex items-center gap-1 hover:bg-surface-variant"
+                        >
+                            NEET
+                            <span class="material-symbols-outlined text-sm"
+                                >download</span
+                            >
+                        </button>
+                    </div>
+                </div>
+                <div
+                    class="border-2 border-dashed border-outline-variant/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 bg-surface-container-low cursor-pointer"
+                >
+                    <span
+                        class="material-symbols-outlined text-4xl text-outline text-green-600"
+                        style="opacity: 0"
+                        >table_chart</span
+                    >
+                    <span class="font-bold">Select Excel File</span>
+                    <span class="text-label-xs text-on-surface-variant"
+                        >No file selected</span
+                    >
+                </div>
+                <div class="flex flex-col gap-4">
+                    <span
+                        class="text-[10px] font-bold uppercase text-on-surface-variant"
+                        >Column Mapping</span
+                    >
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-[10px] font-bold text-on-surface-variant/70"
+                                >Roll Number</label
+                            >
+                            <select
+                                class="rounded-lg border-outline-variant bg-surface-container-low text-sm font-medium focus:ring-secondary"
+                            >
+                                <option>Select Column...</option>
+                                <option>Column A</option>
+                                <option>Column B</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label
+                                class="text-[10px] font-bold text-on-surface-variant/70"
+                                >Mathematics</label
+                            >
+                            <select
+                                class="rounded-lg border-outline-variant bg-surface-container-low text-sm font-medium focus:ring-secondary"
+                            >
+                                <option>Select Column...</option>
+                                <option>Column C</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button
+                        class="flex-1 py-3 border border-outline text-on-surface rounded-full font-bold"
+                        onclick="
+                            document
+                                .getElementById('excel-modal')
+                                .classList.add('hidden')
+                        "
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        class="flex-1 py-3 bg-secondary text-on-secondary rounded-full font-bold shadow-lg shadow-secondary/20"
+                    >
+                        Parse &amp; Import
+                    </button>
+                </div>
+            </div>
+        </div>
+        <script>
+            if (document.getElementById("search-trigger")) {
+                document.getElementById("search-trigger").onclick = () => {
+                    document
+                        .getElementById("search-overlay")
+                        .classList.remove("hidden");
+                    document
+                        .getElementById("search-overlay")
+                        .querySelector("input")
+                        .focus();
+                };
+            }
+            document.getElementById("upload-excel-btn").onclick = () => {
+                document
+                    .getElementById("excel-modal")
+                    .classList.remove("hidden");
+            };
+        </script>
+    </body>
+</html>

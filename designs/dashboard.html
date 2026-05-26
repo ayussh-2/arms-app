@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en" style="">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>ARMS Home</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "on-secondary": "#ffffff",
+                            "on-secondary-fixed": "#00174b",
+                            "primary-fixed-dim": "#c9c6c5",
+                            "on-tertiary-fixed-variant": "#484645",
+                            "surface-variant": "#e5e2e1",
+                            "on-error-container": "#93000a",
+                            background: "#fdf8f8",
+                            "on-secondary-container": "#fefcff",
+                            "secondary-container": "#316bf3",
+                            "outline-variant": "#c4c7c7",
+                            primary: "#000000",
+                            "secondary-fixed": "#dbe1ff",
+                            "on-tertiary-container": "#868381",
+                            "surface-container-low": "#f7f3f2",
+                            surface: "#fdf8f8",
+                            "error-container": "#ffdad6",
+                            "primary-fixed": "#e5e2e1",
+                            "on-surface-variant": "#444748",
+                            "on-error": "#ffffff",
+                            "tertiary-container": "#1d1b1a",
+                            "surface-container-high": "#ebe7e6",
+                            "surface-container-highest": "#e5e2e1",
+                            outline: "#747878",
+                            "inverse-on-surface": "#f4f0ef",
+                            "on-primary-fixed": "#1c1b1b",
+                            "surface-tint": "#5f5e5e",
+                            tertiary: "#000000",
+                            "on-secondary-fixed-variant": "#003ea8",
+                            "on-primary-container": "#858383",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary": "#ffffff",
+                            "surface-dim": "#ddd9d8",
+                            "surface-container": "#f1edec",
+                            "on-primary": "#ffffff",
+                            "tertiary-fixed": "#e6e1df",
+                            "inverse-surface": "#313030",
+                            "secondary-fixed-dim": "#b4c5ff",
+                            "inverse-primary": "#c9c6c5",
+                            "on-background": "#1c1b1b",
+                            "primary-container": "#1c1b1b",
+                            error: "#ba1a1a",
+                            "on-tertiary-fixed": "#1d1b1a",
+                            "surface-bright": "#fdf8f8",
+                            "on-surface": "#1c1b1b",
+                            "on-primary-fixed-variant": "#474646",
+                            "tertiary-fixed-dim": "#cac6c3",
+                            secondary: "#0051d5",
+                            accent: "#2563EB",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            full: "9999px",
+                            card: "16px",
+                        },
+                        spacing: {
+                            "stack-lg": "32px",
+                            "padding-input": "12px 24px",
+                            "gutter-card": "16px",
+                            unit: "4px",
+                            "stack-md": "16px",
+                            "stack-sm": "8px",
+                            "margin-page": "24px",
+                        },
+                        fontFamily: {
+                            "label-xs": ["Plus Jakarta Sans"],
+                            "body-md": ["Plus Jakarta Sans"],
+                            "label-xs-uppercase": ["Plus Jakarta Sans"],
+                            "header-sm": ["Plus Jakarta Sans"],
+                            "display-lg": ["Plus Jakarta Sans"],
+                            "display-lg-mobile": ["Plus Jakarta Sans"],
+                        },
+                        fontSize: {
+                            "label-xs": [
+                                "14px",
+                                {
+                                    lineHeight: "20px",
+                                    letterSpacing: "0.01em",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "body-md": [
+                                "16px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "0",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "label-xs-uppercase": [
+                                "12px",
+                                {
+                                    lineHeight: "16px",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "header-sm": [
+                                "18px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "-0.01em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "display-lg": [
+                                "32px",
+                                {
+                                    lineHeight: "36px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "display-lg-mobile": [
+                                "28px",
+                                {
+                                    lineHeight: "32px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            body {
+                font-family: "Plus Jakarta Sans", sans-serif;
+                background-color: #ffffff;
+                color: #0d0d0d;
+            }
+            .material-symbols-outlined {
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
+            }
+            .fill-icon {
+                font-variation-settings: "FILL" 1;
+            }
+        </style>
+        <style>
+            body {
+                min-height: max(884px, 100dvh);
+            }
+        </style>
+    </head>
+    <body class="bg-[#FFFFFF] min-h-screen flex flex-col pb-24 text-[#0D0D0D]">
+        <!-- TopAppBar -->
+        <header
+            class="bg-[#FFFFFF] docked full-width top-0 flat no shadows transition-colors duration-200 flex justify-between items-center w-full px-margin-page py-stack-sm sticky z-40"
+        >
+            <div
+                class="flex items-center gap-3 hover:bg-gray-100 rounded-full p-1 cursor-pointer"
+            >
+                <div
+                    class="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center"
+                >
+                    <span class="material-symbols-outlined text-gray-600"
+                        >person</span
+                    >
+                </div>
+            </div>
+
+            <button
+                class="w-10 h-10 flex items-center justify-center text-[#0D0D0D] hover:bg-gray-100 rounded-full transition-colors duration-200"
+            ></button>
+        </header>
+        <!-- Main Content -->
+        <main class="flex-grow px-margin-page pt-stack-md flex flex-col gap-8">
+            <!-- Welcome Section -->
+            <section class="flex flex-col gap-1">
+                <h1
+                    class="text-display-lg-mobile md:text-display-lg font-display-lg-mobile md:font-display-lg font-bold text-[#0D0D0D]"
+                >
+                    Welcome to Pariksit ARMS
+                </h1>
+            </section>
+            <!-- Feature Cards Stack -->
+            <section class="flex flex-col gap-4">
+                <!-- Attendance Card -->
+                <button
+                    class="bg-[#F5F5F5] rounded-[16px] p-6 flex flex-col items-start gap-4 hover:bg-gray-200 transition-colors text-left border-none outline-none shadow-none w-full"
+                >
+                    <div
+                        class="w-14 h-14 rounded-full bg-[#2563EB]/10 flex items-center justify-center text-[#2563EB]"
+                    >
+                        <span
+                            class="material-symbols-outlined fill-icon text-[32px]"
+                            data-icon="calendar_today"
+                            >calendar_today</span
+                        >
+                    </div>
+                    <div>
+                        <h2
+                            class="text-header-sm font-header-sm text-[#0D0D0D] mb-2 font-bold"
+                        >
+                            Attendance
+                        </h2>
+                        <p class="text-body-md font-body-md text-gray-600">
+                            Mark today's attendance, manage student leaves, or
+                            compile monthly report sheets.
+                        </p>
+                    </div>
+                </button>
+                <!-- Exams Card -->
+                <button
+                    class="bg-[#F5F5F5] rounded-[16px] p-6 flex flex-col items-start gap-4 hover:bg-gray-200 transition-colors text-left border-none outline-none shadow-none w-full"
+                >
+                    <div
+                        class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"
+                    >
+                        <span
+                            class="material-symbols-outlined fill-icon text-[32px]"
+                            data-icon="assignment"
+                            >assignment</span
+                        >
+                    </div>
+                    <div>
+                        <h2
+                            class="text-header-sm font-header-sm text-[#0D0D0D] mb-2 font-bold"
+                        >
+                            Exams
+                        </h2>
+                        <p class="text-body-md font-body-md text-gray-600">
+                            Conduct examinations, feed grades, and generate
+                            marks sheets.
+                        </p>
+                    </div>
+                </button>
+            </section>
+        </main>
+        <!-- BottomNavBar -->
+        <nav
+            class="bg-[#FFFFFF] docked full-width bottom-0 rounded-t-xl flat no shadows fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 px-4 pb-safe md:hidden border-t border-gray-100"
+        >
+            <!-- Active Tab: Home -->
+            <button
+                class="flex flex-col items-center justify-center text-[#2563EB] px-6 py-1 hover:opacity-80 scale-95 transition-transform duration-150 active:scale-90 bg-transparent"
+            >
+                <span
+                    class="material-symbols-outlined fill-icon"
+                    data-icon="home"
+                    data-weight="fill"
+                    >home</span
+                >
+                <span class="text-label-xs font-label-xs mt-1 font-semibold"
+                    >Home</span
+                >
+            </button>
+            <!-- Inactive Tab: Attendance -->
+            <button
+                class="flex flex-col items-center justify-center text-[#8A8A8A] px-6 py-1 hover:opacity-80 scale-95 transition-transform duration-150 active:scale-90 bg-transparent"
+            >
+                <span
+                    class="material-symbols-outlined"
+                    data-icon="calendar_today"
+                    >calendar_today</span
+                >
+                <span class="text-label-xs font-label-xs mt-1 font-semibold"
+                    >Attendance</span
+                >
+            </button>
+            <!-- Inactive Tab: Exams -->
+            <button
+                class="flex flex-col items-center justify-center text-[#8A8A8A] px-6 py-1 hover:opacity-80 scale-95 transition-transform duration-150 active:scale-90 bg-transparent"
+            >
+                <span class="material-symbols-outlined" data-icon="assignment"
+                    >assignment</span
+                >
+                <span class="text-label-xs font-label-xs mt-1 font-semibold"
+                    >Exams</span
+                >
+            </button>
+        </nav>
+        <!-- Desktop Side Nav Placeholder (Hidden on Mobile) -->
+        <aside
+            class="hidden md:flex flex-col fixed left-0 top-16 bottom-0 w-64 bg-[#FFFFFF] border-r border-gray-200 p-4 gap-2 z-30"
+        >
+            <button
+                class="flex items-center gap-3 text-[#2563EB] bg-transparent rounded-full px-4 py-3 w-full text-left"
+            >
+                <span
+                    class="material-symbols-outlined fill-icon"
+                    data-icon="home"
+                    data-weight="fill"
+                    >home</span
+                >
+                <span class="text-body-md font-body-md font-semibold"
+                    >Home</span
+                >
+            </button>
+            <button
+                class="flex items-center gap-3 text-[#8A8A8A] hover:bg-gray-100 rounded-full px-4 py-3 w-full text-left transition-colors"
+            >
+                <span
+                    class="material-symbols-outlined"
+                    data-icon="calendar_today"
+                    >calendar_today</span
+                >
+                <span class="text-body-md font-body-md font-semibold"
+                    >Attendance</span
+                >
+            </button>
+            <button
+                class="flex items-center gap-3 text-[#8A8A8A] hover:bg-gray-100 rounded-full px-4 py-3 w-full text-left transition-colors"
+            >
+                <span class="material-symbols-outlined" data-icon="assignment"
+                    >assignment</span
+                >
+                <span class="text-body-md font-body-md font-semibold"
+                    >Exams</span
+                >
+            </button>
+        </aside>
+    </body>
+</html>

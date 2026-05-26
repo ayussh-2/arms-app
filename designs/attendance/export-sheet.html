@@ -1,0 +1,523 @@
+<!doctype html>
+<html class="light" lang="en" style="">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Attendance Sheet - ARMS</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "tertiary-fixed": "#e6e1df",
+                            "surface-dim": "#ddd9d8",
+                            "on-primary-container": "#858383",
+                            surface: "#fdf8f8",
+                            primary: "#0051d5",
+                            "outline-variant": "#c4c7c7",
+                            "on-surface": "#1c1b1b",
+                            "surface-container-highest": "#e5e2e1",
+                            "secondary-container": "#316bf3",
+                            "on-surface-variant": "#444748",
+                            "on-background": "#1c1b1b",
+                            "error-container": "#ffdad6",
+                            tertiary: "#000000",
+                            "on-secondary": "#ffffff",
+                            background: "#ffffff",
+                            "on-secondary-fixed": "#00174b",
+                            "on-primary-fixed": "#1c1b1b",
+                            outline: "#747878",
+                            secondary: "#0051d5",
+                            "primary-fixed-dim": "#c9c6c5",
+                            "tertiary-container": "#1d1b1a",
+                            "on-tertiary-fixed": "#1d1b1a",
+                            "inverse-surface": "#313030",
+                            "on-tertiary-container": "#868381",
+                            error: "#ba1a1a",
+                            "inverse-on-surface": "#f4f0ef",
+                            "surface-tint": "#5f5e5e",
+                            "on-secondary-fixed-variant": "#003ea8",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary": "#ffffff",
+                            "on-secondary-container": "#fefcff",
+                            "primary-container": "#1c1b1b",
+                            "on-error": "#ffffff",
+                            "secondary-fixed-dim": "#b4c5ff",
+                            "on-primary-fixed-variant": "#474646",
+                            "tertiary-fixed-dim": "#cac6c3",
+                            "on-error-container": "#93000a",
+                            "primary-fixed": "#e5e2e1",
+                            "surface-container-high": "#ebe7e6",
+                            "on-tertiary-fixed-variant": "#484645",
+                            "surface-bright": "#ffffff",
+                            "surface-container": "#f1edec",
+                            "surface-container-low": "#f7f3f2",
+                            "inverse-primary": "#c9c6c5",
+                            "on-primary": "#ffffff",
+                            "surface-variant": "#e5e2e1",
+                            "secondary-fixed": "#dbe1ff",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            "2xl": "1rem",
+                            full: "9999px",
+                        },
+                        spacing: {
+                            "gutter-card": "16px",
+                            "stack-md": "16px",
+                            "stack-lg": "32px",
+                            "margin-page": "24px",
+                            "padding-input": "14px 20px",
+                            unit: "4px",
+                            "stack-sm": "8px",
+                        },
+                        fontFamily: {
+                            "display-lg": ["Plus Jakarta Sans"],
+                            "label-xs": ["Plus Jakarta Sans"],
+                            "display-lg-mobile": ["Plus Jakarta Sans"],
+                            "body-md": ["Plus Jakarta Sans"],
+                            "label-xs-uppercase": ["Plus Jakarta Sans"],
+                            "header-sm": ["Plus Jakarta Sans"],
+                        },
+                        fontSize: {
+                            "display-lg": [
+                                "32px",
+                                {
+                                    lineHeight: "36px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "label-xs": [
+                                "14px",
+                                {
+                                    lineHeight: "20px",
+                                    letterSpacing: "0.01em",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "display-lg-mobile": [
+                                "28px",
+                                {
+                                    lineHeight: "32px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "body-md": [
+                                "16px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "0",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "label-xs-uppercase": [
+                                "12px",
+                                {
+                                    lineHeight: "16px",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "600",
+                                    textTransform: "uppercase",
+                                },
+                            ],
+                            "header-sm": [
+                                "18px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "-0.01em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            .material-symbols-outlined {
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
+            }
+            .material-symbols-outlined[data-weight="fill"] {
+                font-variation-settings: "FILL" 1;
+            }
+            input[type="checkbox"]:checked {
+                background-color: theme("colors.primary");
+                border-color: theme("colors.primary");
+            }
+            /* Custom Switch Styles */
+            .toggle-switch-checkbox:checked + .toggle-switch-label {
+                background-color: theme("colors.primary");
+            }
+            .toggle-switch-checkbox:checked + .toggle-switch-label::after {
+                transform: translateX(100%);
+                border-color: white;
+            }
+            .toggle-switch-label {
+                width: 44px;
+                height: 24px;
+                background-color: theme("colors.outline-variant");
+                border-radius: 9999px;
+                position: relative;
+                cursor: pointer;
+                transition: background-color 0.2s ease-in-out;
+            }
+            .toggle-switch-label::after {
+                content: "";
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 20px;
+                height: 20px;
+                background-color: white;
+                border-radius: 50%;
+                transition: transform 0.2s ease-in-out;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+        </style>
+    </head>
+    <body
+        class="bg-white text-on-background font-body-md text-body-md min-h-screen flex flex-col md:flex-row"
+    >
+        <!-- Navigation Drawer (Desktop) -->
+        <aside
+            class="hidden md:flex h-full w-80 bg-surface-container-low flex flex-col p-6 shrink-0 fixed left-0 top-0 bottom-0 z-40 border-r border-surface-variant"
+        >
+            <div class="mb-8 flex items-center justify-between">
+                <span
+                    class="font-display-lg text-display-lg font-bold text-primary"
+                    >ARMS Navigation</span
+                >
+            </div>
+            <nav class="flex-1 flex flex-col gap-2">
+                <a
+                    class="flex items-center gap-4 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-highest transition-all duration-300 ease-in-out font-medium"
+                    href="#"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="dynamic_feed"
+                        >dynamic_feed</span
+                    >
+                    <span class="">Feed</span>
+                </a>
+                <a
+                    class="flex items-center gap-4 px-4 py-3 rounded-full text-on-surface-variant hover:bg-surface-container-highest transition-all duration-300 ease-in-out font-medium"
+                    href="#"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="event_busy"
+                        >event_busy</span
+                    >
+                    <span class="">Leave</span>
+                </a>
+                <a
+                    class="flex items-center gap-4 px-4 py-3 rounded-full bg-primary/10 text-primary font-bold hover:bg-primary/20 transition-all duration-300 ease-in-out"
+                    href="#"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="description"
+                        data-weight="fill"
+                        >description</span
+                    >
+                    <span class="">Sheet</span>
+                </a>
+            </nav>
+        </aside>
+        <!-- Main Content Area -->
+        <main
+            class="flex-1 flex flex-col md:ml-80 pb-24 md:pb-0 min-h-screen bg-white"
+        >
+            <!-- TopAppBar (Mobile & Desktop) -->
+            <header
+                class="w-full sticky top-0 bg-white/90 backdrop-blur-md flex flex-col px-6 py-4 z-30 border-b border-surface-variant"
+            >
+                <div class="flex justify-center md:justify-start">
+                    <h2
+                        class="font-header-sm text-header-sm text-on-surface tracking-tight"
+                    >
+                        Attendance Sheet
+                    </h2>
+                </div>
+            </header>
+            <!-- Form Content -->
+            <div
+                class="px-6 flex-1 flex flex-col gap-6 max-w-3xl mx-auto w-full py-8"
+            >
+                <!-- Template Selector -->
+                <section
+                    class="rounded-2xl p-6 flex flex-col gap-4 bg-surface-container-low"
+                >
+                    <label
+                        class="font-label-xs-uppercase text-label-xs-uppercase text-outline font-semibold"
+                        for="template"
+                        >Select Template</label
+                    >
+                    <div class="relative">
+                        <select
+                            class="w-full bg-surface-container-lowest text-on-surface rounded-xl px-padding-input appearance-none focus:outline-none focus:ring-2 focus:ring-primary border border-outline-variant cursor-pointer text-body-md font-medium"
+                            id="template"
+                        >
+                            <option>Monthly Detailed Report</option>
+                            <option>Weekly Summary</option>
+                            <option>Daily Log</option>
+                        </select>
+                        <span
+                            class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-outline"
+                            >arrow_drop_down</span
+                        >
+                    </div>
+                </section>
+                <!-- Configuration -->
+                <section
+                    class="rounded-2xl p-6 flex flex-col gap-6 bg-surface-container-low"
+                >
+                    <h3
+                        class="font-header-sm text-header-sm text-on-surface pb-2"
+                    >
+                        Configuration
+                    </h3>
+                    <div class="flex flex-col gap-4">
+                        <label
+                            class="font-label-xs-uppercase text-label-xs-uppercase text-outline font-semibold"
+                            for="classSection"
+                            >Class/Section</label
+                        >
+                        <div class="relative">
+                            <select
+                                class="w-full bg-surface-container-lowest text-on-surface rounded-xl px-padding-input appearance-none focus:outline-none focus:ring-2 focus:ring-primary border border-outline-variant cursor-pointer text-body-md font-medium"
+                                id="classSection"
+                            >
+                                <option>10-A (Science)</option>
+                                <option>10-B (Arts)</option>
+                                <option>11-A (Commerce)</option>
+                            </select>
+                            <span
+                                class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-outline"
+                                >arrow_drop_down</span
+                            >
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-4">
+                            <label
+                                class="font-label-xs-uppercase text-label-xs-uppercase text-outline font-semibold"
+                                for="startDate"
+                                >Start Date</label
+                            >
+                            <div class="relative">
+                                <input
+                                    class="w-full bg-surface-container-lowest text-on-surface rounded-xl px-padding-input appearance-none focus:outline-none focus:ring-2 focus:ring-primary border border-outline-variant cursor-pointer text-body-md font-medium"
+                                    id="startDate"
+                                    type="date"
+                                    value="2023-10-01"
+                                />
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-4">
+                            <label
+                                class="font-label-xs-uppercase text-label-xs-uppercase text-outline font-semibold"
+                                for="endDate"
+                                >End Date</label
+                            >
+                            <div class="relative">
+                                <input
+                                    class="w-full bg-surface-container-lowest text-on-surface rounded-xl px-padding-input appearance-none focus:outline-none focus:ring-2 focus:ring-primary border border-outline-variant cursor-pointer text-body-md font-medium"
+                                    id="endDate"
+                                    type="date"
+                                    value="2023-10-31"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-4">
+                        <span
+                            class="font-label-xs-uppercase text-label-xs-uppercase text-outline font-semibold"
+                            >Sessions</span
+                        >
+                        <div
+                            class="flex bg-surface-container-low p-1.5 border border-surface-variant rounded-full"
+                        >
+                            <button
+                                class="flex-1 py-2.5 text-sm font-semibold bg-primary text-white shadow-sm transition-colors text-center rounded-full"
+                                type="button"
+                            >
+                                Morning
+                            </button>
+                            <button
+                                class="flex-1 py-2.5 text-sm font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors text-center rounded-full"
+                                type="button"
+                            >
+                                Evening
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                <!-- Display Toggles -->
+                <section
+                    class="rounded-2xl p-6 flex flex-col gap-5 bg-surface-container-low"
+                >
+                    <h3
+                        class="font-header-sm text-header-sm text-on-surface pb-2"
+                    >
+                        Display Options
+                    </h3>
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-body-md font-medium text-on-surface"
+                            >Include Student Photo</span
+                        >
+                        <div
+                            class="relative inline-block w-[44px] align-middle select-none transition duration-200 ease-in"
+                        >
+                            <input
+                                class="toggle-switch-checkbox hidden"
+                                id="togglePhoto"
+                                name="togglePhoto"
+                                type="checkbox"
+                            />
+                            <label
+                                class="toggle-switch-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer"
+                                for="togglePhoto"
+                            ></label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-body-md font-medium text-on-surface"
+                            >Show Holidays</span
+                        >
+                        <div
+                            class="relative inline-block w-[44px] align-middle select-none transition duration-200 ease-in"
+                        >
+                            <input
+                                checked=""
+                                class="toggle-switch-checkbox hidden"
+                                id="toggleHolidays"
+                                name="toggleHolidays"
+                                type="checkbox"
+                            />
+                            <label
+                                class="toggle-switch-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer"
+                                for="toggleHolidays"
+                            ></label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-body-md font-medium text-on-surface"
+                            >Show Sundays</span
+                        >
+                        <div
+                            class="relative inline-block w-[44px] align-middle select-none transition duration-200 ease-in"
+                        >
+                            <input
+                                class="toggle-switch-checkbox hidden"
+                                id="toggleSundays"
+                                name="toggleSundays"
+                                type="checkbox"
+                            />
+                            <label
+                                class="toggle-switch-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer"
+                                for="toggleSundays"
+                            ></label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-body-md font-medium text-on-surface"
+                            >Date Order (Asc/Desc)</span
+                        >
+                        <div
+                            class="relative inline-block w-[44px] align-middle select-none transition duration-200 ease-in"
+                        >
+                            <input
+                                checked=""
+                                class="toggle-switch-checkbox hidden"
+                                id="toggleOrder"
+                                name="toggleOrder"
+                                type="checkbox"
+                            />
+                            <label
+                                class="toggle-switch-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer"
+                                for="toggleOrder"
+                            ></label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-body-md font-medium text-on-surface"
+                            >Alternate Row Shading</span
+                        >
+                        <div
+                            class="relative inline-block w-[44px] align-middle select-none transition duration-200 ease-in"
+                        >
+                            <input
+                                checked=""
+                                class="toggle-switch-checkbox hidden"
+                                id="toggleShading"
+                                name="toggleShading"
+                                type="checkbox"
+                            />
+                            <label
+                                class="toggle-switch-label block overflow-hidden h-6 rounded-full bg-surface-variant cursor-pointer"
+                                for="toggleShading"
+                            ></label>
+                        </div>
+                    </div>
+                </section>
+                <!-- Actions -->
+                <section class="flex flex-col gap-4 mt-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <button
+                            class="w-full py-3.5 px-4 text-primary font-semibold transition-colors flex items-center justify-center gap-2 text-sm bg-surface-container text-on-surface hover:bg-surface-container-high rounded-full"
+                            type="button"
+                        >
+                            <span
+                                class="material-symbols-outlined text-[20px]"
+                                data-icon="visibility"
+                                >visibility</span
+                            >
+                            Preview Sheet
+                        </button>
+                        <button
+                            class="w-full py-3.5 px-4 text-primary font-semibold transition-colors flex items-center justify-center gap-2 text-sm bg-surface-container text-on-surface hover:bg-surface-container-high rounded-full"
+                            type="button"
+                        >
+                            <span
+                                class="material-symbols-outlined text-[20px]"
+                                data-icon="table_view"
+                                >table_view</span
+                            >
+                            Export Excel
+                        </button>
+                    </div>
+                    <button
+                        class="w-full py-4 px-6 bg-primary text-white font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-base shadow-md rounded-full"
+                        type="button"
+                    >
+                        <span
+                            class="material-symbols-outlined text-[24px]"
+                            data-icon="picture_as_pdf"
+                            >picture_as_pdf</span
+                        >
+                        Generate Sheet
+                    </button>
+                </section>
+            </div>
+        </main>
+    </body>
+</html>

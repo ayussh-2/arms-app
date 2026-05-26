@@ -1,0 +1,253 @@
+<!doctype html>
+<html class="light" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>ARMS - Sign In</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "surface-container": "#f1edec",
+                            "on-primary-container": "#858383",
+                            "secondary-container": "#316bf3",
+                            error: "#ba1a1a",
+                            secondary: "#0051d5",
+                            "on-tertiary-fixed": "#1d1b1a",
+                            "on-background": "#1c1b1b",
+                            "surface-container-low": "#f7f3f2",
+                            outline: "#747878",
+                            "on-tertiary-container": "#868381",
+                            "tertiary-container": "#1d1b1a",
+                            "on-tertiary-fixed-variant": "#484645",
+                            "primary-container": "#1c1b1b",
+                            "on-secondary-fixed": "#00174b",
+                            "primary-fixed-dim": "#c9c6c5",
+                            "on-surface-variant": "#444748",
+                            "inverse-surface": "#313030",
+                            "error-container": "#ffdad6",
+                            "surface-bright": "#fdf8f8",
+                            "inverse-on-surface": "#f4f0ef",
+                            "surface-tint": "#5f5e5e",
+                            "secondary-fixed": "#dbe1ff",
+                            "on-secondary": "#ffffff",
+                            "on-surface": "#1c1b1b",
+                            "on-primary-fixed-variant": "#474646",
+                            "on-tertiary": "#ffffff",
+                            "on-secondary-fixed-variant": "#003ea8",
+                            "on-error": "#ffffff",
+                            surface: "#fdf8f8",
+                            "surface-dim": "#ddd9d8",
+                            "outline-variant": "#c4c7c7",
+                            "tertiary-fixed-dim": "#cac6c3",
+                            "on-secondary-container": "#fefcff",
+                            "surface-container-high": "#ebe7e6",
+                            "secondary-fixed-dim": "#b4c5ff",
+                            "surface-container-lowest": "#ffffff",
+                            primary: "#000000",
+                            "on-error-container": "#93000a",
+                            "inverse-primary": "#c9c6c5",
+                            "surface-variant": "#e5e2e1",
+                            "on-primary": "#ffffff",
+                            background: "#fdf8f8",
+                            tertiary: "#000000",
+                            "on-primary-fixed": "#1c1b1b",
+                            "primary-fixed": "#e5e2e1",
+                            "tertiary-fixed": "#e6e1df",
+                            "surface-container-highest": "#e5e2e1",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            full: "9999px",
+                        },
+                        spacing: {
+                            "margin-page": "24px",
+                            "stack-md": "16px",
+                            "padding-input": "12px 24px",
+                            "gutter-card": "16px",
+                            "stack-lg": "32px",
+                            unit: "4px",
+                            "stack-sm": "8px",
+                        },
+                        fontFamily: {
+                            "label-xs": ["Plus Jakarta Sans"],
+                            "display-lg": ["Plus Jakarta Sans"],
+                            "body-md": ["Plus Jakarta Sans"],
+                            "header-sm": ["Plus Jakarta Sans"],
+                            "label-xs-uppercase": ["Plus Jakarta Sans"],
+                            "display-lg-mobile": ["Plus Jakarta Sans"],
+                        },
+                        fontSize: {
+                            "label-xs": [
+                                "14px",
+                                {
+                                    lineHeight: "20px",
+                                    letterSpacing: "0.01em",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "display-lg": [
+                                "32px",
+                                {
+                                    lineHeight: "36px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "body-md": [
+                                "16px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "0",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "header-sm": [
+                                "18px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "-0.01em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "label-xs-uppercase": [
+                                "12px",
+                                {
+                                    lineHeight: "16px",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "display-lg-mobile": [
+                                "28px",
+                                {
+                                    lineHeight: "32px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            body {
+                background-color: #ffffff; /* Explicitly requested Pure White */
+                font-family: "Plus Jakarta Sans", sans-serif;
+            }
+            /* Custom input focus ring to match primary accent */
+            .focus-ring-accent:focus {
+                --tw-ring-color: #0051d5;
+                border-color: #0051d5;
+            }
+        </style>
+    </head>
+    <body
+        class="min-h-screen flex flex-col items-center justify-center p-margin-page text-on-surface"
+    >
+        <div
+            class="w-full max-w-md w-full bg-surface-container-lowest rounded-xl p-gutter-card sm:p-8 flex flex-col gap-stack-lg"
+        >
+            <!-- Header Section -->
+            <div class="flex flex-col items-center text-center gap-stack-sm">
+                <h1
+                    class="font-display-lg text-display-lg text-secondary md:font-display-lg md:text-display-lg font-display-lg-mobile text-display-lg-mobile"
+                >
+                    ARMS
+                </h1>
+                <p
+                    class="font-header-sm text-header-sm text-on-surface-variant"
+                >
+                    Sign In
+                </p>
+            </div>
+            <!-- Form Section -->
+            <form action="#" class="flex flex-col gap-stack-md" method="POST">
+                <div class="flex flex-col gap-stack-sm">
+                    <label
+                        class="font-label-xs text-label-xs text-on-surface"
+                        for="email"
+                        >User ID</label
+                    >
+                    <div class="relative">
+                        <div
+                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                        >
+                            <span
+                                class="material-symbols-outlined text-outline text-xl"
+                                >person</span
+                            >
+                        </div>
+                        <input
+                            class="w-full pl-10 pr-4 py-3 bg-surface-variant border-transparent rounded-full focus-ring-accent text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent font-body-md text-body-md transition-colors"
+                            id="email"
+                            name="email"
+                            placeholder="Enter your User ID"
+                            required=""
+                            type="email"
+                        />
+                    </div>
+                </div>
+                <div class="flex flex-col gap-stack-sm">
+                    <div class="flex justify-between items-center">
+                        <label
+                            class="font-label-xs text-label-xs text-on-surface"
+                            for="password"
+                            >Password</label
+                        >
+                    </div>
+                    <div class="relative">
+                        <div
+                            class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+                        >
+                            <span
+                                class="material-symbols-outlined text-outline text-xl"
+                                >person</span
+                            >
+                        </div>
+                        <input
+                            class="w-full pl-10 pr-10 py-3 bg-surface-variant border-transparent rounded-full focus-ring-accent text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent font-body-md text-body-md transition-colors"
+                            id="password"
+                            name="password"
+                            placeholder="••••••••"
+                            required=""
+                            type="password"
+                        />
+                        <button
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface transition-colors"
+                            type="button"
+                        >
+                            <span class="material-symbols-outlined text-xl"
+                                >visibility_off</span
+                            >
+                        </button>
+                    </div>
+                </div>
+                <button
+                    class="w-full bg-secondary hover:bg-on-secondary-fixed-variant text-on-secondary py-3 px-4 rounded-full font-header-sm text-header-sm transition-all mt-4 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
+                    type="submit"
+                >
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </body>
+</html>

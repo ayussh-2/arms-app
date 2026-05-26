@@ -1,0 +1,29 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Flutter
+/arms/.dart_tool/
+/arms/.flutter-plugins
+/arms/.flutter-plugins-dependencies
+/arms/.metadata
+/arms/build/
+/arms/android/local.properties
+/arms/ios/Flutter/ephemeral/
+
+# Node / backend
+/backend/node_modules/
+/backend/.env
+/backend/.env.*
+/backend/npm-debug.log
+/backend/yarn-error.log
+/backend/arms.db
+/backend/arms.db-journal
+
+# Misc
+*.log

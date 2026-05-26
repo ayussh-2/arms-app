@@ -1,0 +1,356 @@
+<!doctype html>
+<html class="light" lang="en" style="">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Attendance Configuration</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "surface-container-high": "#ebe7e6",
+                            "on-tertiary": "#ffffff",
+                            "inverse-surface": "#313030",
+                            "error-container": "#ffdad6",
+                            "outline-variant": "#c4c7c7",
+                            "on-surface": "#1c1b1b",
+                            "on-secondary-fixed": "#00174b",
+                            "inverse-primary": "#c9c6c5",
+                            "on-primary": "#ffffff",
+                            "surface-bright": "#fdf8f8",
+                            "on-secondary-container": "#fefcff",
+                            "surface-tint": "#5f5e5e",
+                            surface: "#fdf8f8",
+                            "secondary-container": "#316bf3",
+                            "on-surface-variant": "#444748",
+                            error: "#ba1a1a",
+                            "surface-container-low": "#f7f3f2",
+                            tertiary: "#000000",
+                            "primary-fixed": "#e5e2e1",
+                            "on-primary-fixed": "#1c1b1b",
+                            "secondary-fixed-dim": "#b4c5ff",
+                            "surface-variant": "#e5e2e1",
+                            "on-secondary-fixed-variant": "#003ea8",
+                            "on-primary-container": "#858383",
+                            "surface-dim": "#ddd9d8",
+                            "on-primary-fixed-variant": "#474646",
+                            "primary-fixed-dim": "#c9c6c5",
+                            "tertiary-container": "#1d1b1a",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary-fixed": "#1d1b1a",
+                            "surface-container-highest": "#e5e2e1",
+                            "surface-container": "#f1edec",
+                            "on-error-container": "#93000a",
+                            "on-secondary": "#ffffff",
+                            "on-background": "#1c1b1b",
+                            "tertiary-fixed": "#e6e1df",
+                            "secondary-fixed": "#dbe1ff",
+                            "on-tertiary-fixed-variant": "#484645",
+                            "tertiary-fixed-dim": "#cac6c3",
+                            primary: "#000000",
+                            "on-tertiary-container": "#868381",
+                            secondary: "#0051d5",
+                            background: "#fdf8f8",
+                            "primary-container": "#1c1b1b",
+                            outline: "#747878",
+                            "on-error": "#ffffff",
+                            "inverse-on-surface": "#f4f0ef",
+                            "clean-surface": "#F5F5F5",
+                            "clean-accent": "#2563EB",
+                            "clean-text": "#0D0D0D",
+                            "clean-secondary-text": "#8A8A8A",
+                            "clean-white": "#FFFFFF",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            full: "9999px",
+                            block: "16px",
+                            pill: "50px",
+                        },
+                        spacing: {
+                            unit: "4px",
+                            "margin-page": "24px",
+                            "stack-sm": "8px",
+                            "stack-md": "16px",
+                            "padding-input": "12px 24px",
+                            "gutter-card": "16px",
+                            "stack-lg": "32px",
+                        },
+                        fontFamily: {
+                            "label-xs": ["Plus Jakarta Sans"],
+                            "header-sm": ["Plus Jakarta Sans"],
+                            "display-lg-mobile": ["Plus Jakarta Sans"],
+                            "label-xs-uppercase": ["Plus Jakarta Sans"],
+                            "display-lg": ["Plus Jakarta Sans"],
+                            "body-md": ["Plus Jakarta Sans"],
+                        },
+                        fontSize: {
+                            "label-xs": [
+                                "14px",
+                                {
+                                    lineHeight: "20px",
+                                    letterSpacing: "0.01em",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "header-sm": [
+                                "18px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "-0.01em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "display-lg-mobile": [
+                                "28px",
+                                {
+                                    lineHeight: "32px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "label-xs-uppercase": [
+                                "12px",
+                                {
+                                    lineHeight: "16px",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "display-lg": [
+                                "32px",
+                                {
+                                    lineHeight: "36px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "body-md": [
+                                "16px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "0",
+                                    fontWeight: "400",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+    </head>
+    <body
+        class="bg-clean-white text-clean-text font-body-md min-h-screen antialiased flex flex-col"
+    >
+        <!-- TopAppBar -->
+        <main
+            class="flex-grow pt-24 px-margin-page pb-32 max-w-2xl mx-auto w-full"
+        >
+            <!-- Header -->
+            <div class="mb-stack-lg">
+                <h2
+                    class="font-display-lg text-display-lg text-clean-text mb-stack-sm"
+                >
+                    Attendance Configuration
+                </h2>
+            </div>
+            <!-- Sub-navigation Segmented Control -->
+            <div
+                class="bg-clean-surface rounded-pill p-1 flex mb-stack-lg w-full overflow-hidden"
+            >
+                <button
+                    class="flex-1 py-2 px-4 rounded-pill bg-clean-white text-[#0051d5] font-header-sm text-header-sm shadow-sm transition-all duration-200 text-center"
+                >
+                    Feed
+                </button>
+                <button
+                    class="flex-1 py-2 px-4 rounded-pill text-clean-secondary-text font-header-sm text-header-sm hover:text-clean-text transition-all duration-200 text-center"
+                >
+                    Leave
+                </button>
+                <button
+                    class="flex-1 py-2 px-4 rounded-pill text-clean-secondary-text font-header-sm text-header-sm hover:text-clean-text transition-all duration-200 text-center"
+                >
+                    Sheet
+                </button>
+            </div>
+            <form class="space-y-stack-lg">
+                <!-- Date Selector -->
+                <div class="space-y-stack-sm">
+                    <label
+                        class="block font-label-xs text-label-xs text-clean-text font-semibold ml-4"
+                        >Date</label
+                    >
+                    <div
+                        class="relative flex items-center bg-clean-surface rounded-pill h-14 border border-transparent focus-within:border-[#0051d5] transition-colors"
+                    >
+                        <span
+                            class="material-symbols-outlined text-clean-secondary-text absolute left-6"
+                            style="font-variation-settings: &quot;FILL&quot; 0"
+                            >calendar_today</span
+                        >
+                        <input
+                            class="w-full bg-transparent border-none outline-none pl-14 pr-6 py-3 font-body-md text-body-md text-clean-text rounded-pill focus:ring-0 cursor-pointer"
+                            readonly=""
+                            type="text"
+                            value="Today, 24 Oct 2023"
+                        />
+                    </div>
+                    <p
+                        class="text-[13px] text-error px-4 hidden"
+                        id="date-warning"
+                    >
+                        Warning: Selecting a past date.
+                    </p>
+                </div>
+                <!-- Session Selector -->
+                <div class="space-y-stack-sm">
+                    <label
+                        class="block font-label-xs text-label-xs text-clean-text font-semibold ml-4"
+                        >Session</label
+                    >
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="cursor-pointer relative">
+                            <input
+                                checked=""
+                                class="peer sr-only"
+                                name="session"
+                                type="radio"
+                            />
+                            <div
+                                class="h-14 rounded-pill bg-clean-surface border border-transparent peer-checked:border-[#0051d5] peer-checked:bg-clean-white flex items-center justify-center transition-all"
+                            >
+                                <span
+                                    class="font-body-md text-body-md text-clean-secondary-text peer-checked:text-[#0051d5] peer-checked:font-semibold"
+                                    >Morning In</span
+                                >
+                            </div>
+                        </label>
+                        <label class="cursor-pointer relative">
+                            <input
+                                class="peer sr-only"
+                                name="session"
+                                type="radio"
+                            />
+                            <div
+                                class="h-14 rounded-pill bg-clean-surface border border-transparent peer-checked:border-[#0051d5] peer-checked:bg-clean-white flex items-center justify-center transition-all"
+                            >
+                                <span
+                                    class="font-body-md text-body-md text-clean-secondary-text peer-checked:text-[#0051d5] peer-checked:font-semibold"
+                                    >Morning Out</span
+                                >
+                            </div>
+                        </label>
+                        <label class="cursor-pointer relative">
+                            <input
+                                class="peer sr-only"
+                                name="session"
+                                type="radio"
+                            />
+                            <div
+                                class="h-14 rounded-pill bg-clean-surface border border-transparent peer-checked:border-[#0051d5] peer-checked:bg-clean-white flex items-center justify-center transition-all"
+                            >
+                                <span
+                                    class="font-body-md text-body-md text-clean-secondary-text peer-checked:text-[#0051d5] peer-checked:font-semibold"
+                                    >Evening In</span
+                                >
+                            </div>
+                        </label>
+                        <label class="cursor-pointer relative">
+                            <input
+                                class="peer sr-only"
+                                name="session"
+                                type="radio"
+                            />
+                            <div
+                                class="h-14 rounded-pill bg-clean-surface border border-transparent peer-checked:border-[#0051d5] peer-checked:bg-clean-white flex items-center justify-center transition-all"
+                            >
+                                <span
+                                    class="font-body-md text-body-md text-clean-secondary-text peer-checked:text-[#0051d5] peer-checked:font-semibold"
+                                    >Evening Out</span
+                                >
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <!-- Class & Section Selector -->
+                <div class="space-y-stack-sm">
+                    <label
+                        class="block font-label-xs text-label-xs text-clean-text font-semibold ml-4"
+                        >Class &amp; Section</label
+                    >
+                    <div
+                        class="relative flex items-center bg-clean-surface rounded-pill h-14 border border-transparent focus-within:border-[#0051d5] transition-colors cursor-pointer group"
+                    >
+                        <input
+                            class="w-full bg-transparent border-none outline-none pl-6 pr-14 py-3 font-body-md text-body-md text-clean-text placeholder-clean-secondary-text rounded-pill focus:ring-0 cursor-pointer"
+                            placeholder="Select Class/Section"
+                            readonly=""
+                            type="text"
+                        />
+                        <span
+                            class="material-symbols-outlined text-clean-secondary-text absolute right-6 group-hover:text-clean-text transition-colors"
+                            style="font-variation-settings: &quot;FILL&quot; 0"
+                            >keyboard_arrow_down</span
+                        >
+                    </div>
+                </div>
+                <!-- Primary Action -->
+                <div class="pt-stack-md">
+                    <button
+                        class="w-full h-14 rounded-pill bg-clean-surface text-clean-secondary-text font-header-sm text-header-sm transition-colors duration-200 cursor-not-allowed"
+                        id="load-btn"
+                        type="button"
+                    >
+                        Load Student Roster
+                    </button>
+                </div>
+            </form>
+        </main>
+        <!-- BottomNavBar -->
+        <script>
+            // Simple mock interaction to simulate selection enabling the button
+            const classInput = document.querySelector(
+                'input[placeholder="Select Class/Section"]',
+            );
+            const loadBtn = document.getElementById("load-btn");
+
+            classInput.addEventListener("click", () => {
+                // Mock selection
+                classInput.value = "Grade 10 - Science A";
+                loadBtn.classList.remove(
+                    "bg-clean-surface",
+                    "text-clean-secondary-text",
+                    "cursor-not-allowed",
+                );
+                loadBtn.classList.add(
+                    "bg-[#0051d5]",
+                    "text-white",
+                    "cursor-pointer",
+                );
+
+                // Mock Past date warning interaction
+                document
+                    .getElementById("date-warning")
+                    .classList.remove("hidden");
+            });
+        </script>
+    </body>
+</html>

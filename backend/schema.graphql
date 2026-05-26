@@ -1,0 +1,236 @@
+type Organisation {
+  id: ID!
+  name: String!
+  display_name: String
+  logo_url: String
+  header_url: String
+  helpline_no: String
+  attendance_devices: String
+  created_at: String
+}
+
+type AcademicYear {
+  id: ID!
+  name: String!
+  start_date: String
+  end_date: String
+  is_active: Boolean!
+  created_at: String
+}
+
+type School {
+  id: ID!
+  name: String!
+  display_order: Int
+  organisation_id: String
+  created_at: String
+}
+
+type Class {
+  id: ID!
+  name: String!
+  display_order: Int
+  organisation_id: String
+  created_at: String
+}
+
+type Section {
+  id: ID!
+  name: String!
+  display_order: Int
+  organisation_id: String
+  created_at: String
+}
+
+type Subject {
+  id: ID!
+  name: String!
+  code: String
+  display_order: Int
+  organisation_id: String
+  created_at: String
+}
+
+type Series {
+  id: ID!
+  name: String!
+  code: String!
+  description: String
+  display_order: Int
+  organisation_id: String
+  created_at: String
+}
+
+type Alumni {
+  id: ID!
+  name: String!
+  code: Int!
+  batch: String!
+  created_at: String
+}
+
+type Admin {
+  id: ID!
+  name: String!
+  email: String!
+  phone1: String!
+  phone2: String
+  gender: String
+  age: Int
+  img_url: String
+  role: String!
+  admin_id: String!
+  organisation_id: String
+  created_at: String
+}
+
+type Student {
+  id: ID!
+  name: String!
+  roll_no: Int!
+  image_url: String
+  email: String
+  phone1: String
+  phone2: String
+  address: String
+  gender: String
+  age: Int
+  dob: String
+  category: String
+  school: School
+  class: Class
+  section: Section
+  alumniBatch: Alumni
+  organisation_id: String!
+  created_at: String
+  attendance: [Attendance!]
+  marks: [Mark!]
+}
+
+type Attendance {
+  id: ID!
+  organisation_id: String!
+  student: Student!
+  attendance_date: String!
+  morning_in: String
+  morning_out: String
+  evening_in: String
+  evening_out: String
+  morning_in_status: String
+  morning_out_status: String
+  evening_in_status: String
+  evening_out_status: String
+  attendance_source: String!
+  done_by_admin: Admin
+  is_manual_override: Boolean!
+  remarks: String
+  created_at: String
+  updated_at: String
+}
+
+type AttendanceLeave {
+  id: ID!
+  organisation_id: String!
+  student: Student!
+  from_date: String!
+  to_date: String
+  leave_type: String!
+  reason: String
+  approved: Boolean!
+  approved_by: Admin
+  leave_application_image_url: String
+  rejected_reason: String
+  created_at: String!
+}
+
+type Exam {
+  id: ID!
+  name: String!
+  series: Series!
+  academic_year: AcademicYear
+  chapter: String
+  topic: String
+  exam_date: String
+  total_marks: Int
+  for_school: String
+  for_class: String
+  for_section: String
+  mark_saved: Boolean!
+  organisation_id: String!
+  created_by: Admin
+  created_at: String
+  subjects: [ExamSubject!]
+}
+
+type ExamSubject {
+  id: ID!
+  exam_id: ID!
+  subject: Subject!
+  max_marks: Int
+  created_at: String
+}
+
+type Mark {
+  id: ID!
+  student: Student!
+  exam: Exam!
+  subject: Subject!
+  marks_obtained: Float
+  is_absent: Boolean!
+  mark_status: String
+  created_at: String
+}
+
+type Query {
+  organisations: [Organisation!]!
+  academicYears: [AcademicYear!]!
+  schools: [School!]!
+  classes: [Class!]!
+  sections: [Section!]!
+  subjects: [Subject!]!
+  series: [Series!]!
+  admins: [Admin!]!
+  students(classId: ID, sectionId: ID, schoolId: ID): [Student!]!
+  student(id: ID!): Student
+  exams(classId: ID, sectionId: ID, seriesId: ID): [Exam!]!
+  exam(id: ID!): Exam
+  attendance(classId: ID!, sectionId: ID!, date: String!): [Attendance!]!
+  leaves(status: String): [AttendanceLeave!]!
+  marks(examId: ID!): [Mark!]!
+}
+
+input AttendanceInput {
+  student_id: ID!
+  attendance_date: String!
+  morning_in_status: String
+  morning_out_status: String
+  evening_in_status: String
+  evening_out_status: String
+  remarks: String
+  admin_id: ID!
+}
+
+input LeaveInput {
+  student_id: ID!
+  from_date: String!
+  to_date: String
+  leave_type: String!
+  reason: String
+  admin_id: ID
+}
+
+input MarkInput {
+  student_id: ID!
+  exam_id: ID!
+  subject_id: ID!
+  marks_obtained: Float
+  is_absent: Boolean!
+  mark_status: String
+}
+
+type Mutation {
+  saveAttendance(input: [AttendanceInput!]!): Boolean!
+  applyLeave(input: LeaveInput!): AttendanceLeave!
+  updateLeaveStatus(id: ID!, approved: Boolean!, rejectedReason: String): AttendanceLeave!
+  saveMarks(input: [MarkInput!]!): Boolean!
+}

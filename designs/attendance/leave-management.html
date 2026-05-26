@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Leave Management - ARMS</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "on-secondary": "#ffffff",
+                            "on-secondary-fixed": "#00174b",
+                            "primary-fixed-dim": "#c9c6c5",
+                            "on-tertiary-fixed-variant": "#484645",
+                            "surface-variant": "#e5e2e1",
+                            "on-error-container": "#93000a",
+                            background: "#fdf8f8",
+                            "on-secondary-container": "#fefcff",
+                            "secondary-container": "#316bf3",
+                            "outline-variant": "#c4c7c7",
+                            primary: "#0051d5",
+                            "secondary-fixed": "#dbe1ff",
+                            "on-tertiary-container": "#868381",
+                            "surface-container-low": "#f7f3f2",
+                            surface: "#fdf8f8",
+                            "error-container": "#ffdad6",
+                            "primary-fixed": "#e5e2e1",
+                            "on-surface-variant": "#444748",
+                            "on-error": "#ffffff",
+                            "tertiary-container": "#1d1b1a",
+                            "surface-container-high": "#ebe7e6",
+                            "surface-container-highest": "#e5e2e1",
+                            outline: "#747878",
+                            "inverse-on-surface": "#f4f0ef",
+                            "on-primary-fixed": "#1c1b1b",
+                            "surface-tint": "#5f5e5e",
+                            tertiary: "#000000",
+                            "on-secondary-fixed-variant": "#003ea8",
+                            "on-primary-container": "#858383",
+                            "surface-container-lowest": "#ffffff",
+                            "on-tertiary": "#ffffff",
+                            "surface-dim": "#ddd9d8",
+                            "surface-container": "#f1edec",
+                            "on-primary": "#ffffff",
+                            "tertiary-fixed": "#e6e1df",
+                            "inverse-surface": "#313030",
+                            "secondary-fixed-dim": "#b4c5ff",
+                            "inverse-primary": "#c9c6c5",
+                            "on-background": "#1c1b1b",
+                            "primary-container": "#1c1b1b",
+                            error: "#ba1a1a",
+                            "on-tertiary-fixed": "#1d1b1a",
+                            "surface-bright": "#fdf8f8",
+                            "on-surface": "#1c1b1b",
+                            "on-primary-fixed-variant": "#474646",
+                            "tertiary-fixed-dim": "#cac6c3",
+                            secondary: "#0051d5",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            full: "9999px",
+                        },
+                        spacing: {
+                            "stack-lg": "32px",
+                            "padding-input": "12px 24px",
+                            "gutter-card": "16px",
+                            unit: "4px",
+                            "stack-md": "16px",
+                            "stack-sm": "8px",
+                            "margin-page": "24px",
+                        },
+                        fontFamily: {
+                            "label-xs": ["Plus Jakarta Sans"],
+                            "body-md": ["Plus Jakarta Sans"],
+                            "label-xs-uppercase": ["Plus Jakarta Sans"],
+                            "header-sm": ["Plus Jakarta Sans"],
+                            "display-lg": ["Plus Jakarta Sans"],
+                            "display-lg-mobile": ["Plus Jakarta Sans"],
+                        },
+                        fontSize: {
+                            "label-xs": [
+                                "14px",
+                                {
+                                    lineHeight: "20px",
+                                    letterSpacing: "0.01em",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "body-md": [
+                                "16px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "0",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "label-xs-uppercase": [
+                                "12px",
+                                {
+                                    lineHeight: "16px",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "header-sm": [
+                                "18px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "-0.01em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "display-lg": [
+                                "32px",
+                                {
+                                    lineHeight: "36px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "display-lg-mobile": [
+                                "28px",
+                                {
+                                    lineHeight: "32px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            body {
+                background-color: #fdf8f8; /* background */
+                color: #1c1b1b; /* on-background */
+            }
+            .material-symbols-outlined {
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
+            }
+        </style>
+        <style>
+            body {
+                min-height: max(884px, 100dvh);
+            }
+        </style>
+    </head>
+    <body
+        class="font-body-md text-body-md antialiased pb-24 min-h-screen relative"
+    >
+        <!-- TopAppBar -->
+
+        <!-- Main Canvas -->
+        <main
+            class="px-margin-page py-stack-md flex flex-col gap-stack-lg max-w-2xl mx-auto"
+        >
+            <!-- Page Title & Actions -->
+            <div class="flex justify-between items-end">
+                <div>
+                    <h2
+                        class="text-display-lg-mobile font-display-lg-mobile text-on-surface mb-1"
+                    >
+                        Leave Management
+                    </h2>
+                </div>
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <button
+                    class="px-6 py-2 rounded-full bg-primary text-on-primary text-label-xs font-semibold whitespace-nowrap"
+                >
+                    All
+                </button>
+                <button
+                    class="px-6 py-2 rounded-full border border-outline text-on-surface-variant text-label-xs font-semibold whitespace-nowrap"
+                >
+                    Approved
+                </button>
+                <button
+                    class="px-6 py-2 rounded-full border border-outline text-on-surface-variant text-label-xs font-semibold whitespace-nowrap"
+                >
+                    Pending
+                </button>
+                <button
+                    class="px-6 py-2 rounded-full border border-outline text-on-surface-variant text-label-xs font-semibold whitespace-nowrap"
+                >
+                    Rejected
+                </button>
+            </div>
+            <!-- Pending Section -->
+            <section class="flex flex-col gap-stack-md">
+                <h3
+                    class="text-header-sm font-header-sm text-on-surface border-b-2 border-surface-container-high pb-2 w-max pr-4"
+                >
+                    Pending Approval
+                </h3>
+                <div class="flex flex-col gap-stack-sm">
+                    <!-- Leave Card 1 -->
+                    <div
+                        class="bg-[#F5F5F5] rounded-[16px] p-[20px] flex justify-between items-start"
+                    >
+                        <div class="flex flex-col gap-1">
+                            <span
+                                class="text-body-md font-body-md font-semibold text-on-surface"
+                                >Sarah Jenkins</span
+                            >
+                            <span
+                                class="text-label-xs font-label-xs text-on-surface-variant flex items-center gap-1"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[16px]"
+                                    >calendar_today</span
+                                >
+                                Oct 12 - Oct 14
+                            </span>
+                            <p
+                                class="text-label-xs font-label-xs text-on-surface-variant mt-2 max-w-sm"
+                            >
+                                Family emergency. Requires travel out of state.
+                            </p>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <span
+                                class="px-3 py-1 bg-surface-dim text-on-surface-variant rounded-full text-label-xs-uppercase font-label-xs-uppercase tracking-wider"
+                                >Pending</span
+                            >
+                        </div>
+                    </div>
+                    <!-- Leave Card 2 -->
+                    <div
+                        class="bg-[#F5F5F5] rounded-[16px] p-[20px] flex justify-between items-start"
+                    >
+                        <div class="flex flex-col gap-1">
+                            <span
+                                class="text-body-md font-body-md font-semibold text-on-surface"
+                                >Marcus Thorne</span
+                            >
+                            <span
+                                class="text-label-xs font-label-xs text-on-surface-variant flex items-center gap-1"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[16px]"
+                                    >calendar_today</span
+                                >
+                                Oct 15 (Half Day)
+                            </span>
+                            <p
+                                class="text-label-xs font-label-xs text-on-surface-variant mt-2 max-w-sm"
+                            >
+                                Medical appointment.
+                            </p>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <span
+                                class="px-3 py-1 bg-surface-dim text-on-surface-variant rounded-full text-label-xs-uppercase font-label-xs-uppercase tracking-wider"
+                                >Pending</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Approved Section -->
+            <section class="flex flex-col gap-stack-md">
+                <h3
+                    class="text-header-sm font-header-sm text-on-surface border-b-2 border-surface-container-high pb-2 w-max pr-4 opacity-80"
+                >
+                    Recently Approved
+                </h3>
+                <div class="flex flex-col gap-stack-sm">
+                    <!-- Leave Card 3 -->
+                    <div
+                        class="bg-[#F5F5F5] rounded-[16px] p-[20px] flex justify-between items-start opacity-70"
+                    >
+                        <div class="flex flex-col gap-1">
+                            <span
+                                class="text-body-md font-body-md font-semibold text-on-surface"
+                                >Elena Rodriguez</span
+                            >
+                            <span
+                                class="text-label-xs font-label-xs text-on-surface-variant flex items-center gap-1"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[16px]"
+                                    >calendar_today</span
+                                >
+                                Oct 08 - Oct 09
+                            </span>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <span
+                                class="px-3 py-1 bg-[#E6F4EA] text-[#16A34A] rounded-full text-label-xs-uppercase font-label-xs-uppercase tracking-wider"
+                                >Approved</span
+                            >
+                        </div>
+                    </div>
+                    <!-- Leave Card 4 -->
+                    <div
+                        class="bg-[#F5F5F5] rounded-[16px] p-[20px] flex justify-between items-start opacity-70"
+                    >
+                        <div class="flex flex-col gap-1">
+                            <span
+                                class="text-body-md font-body-md font-semibold text-on-surface"
+                                >David Kim</span
+                            >
+                            <span
+                                class="text-label-xs font-label-xs text-on-surface-variant flex items-center gap-1"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[16px]"
+                                    >calendar_today</span
+                                >
+                                Oct 05
+                            </span>
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <span
+                                class="px-3 py-1 bg-[#E6F4EA] text-[#16A34A] rounded-full text-label-xs-uppercase font-label-xs-uppercase tracking-wider"
+                                >Approved</span
+                            >
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <!-- Floating Action Button (FAB) -->
+        <button
+            class="fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-full flex items-center justify-center shadow-xl hover:opacity-90 transition-opacity z-40"
+        >
+            <span
+                class="material-symbols-outlined"
+                style="font-variation-settings: &quot;FILL&quot; 1"
+                >add</span
+            >
+        </button>
+        <!-- BottomNavBar -->
+    </body>
+</html>

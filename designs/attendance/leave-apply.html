@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en" style="">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Apply Leave - ARMS</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "primary-fixed": "#e5e2e1",
+                            "on-secondary-fixed-variant": "#003ea8",
+                            "secondary-fixed": "#dbe1ff",
+                            "inverse-primary": "#c9c6c5",
+                            "primary-fixed-dim": "#c9c6c5",
+                            "on-error": "#ffffff",
+                            "on-secondary-container": "#fefcff",
+                            "on-primary-fixed": "#1c1b1b",
+                            "secondary-container": "#316bf3",
+                            "on-primary": "#ffffff",
+                            "surface-bright": "#fdf8f8",
+                            "on-tertiary-fixed": "#1d1b1a",
+                            "on-surface-variant": "#444748",
+                            "surface-container": "#f1edec",
+                            surface: "#fdf8f8",
+                            "on-error-container": "#93000a",
+                            tertiary: "#000000",
+                            secondary: "#0051d5",
+                            "on-tertiary-container": "#868381",
+                            error: "#ba1a1a",
+                            "primary-container": "#0051d5",
+                            "inverse-on-surface": "#f4f0ef",
+                            "on-primary-container": "#ffffff",
+                            "surface-tint": "#5f5e5e",
+                            "surface-container-high": "#ebe7e6",
+                            "surface-variant": "#e5e2e1",
+                            "on-tertiary-fixed-variant": "#484645",
+                            "on-primary-fixed-variant": "#474646",
+                            "surface-dim": "#ddd9d8",
+                            "secondary-fixed-dim": "#b4c5ff",
+                            "on-secondary": "#ffffff",
+                            background: "#fdf8f8",
+                            "tertiary-fixed-dim": "#cac6c3",
+                            "on-background": "#1c1b1b",
+                            "on-secondary-fixed": "#00174b",
+                            "surface-container-lowest": "#ffffff",
+                            outline: "#747878",
+                            "error-container": "#ffdad6",
+                            "on-tertiary": "#ffffff",
+                            primary: "#0051d5",
+                            "tertiary-fixed": "#e6e1df",
+                            "inverse-surface": "#313030",
+                            "surface-container-low": "#f7f3f2",
+                            "outline-variant": "#c4c7c7",
+                            "surface-container-highest": "#e5e2e1",
+                            "tertiary-container": "#1d1b1a",
+                            "on-surface": "#1c1b1b",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.25rem",
+                            lg: "0.5rem",
+                            xl: "0.75rem",
+                            full: "9999px",
+                        },
+                        spacing: {
+                            "stack-lg": "32px",
+                            "gutter-card": "16px",
+                            "stack-md": "16px",
+                            "stack-sm": "8px",
+                            unit: "4px",
+                            "padding-input": "12px 24px",
+                            "margin-page": "24px",
+                        },
+                        fontFamily: {
+                            "header-sm": ["Plus Jakarta Sans"],
+                            "display-lg": ["Plus Jakarta Sans"],
+                            "label-xs-uppercase": ["Plus Jakarta Sans"],
+                            "label-xs": ["Plus Jakarta Sans"],
+                            "display-lg-mobile": ["Plus Jakarta Sans"],
+                            "body-md": ["Plus Jakarta Sans"],
+                        },
+                        fontSize: {
+                            "header-sm": [
+                                "18px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "-0.01em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "display-lg": [
+                                "32px",
+                                {
+                                    lineHeight: "36px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "label-xs-uppercase": [
+                                "12px",
+                                {
+                                    lineHeight: "16px",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "600",
+                                },
+                            ],
+                            "label-xs": [
+                                "14px",
+                                {
+                                    lineHeight: "20px",
+                                    letterSpacing: "0.01em",
+                                    fontWeight: "400",
+                                },
+                            ],
+                            "display-lg-mobile": [
+                                "28px",
+                                {
+                                    lineHeight: "32px",
+                                    letterSpacing: "-0.04em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "body-md": [
+                                "16px",
+                                {
+                                    lineHeight: "24px",
+                                    letterSpacing: "0",
+                                    fontWeight: "400",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style type="text/tailwindcss">
+            @layer utilities {
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none; /* IE and Edge */
+                    scrollbar-width: none; /* Firefox */
+                }
+            }
+        </style>
+    </head>
+    <body
+        class="bg-surface-container-lowest text-on-background font-body-md min-h-screen flex flex-col pt-16 pb-20"
+    >
+        <!-- TopAppBar JSON Component -->
+        <main
+            class="flex-grow px-margin-page py-stack-md flex flex-col gap-stack-lg max-w-2xl mx-auto w-full"
+        >
+            <!-- Segmented Control -->
+            <nav
+                aria-label="Tabs"
+                class="flex bg-surface-container rounded-full p-1"
+            >
+                <a
+                    class="flex-1 flex justify-center py-2 px-4 rounded-full text-on-surface-variant font-label-xs-uppercase hover:bg-surface-variant transition-colors"
+                    href="#"
+                    >Feed</a
+                >
+                <a
+                    class="flex-1 flex justify-center py-2 px-4 rounded-full bg-primary-container text-on-primary-container font-label-xs-uppercase shadow-sm"
+                    href="#"
+                    >Leave</a
+                >
+                <a
+                    class="flex-1 flex justify-center py-2 px-4 rounded-full text-on-surface-variant font-label-xs-uppercase hover:bg-surface-variant transition-colors"
+                    href="#"
+                    >Sheet</a
+                >
+            </nav>
+            <section class="flex flex-col gap-stack-md">
+                <!-- Student Picker -->
+                <div class="flex flex-col gap-stack-sm">
+                    <div class="relative">
+                        <span
+                            class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant"
+                            data-icon="search"
+                            >search</span
+                        >
+                        <input
+                            class="w-full bg-surface-container rounded-full pl-12 pr-4 py-3 text-on-surface border-none focus:ring-2 focus:ring-secondary transition-all outline-none font-body-md placeholder:text-on-surface-variant"
+                            placeholder="Search Student..."
+                            type="text"
+                        />
+                    </div>
+                    <!-- Selected Student Card -->
+                    <div
+                        class="bg-surface-container rounded-xl p-4 flex items-center justify-between mt-2"
+                    >
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-surface-variant overflow-hidden flex items-center justify-center"
+                            >
+                                <img
+                                    alt="Alice Chen"
+                                    class="w-full h-full object-cover"
+                                    data-alt="A close-up portrait of a female student with dark hair, looking directly at the camera with a neutral expression. The background is a clean, neutral white. The lighting is soft and even, highlighting her features clearly."
+                                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrwm1A6rFLT4qPXZBWtSmLua3BXup9R9Mugy119m0k2rsXTbv-3D8w6jJQO-_aw_oTy2_dFry2INXzL00tIxCltP-7CCGnQRcxgIUD9MURivg8qpALBxGHdqnRNCIwIxmWrEZzSY4KYS3msV2JOwnJ_7U5wYtIhAeZwpuz41rX1Cq707ci6xXxmmpEQS4aQAkqDvKOzaqDfADLwhr_LYOGk3TfxMNm4LGVlaFJYI93Q1_ZR6zPqUx2-vsvMNlioG7OcEmQUiPBQPSK"
+                                />
+                            </div>
+                            <div>
+                                <h3
+                                    class="font-header-sm text-header-sm text-on-surface"
+                                >
+                                    Alice Chen
+                                </h3>
+                                <p
+                                    class="font-label-xs text-label-xs text-on-surface-variant"
+                                >
+                                    CS-2023-001
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            class="text-error hover:opacity-80 transition-opacity"
+                        >
+                            <span
+                                class="material-symbols-outlined"
+                                data-icon="close"
+                                >close</span
+                            >
+                        </button>
+                    </div>
+                </div>
+                <!-- Date Fields -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-stack-sm">
+                        <label
+                            class="font-label-xs-uppercase text-label-xs-uppercase text-on-surface-variant px-1"
+                            >From Date</label
+                        >
+                        <div class="relative">
+                            <input
+                                class="w-full bg-surface-container rounded-xl px-4 py-3 text-on-surface border-none focus:ring-2 focus:ring-secondary transition-all outline-none font-body-md"
+                                type="date"
+                                value="2023-10-25"
+                            />
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-stack-sm">
+                        <label
+                            class="font-label-xs-uppercase text-label-xs-uppercase text-on-surface-variant px-1"
+                            >To Date</label
+                        >
+                        <div class="relative">
+                            <input
+                                class="w-full bg-surface-container rounded-xl px-4 py-3 text-on-surface border-none focus:ring-2 focus:ring-secondary transition-all outline-none font-body-md"
+                                type="date"
+                                value="2023-10-27"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <!-- Leave Type -->
+                <div class="flex flex-col gap-stack-sm">
+                    <label
+                        class="font-label-xs-uppercase text-label-xs-uppercase text-on-surface-variant px-1"
+                        >Leave Type</label
+                    >
+                    <div class="relative">
+                        <select
+                            class="w-full bg-surface-container rounded-xl px-4 py-3 text-on-surface border-none focus:ring-2 focus:ring-secondary transition-all outline-none font-body-md appearance-none"
+                        >
+                            <option>Fever</option>
+                            <option>Casual</option>
+                            <option>Marriage</option>
+                            <option>Other</option>
+                        </select>
+                        <span
+                            class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none"
+                            data-icon="expand_more"
+                            >expand_more</span
+                        >
+                    </div>
+                </div>
+                <!-- Reason -->
+                <div class="flex flex-col gap-stack-sm">
+                    <label
+                        class="font-label-xs-uppercase text-label-xs-uppercase text-on-surface-variant px-1"
+                        >Reason</label
+                    >
+                    <textarea
+                        class="w-full bg-surface-container rounded-xl px-4 py-3 text-on-surface border-none focus:ring-2 focus:ring-secondary transition-all outline-none font-body-md resize-none"
+                        placeholder="Enter details here..."
+                        rows="3"
+                    ></textarea>
+                </div>
+                <!-- Approval Controls -->
+                <div
+                    class="bg-surface-container rounded-xl p-4 flex flex-col gap-4 mt-2"
+                >
+                    <div class="flex items-center justify-between">
+                        <label
+                            class="font-header-sm text-header-sm text-on-surface"
+                            >Approved</label
+                        >
+                        <button
+                            aria-pressed="true"
+                            class="w-12 h-6 rounded-full bg-primary-container relative transition-colors duration-300"
+                            id="approvedToggle"
+                        >
+                            <span
+                                class="absolute left-1 top-1 w-4 h-4 bg-on-primary-container rounded-full transition-transform duration-300 transform translate-x-6"
+                            ></span>
+                        </button>
+                    </div>
+                    <div class="flex flex-col gap-stack-sm">
+                        <label
+                            class="font-label-xs text-label-xs text-on-surface-variant"
+                            >Rejected Reason
+                            <span class="text-outline-variant"
+                                >(forces Approved to OFF)</span
+                            ></label
+                        >
+                        <input
+                            class="w-full bg-surface-container-lowest rounded-lg px-4 py-3 text-on-surface border-none focus:ring-2 focus:ring-secondary transition-all outline-none font-body-md placeholder:text-on-surface-variant"
+                            id="rejectedReasonInput"
+                            placeholder="If rejected, specify why..."
+                            type="text"
+                        />
+                    </div>
+                </div>
+                <!-- Attachment -->
+                <div class="flex flex-col gap-stack-sm">
+                    <label
+                        class="font-label-xs-uppercase text-label-xs-uppercase text-on-surface-variant px-1"
+                        >Attachment</label
+                    >
+                    <div class="flex gap-4 items-center">
+                        <button
+                            class="w-20 h-20 bg-surface-container rounded-xl flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors border-2 border-dashed border-outline-variant"
+                        >
+                            <span
+                                class="material-symbols-outlined"
+                                data-icon="add_photo_alternate"
+                                >add_photo_alternate</span
+                            >
+                        </button>
+                        <div
+                            class="relative w-20 h-20 rounded-xl overflow-hidden group"
+                        >
+                            <img
+                                alt="Medical Certificate"
+                                class="w-full h-full object-cover"
+                                data-alt="A close-up shot of a stylized, generic medical certificate document on a clean white desk. The document has some blurry text and a faint red stamp. The lighting is bright and even, casting a very soft shadow, maintaining a clean utility look."
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRJHShvOR8Rwc9GO3IH0g0WGeNijn7AQ1mKhhvvWiU_zrGmvwxBRraCPhSs3eb6-WTpWe-sS_HFskS10piFeccsS8FmLzL4g15C794eZyPX1b1l5_tRIMUp5SUTmQb8A4vv2v5OlMdm7hvsqPFokv2hW17BOeIuOoBILqynNkndH4221Iapu28pYOCjwZ0hNQ7tX4Bx6I_cksxQfymmcIFWya4RSikonSrRucRL55vLCsAYZ0ZZYjOziHSlQ8VoAhMdKQfQFK0JIed"
+                            />
+                            <button
+                                class="absolute top-1 right-1 bg-surface-container-lowest text-error rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[16px]"
+                                    data-icon="delete"
+                                    >delete</span
+                                >
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Actions -->
+            <div class="mt-8 flex flex-col gap-4 mb-8">
+                <button
+                    class="w-full py-4 rounded-full bg-primary-container text-on-primary-container font-header-sm text-header-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                >
+                    Apply
+                </button>
+                <button
+                    class="w-full py-4 rounded-full text-on-surface-variant font-header-sm text-header-sm hover:bg-surface-container transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+        </main>
+        <!-- Floating History Action -->
+        <a
+            class="fixed bottom-24 right-6 w-14 h-14 bg-surface-container rounded-full flex items-center justify-center text-on-surface-variant shadow-sm hover:bg-surface-variant transition-colors z-40"
+            href="#"
+        >
+            <span class="material-symbols-outlined" data-icon="history"
+                >history</span
+            >
+        </a>
+        <!-- BottomNavBar JSON Component -->
+        <script>
+            // Simple logic for the Approved toggle and Rejected Reason input interaction
+            const toggleBtn = document.getElementById("approvedToggle");
+            const toggleKnob = toggleBtn.querySelector("span");
+            const rejectedInput = document.getElementById(
+                "rejectedReasonInput",
+            );
+            let isApproved = true;
+
+            function setToggleState(state) {
+                isApproved = state;
+                toggleBtn.setAttribute("aria-pressed", state);
+                if (state) {
+                    toggleBtn.classList.replace(
+                        "bg-surface-container-high",
+                        "bg-primary-container",
+                    );
+                    toggleKnob.classList.replace(
+                        "translate-x-0",
+                        "translate-x-6",
+                    );
+                    toggleKnob.classList.replace(
+                        "bg-outline",
+                        "bg-on-primary-container",
+                    );
+                } else {
+                    toggleBtn.classList.replace(
+                        "bg-primary-container",
+                        "bg-surface-container-high",
+                    );
+                    toggleKnob.classList.replace(
+                        "translate-x-6",
+                        "translate-x-0",
+                    );
+                    toggleKnob.classList.replace(
+                        "bg-on-primary-container",
+                        "bg-outline",
+                    );
+                }
+            }
+
+            toggleBtn.addEventListener("click", () => {
+                setToggleState(!isApproved);
+                if (isApproved) {
+                    rejectedInput.value = "";
+                }
+            });
+
+            rejectedInput.addEventListener("input", (e) => {
+                if (e.target.value.trim() !== "") {
+                    setToggleState(false);
+                }
+            });
+        </script>
+    </body>
+</html>
