@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
+import '../core/theme/app_spacing.dart';
 
 /// Pill-shaped dropdown selector matching the attendance-configuration design.
 /// Displays a label, current value, and a trailing chevron icon.
 class ArmsDropdownSelector extends StatelessWidget {
   const ArmsDropdownSelector({
     super.key,
-    required this.label,
+    this.label,
     required this.value,
     this.placeholder,
     required this.onTap,
     this.icon,
   });
 
-  final String label;
+  final String? label;
   final String? value;
   final String? placeholder;
   final VoidCallback onTap;
@@ -27,16 +28,17 @@ class ArmsDropdownSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 16, bottom: 8),
-          child: Text(
-            label,
-            style: AppTextStyles.labelXs.copyWith(
-              color: AppColors.textMain,
-              fontWeight: FontWeight.w600,
+        if (label != null && label!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 16, bottom: 8),
+            child: Text(
+              label!,
+              style: AppTextStyles.labelXs.copyWith(
+                color: AppColors.textMain,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
         GestureDetector(
           onTap: onTap,
           child: Container(
@@ -44,7 +46,11 @@ class ArmsDropdownSelector extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             decoration: BoxDecoration(
               color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(9999),
+              borderRadius: BorderRadius.circular(AppRadius.roundFull),
+              border: Border.all(
+                color: AppColors.outline.withOpacity(0.15),
+                width: 1,
+              ),
             ),
             child: Row(
               children: [

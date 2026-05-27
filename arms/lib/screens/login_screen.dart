@@ -6,7 +6,6 @@ import '../core/theme/app_spacing.dart';
 import '../core/graphql/queries.dart';
 import '../widgets/arms_input_field.dart';
 
-/// Sign In screen matching login.html design.
 /// Queries the admins list from the backend for mock authentication.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -66,10 +65,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (matchingAdmin != null && mounted) {
-        Navigator.of(context).pushReplacementNamed(
-          '/shell',
-          arguments: matchingAdmin,
-        );
+        Navigator.of(
+          context,
+        ).pushReplacementNamed('/shell', arguments: matchingAdmin);
       } else {
         setState(() {
           _errorMessage = 'Invalid User ID or Password';
@@ -105,9 +103,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.stackSm),
-                  Text('Sign In', style: AppTextStyles.headerSmall.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  )),
+                  Text(
+                    'Sign In',
+                    style: AppTextStyles.headerSmall.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.stackLg),
 
                   // User ID field
@@ -175,29 +176,32 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.onPrimary,
-                        disabledBackgroundColor:
-                            AppColors.primary.withValues(alpha: 0.6),
+                        disabledBackgroundColor: AppColors.primary.withValues(
+                          alpha: 0.6,
+                        ),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(9999),
                         ),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.onPrimary),
+                      child:
+                          _isLoading
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppColors.onPrimary,
+                                  ),
+                                ),
+                              )
+                              : Text(
+                                'Sign In',
+                                style: AppTextStyles.headerSmall.copyWith(
+                                  color: AppColors.onPrimary,
+                                ),
                               ),
-                            )
-                          : Text(
-                              'Sign In',
-                              style: AppTextStyles.headerSmall.copyWith(
-                                color: AppColors.onPrimary,
-                              ),
-                            ),
                     ),
                   ),
                 ],
@@ -216,9 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.only(left: 4),
         child: Text(
           text,
-          style: AppTextStyles.labelXs.copyWith(
-            color: AppColors.textMain,
-          ),
+          style: AppTextStyles.labelXs.copyWith(color: AppColors.textMain),
         ),
       ),
     );

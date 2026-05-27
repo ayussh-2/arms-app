@@ -77,12 +77,22 @@ class GqlQueries {
     }
   ''';
 
+  static const String updateLeaveStatus = r'''
+    mutation UpdateLeaveStatus($id: ID!, $approved: Boolean!, $rejectedReason: String) {
+      updateLeaveStatus(id: $id, approved: $approved, rejectedReason: $rejectedReason) {
+        id
+        approved
+        rejected_reason
+      }
+    }
+  ''';
+
   // ──────────── Exams ────────────
 
   static const String getExams = r'''
     query GetExams($seriesId: ID, $classId: ID, $sectionId: ID) {
       exams(seriesId: $seriesId, classId: $classId, sectionId: $sectionId) {
-        id name exam_date total_marks mark_saved
+        id name exam_date total_marks mark_saved topic
         series { id name code }
         subjects { id subject { id name code } max_marks }
         for_school for_class for_section
@@ -93,7 +103,7 @@ class GqlQueries {
   static const String getExam = r'''
     query GetExam($id: ID!) {
       exam(id: $id) {
-        id name exam_date total_marks mark_saved
+        id name exam_date total_marks mark_saved topic
         series { id name code }
         subjects { id subject { id name code } max_marks }
         for_school for_class for_section

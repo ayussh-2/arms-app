@@ -100,11 +100,24 @@ class _AttendanceFeedScreenState extends State<AttendanceFeedScreen> {
       final proceed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Unmarked Students'),
-          content: Text('You have $_unmarkedCount unmarked student(s). Save them as absent?'),
+          backgroundColor: AppColors.background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
+            side: BorderSide(color: AppColors.outline.withOpacity(0.15)),
+          ),
+          title: Text('Unmarked Students', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
+          content: Text('You have $_unmarkedCount unmarked student(s). Save them as absent?', style: AppTextStyles.bodyMedium),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              style: TextButton.styleFrom(foregroundColor: AppColors.onSurfaceVariant),
+              child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              child: Text('Save', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
+            ),
           ],
         ),
       );
@@ -262,8 +275,8 @@ class _BulkButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: onTap != null ? AppColors.outlineMedium : AppColors.outline),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+        side: BorderSide(color: onTap != null ? AppColors.outline.withOpacity(0.5) : AppColors.outline.withOpacity(0.2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
       child: Row(

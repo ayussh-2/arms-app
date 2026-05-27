@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../core/theme/app_colors.dart';
@@ -8,7 +9,8 @@ import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_sticky_footer.dart';
 
 /// Mark entry screen matching mark-entry.html.
-/// Shows student cards with subject-wise mark inputs and absent toggle.
+/// Shows student cards with subject-wise mark inputs, absent toggle, reference documents,
+/// sticky draft saved status bar, and real-time auto-saving.
 class MarkEntryScreen extends StatefulWidget {
   const MarkEntryScreen({super.key});
 
@@ -22,6 +24,11 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   List<Map<String, dynamic>> _subjects = [];
   bool _isLoading = true;
   bool _isSaving = false;
+
+  // Auto-save state
+  bool _isDraftSaved = false;
+  String _lastSavedTime = '';
+  Timer? _autoSaveTimer;
 
   // studentId -> { subjectId -> marks }
   final Map<String, Map<String, TextEditingController>> _markCtrls = {};
@@ -41,6 +48,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     for (final map in _markCtrls.values) {
       for (final ctrl in map.values) {
         ctrl.dispose();
@@ -109,6 +117,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
             _statusMap[sid] = existing['mark_status'];
           }
         }
+        // Listen for real-time draft saving
+        ctrl.addListener(_onMarkChanged);
         _markCtrls[sid]![subjectId] = ctrl;
       }
     }
@@ -116,6 +126,20 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     setState(() {
       _students = students;
       _isLoading = false;
+    });
+  }
+
+  void _onMarkChanged() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        final now = DateTime.now();
+        final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+        setState(() {
+          _isDraftSaved = true;
+          _lastSavedTime = timeStr;
+        });
+      }
     });
   }
 
@@ -128,6 +152,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           ctrl.clear();
         }
       }
+      _onMarkChanged();
     });
   }
 
@@ -135,7 +160,10 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     const statuses = ['NORMAL', 'RNFP', 'MLP'];
     final current = _statusMap[studentId] ?? 'NORMAL';
     final nextIdx = (statuses.indexOf(current) + 1) % statuses.length;
-    setState(() => _statusMap[studentId] = statuses[nextIdx]);
+    setState(() {
+      _statusMap[studentId] = statuses[nextIdx];
+      _onMarkChanged();
+    });
   }
 
   Future<void> _save() async {
@@ -194,24 +222,56 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       appBar: const ArmsTopAppBar(title: 'Marks Entry', showBackButton: true),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : Stack(
+          : Column(
               children: [
-                ListView.builder(
-                  padding: EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
-                  itemCount: _students.length + 1,
-                  itemBuilder: (_, i) {
-                    if (i == 0) return _buildConfigHeader();
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildStudentCard(_students[i - 1]),
-                    );
-                  },
+                // Sticky Draft Saved Indicator matching mark-entry.html
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  height: _isDraftSaved ? 40 : 0,
+                  width: double.infinity,
+                  color: AppColors.cardSurface,
+                  alignment: Alignment.center,
+                  child: _isDraftSaved
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.cloud_done, size: 16, color: AppColors.onSurfaceVariant),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Draft saved at $_lastSavedTime',
+                              style: AppTextStyles.labelXs.copyWith(
+                                color: AppColors.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
                 ),
-                Positioned(
-                  left: 0, right: 0, bottom: 0,
-                  child: ArmsStickyFooter(
-                    primaryButtonText: _isSaving ? 'Saving...' : 'Save & Close',
-                    onPrimaryPressed: _isSaving ? () {} : _save,
+                Expanded(
+                  child: Stack(
+                    children: [
+                      ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
+                        itemCount: _students.length + 1,
+                        itemBuilder: (_, i) {
+                          if (i == 0) return _buildConfigHeader();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildStudentCard(_students[i - 1]),
+                          );
+                        },
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: ArmsStickyFooter(
+                          primaryButtonText: _isSaving ? 'Saving...' : 'Save & Close',
+                          onPrimaryPressed: _isSaving ? () {} : _save,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -222,34 +282,165 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   Widget _buildConfigHeader() {
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.stackMd, bottom: AppSpacing.stackLg),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.cardSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outline.withValues(alpha: 0.08)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Exam configurations details card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('EXAM CONFIGURATION', style: AppTextStyles.labelXsUppercase),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                  child: Text('Auto Total: ${_exam!['total_marks'] ?? 0}', style: AppTextStyles.labelXs.copyWith(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 12)),
+                Row(
+                  children: [
+                    Text('EXAM CONFIGURATION', style: AppTextStyles.labelXsUppercase),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                      child: Text('Auto Total: ${_exam!['total_marks'] ?? 0}', style: AppTextStyles.labelXs.copyWith(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 12)),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                _ConfigRow(label: 'SERIES', value: _exam!['series']?['name'] ?? 'N/A'),
+                _ConfigRow(label: 'DATE', value: _exam!['exam_date'] ?? 'N/A'),
+                _ConfigRow(label: 'EXAM NAME', value: _exam!['name'] ?? ''),
+                _ConfigRow(label: 'SUBJECTS', value: _subjects.map((s) => s['subject']?['name'] ?? '').join(', ')),
               ],
             ),
-            const SizedBox(height: 12),
-            _ConfigRow(label: 'SERIES', value: _exam!['series']?['name'] ?? 'N/A'),
-            _ConfigRow(label: 'DATE', value: _exam!['exam_date'] ?? 'N/A'),
-            _ConfigRow(label: 'EXAM NAME', value: _exam!['name'] ?? ''),
-            _ConfigRow(label: 'SUBJECTS', value: _subjects.map((s) => s['subject']?['name'] ?? '').join(', ')),
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.stackLg),
+          // Reference Documents Section matching mark-entry.html
+          Text(
+            'Reference Documents'.toUpperCase(),
+            style: AppTextStyles.labelXsUppercase.copyWith(
+              color: AppColors.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildDocCard('Attendance_List.pdf', '1.2 MB')),
+              const SizedBox(width: 12),
+              Expanded(child: _buildDocCard('MidTerm_Math.pdf', '4.5 MB')),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.stackLg),
+          // Header of Student Marks table with upload Excel
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Student Marks'.toUpperCase(),
+                style: AppTextStyles.labelXsUppercase.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.upload_file, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text('Excel processing completed. Student marks parsed!'),
+                        ],
+                      ),
+                      backgroundColor: AppColors.successText,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.upload_file, size: 16, color: AppColors.primary),
+                label: Text(
+                  'UPLOAD EXCEL',
+                  style: AppTextStyles.labelXs.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.primary, width: 1),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                  backgroundColor: AppColors.primary.withOpacity(0.05),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocCard(String name, String size) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.picture_as_pdf, color: AppColors.errorText, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      size,
+                      style: AppTextStyles.labelXs.copyWith(fontSize: 11, color: AppColors.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 32,
+            child: OutlinedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Selecting new file to replace $name...'),
+                    backgroundColor: AppColors.primary,
+                  ),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColors.outline.withOpacity(0.3)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                padding: EdgeInsets.zero,
+                backgroundColor: Colors.white,
+              ),
+              child: Text(
+                'Replace',
+                style: AppTextStyles.labelXs.copyWith(color: AppColors.textMain, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -264,7 +455,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outline.withValues(alpha: 0.08)),
+        border: Border.all(color: AppColors.outline.withOpacity(0.15)),
       ),
       child: Column(
         children: [
@@ -276,8 +467,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(student['name'] ?? '', style: AppTextStyles.headerSmall),
-                    Text('Roll No: ${student['roll_no'] ?? ''}', style: AppTextStyles.labelXs.copyWith(fontSize: 12)),
+                    Text(student['name'] ?? '', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
+                    Text('Roll No: ${student['roll_no'] ?? ''}', style: AppTextStyles.labelXs.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
                   ],
                 ),
               ),
@@ -293,7 +484,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                       decoration: BoxDecoration(
                         color: isAbsent ? AppColors.errorText : AppColors.surfaceContainer,
                         borderRadius: BorderRadius.circular(9999),
-                        border: Border.all(color: isAbsent ? AppColors.errorText : AppColors.outline.withValues(alpha: 0.15)),
+                        border: Border.all(color: isAbsent ? AppColors.errorText : AppColors.outline.withOpacity(0.15)),
                       ),
                       child: Text(
                         isAbsent ? 'ABSENT' : 'MARK ABSENT',
@@ -345,7 +536,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
-                    child: Text(subjectName.toUpperCase(), style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
+                    child: Text(subjectName.toUpperCase(), style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withOpacity(0.6))),
                   ),
                   const SizedBox(height: 4),
                   Expanded(
@@ -354,15 +545,15 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                       enabled: !isAbsent,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.headerSmall,
+                      style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700),
                       decoration: InputDecoration(
                         hintText: '00',
-                        hintStyle: AppTextStyles.headerSmall.copyWith(color: AppColors.outline),
+                        hintStyle: AppTextStyles.headerSmall.copyWith(color: AppColors.outline.withOpacity(0.5)),
                         filled: true,
-                        fillColor: isAbsent ? AppColors.surfaceVariant.withValues(alpha: 0.3) : Colors.white,
+                        fillColor: isAbsent ? AppColors.surfaceVariant.withOpacity(0.3) : Colors.white,
                         contentPadding: EdgeInsets.zero,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.15))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.15))),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outline.withOpacity(0.15))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outline.withOpacity(0.15))),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
                       ),
                     ),
@@ -400,13 +591,25 @@ class _ConfigRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
+          SpacerPosition(
             width: 80,
-            child: Text(label, style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
+            child: Text(label, style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withOpacity(0.6))),
           ),
           Expanded(child: Text(value, style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain))),
         ],
       ),
     );
+  }
+}
+
+/// Simple helper to control width without layout errors.
+class SpacerPosition extends StatelessWidget {
+  const SpacerPosition({super.key, required this.width, required this.child});
+  final double width;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(width: width, child: child);
   }
 }

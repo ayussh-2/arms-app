@@ -5,8 +5,6 @@ import '../core/theme/app_spacing.dart';
 import '../widgets/arms_top_app_bar.dart';
 import '../widgets/arms_dashboard_button.dart';
 
-/// Home dashboard matching dashboard.html.
-/// Shows welcome text and feature cards for Attendance and Exams.
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
     super.key,

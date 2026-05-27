@@ -7,6 +7,8 @@ import '../../core/graphql/queries.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_segmented_control.dart';
 import '../../widgets/arms_dropdown_selector.dart';
+import 'leave_management_screen.dart';
+import 'export_sheet_widget.dart';
 
 class AttendanceConfigScreen extends StatefulWidget {
   const AttendanceConfigScreen({super.key});
@@ -19,6 +21,7 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
   int _tabIndex = 0;
   DateTime _selectedDate = DateTime.now();
   int _selectedSession = 0;
+  int _refreshKey = 0;
   String? _selectedClassId;
   String? _selectedClassName;
   String? _selectedSectionId;
@@ -139,21 +142,50 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const ArmsTopAppBar(showBackButton: true),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage, vertical: AppSpacing.stackMd),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () async {
+          if (_tabIndex == 1) {
+            setState(() {
+              _refreshKey++;
+            });
+            await Future.delayed(const Duration(milliseconds: 600));
+          }
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage, vertical: AppSpacing.stackMd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text('Attendance', style: AppTextStyles.displayLarge),
             const SizedBox(height: AppSpacing.stackLg),
             ArmsSegmentedControl(options: const ['Feed', 'Leave', 'Sheet'], selectedIndex: _tabIndex, onChanged: (i) => setState(() => _tabIndex = i)),
             const SizedBox(height: AppSpacing.stackLg),
             if (_tabIndex == 0) ..._buildFeedTab(dateStr, classDisplay),
-            if (_tabIndex == 1) _placeholder('Leave Management', Icons.event_busy),
-            if (_tabIndex == 2) _placeholder('Export Sheet', Icons.table_chart_outlined),
+            if (_tabIndex == 1) LeaveManagementWidget(key: ValueKey(_refreshKey)),
+            if (_tabIndex == 2) const ExportSheetWidget(),
           ],
         ),
       ),
+      ),
+      floatingActionButton: _tabIndex == 1
+          ? FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.pushNamed(context, '/leave-apply');
+                if (result == true) {
+                  setState(() {
+                    _refreshKey++;
+                  });
+                }
+              },
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+              elevation: 4,
+              shape: const CircleBorder(),
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 
@@ -178,7 +210,7 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
         height: 56,
         child: ElevatedButton(
           onPressed: _canLoad ? _loadRoster : null,
-          style: ElevatedButton.styleFrom(backgroundColor: _canLoad ? AppColors.primary : AppColors.cardSurface, foregroundColor: _canLoad ? AppColors.onPrimary : AppColors.textSecondary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999))),
+          style: ElevatedButton.styleFrom(backgroundColor: _canLoad ? AppColors.primary : AppColors.cardSurface, foregroundColor: _canLoad ? AppColors.onPrimary : AppColors.textSecondary, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull))),
           child: Text('List Students', style: AppTextStyles.headerSmall.copyWith(color: _canLoad ? AppColors.onPrimary : AppColors.textSecondary)),
         ),
       ),
@@ -207,7 +239,14 @@ class _SessionChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(color: isSelected ? AppColors.background : AppColors.cardSurface, borderRadius: BorderRadius.circular(9999), border: Border.all(color: isSelected ? AppColors.primary : Colors.transparent, width: 1.5)),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.background : AppColors.cardSurface,
+          borderRadius: BorderRadius.circular(AppRadius.roundFull),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.outline.withOpacity(0.3),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
         child: Center(child: Text(label, style: AppTextStyles.bodyMedium.copyWith(color: isSelected ? AppColors.primary : AppColors.textSecondary, fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400))),
       ),
     );

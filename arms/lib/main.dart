@@ -7,6 +7,11 @@ import 'screens/login_screen.dart';
 import 'screens/shell_screen.dart';
 import 'screens/attendance/attendance_config_screen.dart';
 import 'screens/attendance/attendance_feed_screen.dart';
+import 'screens/attendance/leave_apply_screen.dart';
+import 'screens/attendance/leave_history_screen.dart';
+import 'screens/exams/exam_view_screen.dart';
+import 'screens/exams/mark_entry_screen.dart';
+import 'screens/exams/exam_create_screen.dart';
 import 'widgets/debug_overlay.dart';
 
 void main() async {
@@ -47,6 +52,11 @@ class _ArmsAppState extends State<ArmsApp> {
           '/shell': (_) => const ShellScreen(),
           '/attendance-config': (_) => const AttendanceConfigScreen(),
           '/attendance-feed': (_) => const AttendanceFeedScreen(),
+          '/leave-apply': (_) => const LeaveApplyScreen(),
+          '/leave-history': (_) => const LeaveHistoryScreen(),
+          '/exam-view': (_) => const ExamViewScreen(),
+          '/mark-entry': (_) => const MarkEntryScreen(),
+          '/exam-create': (_) => const ExamCreateScreen(),
         },
         builder: (context, child) {
           return DebugOverlay(

@@ -1,7 +1,24 @@
 const sqlite3 = require("sqlite3").verbose();
+const { Pool } = require("pg");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+
+// 🔒 Manually load .env variables if running under standard Node (via bun dev -> node server.js)
+if (!process.env.DB_URL) {
+    try {
+        const envPath = path.join(__dirname, ".env");
+        if (fs.existsSync(envPath)) {
+            const envContent = fs.readFileSync(envPath, "utf8");
+            const match = envContent.match(/DB_URL\s*=\s*["']?([^"'\r\n]+)["']?/);
+            if (match && match[1]) {
+                process.env.DB_URL = match[1].trim();
+            }
+        }
+    } catch (e) {
+        console.error("Error reading .env file in db.js:", e.message);
+    }
+}
 
 const DB_PATH = path.join(__dirname, "arms.db");
 
@@ -10,8 +27,8 @@ function generateUUID() {
     return crypto.randomUUID();
 }
 
-// Promisified database run/all helpers
-class Database {
+// SQLite Database client wrapper
+class SqliteDatabase {
     constructor(dbPath) {
         this.db = new sqlite3.Database(dbPath);
     }
@@ -53,9 +70,71 @@ class Database {
     }
 }
 
-const db = new Database(DB_PATH);
+// PostgreSQL Database client wrapper
+class PostgresDatabase {
+    constructor(connectionString) {
+        this.pool = new Pool({
+            connectionString,
+            ssl: { rejectUnauthorized: false }
+        });
+    }
+
+    // Helper to translate '?' SQLite style placeholders to positional '$1, $2' PG style placeholders
+    translateSql(sql) {
+        let index = 1;
+        return sql.replace(/\?/g, () => `$${index++}`);
+    }
+
+    // Helper to harmonize PostgreSQL types back into standard SQLite-like formats expected by resolvers
+    formatRow(row) {
+        if (!row) return row;
+        const newRow = { ...row };
+        for (const key of Object.keys(newRow)) {
+            const val = newRow[key];
+            if (typeof val === "boolean") {
+                newRow[key] = val ? 1 : 0; // Resolvers expect 1 or 0 for checks like is_absent === 1
+            } else if (Array.isArray(val)) {
+                newRow[key] = JSON.stringify(val); // Resolvers expect JSON strings for arrays (e.g. for_class)
+            }
+        }
+        return newRow;
+    }
+
+    run(sql, params = []) {
+        const translatedSql = this.translateSql(sql);
+        return this.pool.query(translatedSql, params)
+            .then(res => ({ id: res.rows[0]?.id || null, changes: res.rowCount }));
+    }
+
+    all(sql, params = []) {
+        const translatedSql = this.translateSql(sql);
+        return this.pool.query(translatedSql, params)
+            .then(res => res.rows.map(row => this.formatRow(row)));
+    }
+
+    get(sql, params = []) {
+        const translatedSql = this.translateSql(sql);
+        return this.pool.query(translatedSql, params)
+            .then(res => res.rows[0] ? this.formatRow(res.rows[0]) : null);
+    }
+
+    close() {
+        return this.pool.end();
+    }
+}
+
+// Instantiate the active database client dynamically
+const db = process.env.DB_URL 
+    ? new PostgresDatabase(process.env.DB_URL) 
+    : new SqliteDatabase(DB_PATH);
 
 async function initializeDatabase() {
+    if (process.env.DB_URL) {
+        console.log("🔌 Connecting to PostgreSQL Production Database...");
+        console.log("🔒 Safe Mode Active: Table creation and mock data seeding are completely disabled for PostgreSQL.");
+        return; // Return immediately to avoid performing any DDL or seeding actions
+    }
+
     console.log("Initializing SQLite Database...");
 
     // Create tables translated from PostgreSQL to SQLite
