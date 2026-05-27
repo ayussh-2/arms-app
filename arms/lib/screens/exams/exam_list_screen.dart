@@ -50,20 +50,40 @@ class _ExamListScreenState extends State<ExamListScreen> {
   }
 
   Future<void> _loadExams() async {
-    final client = GraphQLProvider.of(context).value;
-    final result = await client.query(
-      QueryOptions(
-        document: gql(GqlQueries.getExams),
-        fetchPolicy: FetchPolicy.networkOnly,
-      ),
-    );
-    if (!mounted) return;
-    final list = (result.data?['exams'] as List? ?? []).cast<Map<String, dynamic>>();
-    setState(() {
-      _allExams = list;
-      _isLoading = false;
-    });
-    _filterExams();
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getExams),
+          fetchPolicy: FetchPolicy.cacheAndNetwork,
+        ),
+      );
+      if (!mounted) return;
+      if (result.hasException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load exams: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      final list = (result.data?['exams'] as List? ?? []).cast<Map<String, dynamic>>();
+      setState(() {
+        _allExams = list;
+        _isLoading = false;
+      });
+      _filterExams();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connection error: $e'), backgroundColor: AppColors.errorText),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   // Dynamic lists from loaded data
@@ -177,7 +197,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
                     width: 48,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: AppColors.outline.withOpacity(0.3),
+                      color: AppColors.outlineMediumLight,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -316,7 +336,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
           color: isSelected ? AppColors.primary : AppColors.cardSurface,
           borderRadius: BorderRadius.circular(9999),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.outline.withOpacity(0.3),
+            color: isSelected ? AppColors.primary : AppColors.outlineMediumLight,
           ),
         ),
         child: Row(
@@ -348,7 +368,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+        border: Border.all(color: AppColors.outlineLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -404,7 +424,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
           child: LinearProgressIndicator(
             value: val,
             minHeight: 8,
-            backgroundColor: AppColors.outline.withOpacity(0.15),
+            backgroundColor: AppColors.outlineLight,
             color: AppColors.primary,
           ),
         ),
@@ -419,7 +439,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+        border: Border.all(color: AppColors.outlineLight),
       ),
       child: Row(
         children: [
@@ -708,7 +728,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
                             decoration: BoxDecoration(
                               color: AppColors.cardSurface,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+                              border: Border.all(color: AppColors.outlineLight),
                             ),
                             child: Column(
                               children: [
@@ -805,7 +825,7 @@ class _ExamCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardSurface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+          border: Border.all(color: AppColors.outlineLight),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -861,7 +881,7 @@ class _ExamCard extends StatelessWidget {
               decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(
-                    color: AppColors.outline.withOpacity(0.15),
+                    color: AppColors.outlineLight,
                     width: 1,
                   ),
                 ),

@@ -48,18 +48,38 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
   }
 
   Future<void> _loadMarks() async {
-    final client = GraphQLProvider.of(context).value;
-    final result = await client.query(QueryOptions(
-      document: gql(GqlQueries.getMarks),
-      variables: {'examId': _exam!['id']},
-    ));
-    if (!mounted) return;
-    final list = (result.data?['marks'] as List? ?? []).cast<Map<String, dynamic>>();
-    setState(() {
-      _marks = list;
-      _filteredMarks = list;
-      _isLoading = false;
-    });
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.query(QueryOptions(
+        document: gql(GqlQueries.getMarks),
+        variables: {'examId': _exam!['id']},
+      ));
+      if (!mounted) return;
+      if (result.hasException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load marks: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      final list = (result.data?['marks'] as List? ?? []).cast<Map<String, dynamic>>();
+      setState(() {
+        _marks = list;
+        _filteredMarks = list;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connection error: $e'), backgroundColor: AppColors.errorText),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _filterMarks() {
@@ -121,7 +141,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
                         width: 48,
                         height: 6,
                         decoration: BoxDecoration(
-                          color: AppColors.outline.withOpacity(0.3),
+                          color: AppColors.outlineMediumLight,
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -211,7 +231,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           color: isSelected ? AppColors.cardSurface : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.outline.withOpacity(0.3),
+            color: isSelected ? AppColors.primary : AppColors.outlineMediumLight,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -278,34 +298,54 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
-              children: [
-                const SizedBox(height: AppSpacing.stackMd),
-                // Header card
-                _buildHeaderCard(subjectNames, totalMarks),
-                const SizedBox(height: AppSpacing.stackLg),
-                // Quick actions
-                _buildQuickActions(),
-                const SizedBox(height: AppSpacing.stackLg),
-                // Student marks section
-                Row(
-                  children: [
-                    Text('Student Marks', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                    const Spacer(),
-                    _iconBtn(Icons.filter_list),
-                    const SizedBox(width: 8),
-                    _iconBtn(Icons.sort),
-                  ],
+          : CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      const SizedBox(height: AppSpacing.stackMd),
+                      // Header card
+                      _buildHeaderCard(subjectNames, totalMarks),
+                      const SizedBox(height: AppSpacing.stackLg),
+                      // Quick actions
+                      _buildQuickActions(),
+                      const SizedBox(height: AppSpacing.stackLg),
+                      // Student marks section
+                      Row(
+                        children: [
+                          Text('Student Marks', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
+                          const Spacer(),
+                          _iconBtn(Icons.filter_list),
+                          const SizedBox(width: 8),
+                          _iconBtn(Icons.sort),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.stackMd),
+                      ArmsInputField(controller: _searchCtrl, hintText: 'Search students...', prefixIcon: Icons.search),
+                      const SizedBox(height: AppSpacing.stackMd),
+                      // Table header
+                      _buildTableHeader(),
+                    ]),
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.stackMd),
-                ArmsInputField(controller: _searchCtrl, hintText: 'Search students...', prefixIcon: Icons.search),
-                const SizedBox(height: AppSpacing.stackMd),
-                // Table header
-                _buildTableHeader(),
-                // Rows
-                ...List.generate(_filteredMarks.length, (i) => _buildMarkRow(i, _filteredMarks[i], totalMarks)),
-                const SizedBox(height: 120),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) => _buildMarkRow(i, _filteredMarks[i], totalMarks),
+                      childCount: _filteredMarks.length,
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      const SizedBox(height: 120),
+                    ]),
+                  ),
+                ),
               ],
             ),
       // FAB for edit
@@ -332,7 +372,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           const SizedBox(height: 4),
           Text(subjectNames, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant)),
           const SizedBox(height: 16),
-          Container(height: 1, color: AppColors.outline.withOpacity(0.15)),
+          Container(height: 1, color: AppColors.outlineLight),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -446,7 +486,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.background,
-        border: Border(bottom: BorderSide(color: AppColors.outline.withOpacity(0.08))),
+        border: Border(bottom: BorderSide(color: AppColors.outlineFaint)),
       ),
       child: Row(
         children: [
@@ -537,7 +577,7 @@ class _ActionChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: filled ? AppColors.primary : AppColors.cardSurface,
           borderRadius: BorderRadius.circular(9999),
-          border: filled ? null : Border.all(color: color?.withOpacity(0.2) ?? AppColors.outline.withOpacity(0.15)),
+          border: filled ? null : Border.all(color: color?.withValues(alpha: 0.2) ?? AppColors.outlineLight),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

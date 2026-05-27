@@ -64,8 +64,12 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
 
   Future<void> _showClassPicker() async {
     final client = GraphQLProvider.of(context).value;
-    final cResult = await client.query(QueryOptions(document: gql(GqlQueries.getClasses)));
-    final sResult = await client.query(QueryOptions(document: gql(GqlQueries.getSections)));
+    final results = await Future.wait([
+      client.query(QueryOptions(document: gql(GqlQueries.getClasses))),
+      client.query(QueryOptions(document: gql(GqlQueries.getSections))),
+    ]);
+    final cResult = results[0];
+    final sResult = results[1];
     if (!mounted) return;
 
     final classes = cResult.data?['classes'] as List? ?? [];
@@ -243,7 +247,7 @@ class _SessionChip extends StatelessWidget {
           color: isSelected ? AppColors.background : AppColors.cardSurface,
           borderRadius: BorderRadius.circular(AppRadius.roundFull),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.outline.withOpacity(0.3),
+            color: isSelected ? AppColors.primary : AppColors.outlineMediumLight,
             width: isSelected ? 1.5 : 1.0,
           ),
         ),

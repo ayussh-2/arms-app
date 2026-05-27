@@ -31,7 +31,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   Timer? _autoSaveTimer;
 
   // studentId -> { subjectId -> marks }
-  final Map<String, Map<String, TextEditingController>> _markCtrls = {};
+  final Map<String, Map<String, String>> _marksData = {};
   // studentId -> isAbsent
   final Map<String, bool> _absentMap = {};
   // studentId -> status (NORMAL, RNFP, MLP)
@@ -49,40 +49,47 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
-    for (final map in _markCtrls.values) {
-      for (final ctrl in map.values) {
-        ctrl.dispose();
-      }
-    }
     super.dispose();
   }
 
   Future<void> _loadData() async {
-    final client = GraphQLProvider.of(context).value;
+    try {
+      final client = GraphQLProvider.of(context).value;
 
-    // Extract subjects from exam
-    final examSubjects = (_exam!['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
-    _subjects = examSubjects;
+      // Extract subjects from exam
+      final examSubjects = (_exam!['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
+      _subjects = examSubjects;
 
-    // Get the class/section from the exam to load students
-    final classId = _exam!['for_class'];
-    final sectionId = _exam!['for_section'];
+      // Get the class/section from the exam to load students
+      final classId = _exam!['for_class'];
+      final sectionId = _exam!['for_section'];
 
-    final studentResult = await client.query(QueryOptions(
-      document: gql(GqlQueries.getStudents),
-      variables: {
-        if (classId != null) 'classId': classId,
-        if (sectionId != null) 'sectionId': sectionId,
-      },
-    ));
+      final results = await Future.wait([
+        client.query(QueryOptions(
+          document: gql(GqlQueries.getStudents),
+          variables: {
+            if (classId != null) 'classId': classId,
+            if (sectionId != null) 'sectionId': sectionId,
+          },
+        )),
+        client.query(QueryOptions(
+          document: gql(GqlQueries.getMarks),
+          variables: {'examId': _exam!['id']},
+        ))
+      ]);
+      final studentResult = results[0];
+      final marksResult = results[1];
 
-    // Also load existing marks if any
-    final marksResult = await client.query(QueryOptions(
-      document: gql(GqlQueries.getMarks),
-      variables: {'examId': _exam!['id']},
-    ));
-
-    if (!mounted) return;
+      if (!mounted) return;
+      if (studentResult.hasException || marksResult.hasException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load data'), backgroundColor: AppColors.errorText),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
     final students = (studentResult.data?['students'] as List? ?? []).cast<Map<String, dynamic>>();
     final existingMarks = (marksResult.data?['marks'] as List? ?? []).cast<Map<String, dynamic>>();
@@ -97,7 +104,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     // Initialize controllers
     for (final student in students) {
       final sid = student['id'] as String;
-      _markCtrls[sid] = {};
+      _marksData[sid] = {};
       _absentMap[sid] = false;
       _statusMap[sid] = 'NORMAL';
 
@@ -106,27 +113,33 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         final key = '${sid}_$subjectId';
         final existing = markLookup[key];
 
-        final ctrl = TextEditingController();
         if (existing != null) {
           if (existing['is_absent'] == true) {
             _absentMap[sid] = true;
           } else if (existing['marks_obtained'] != null) {
-            ctrl.text = existing['marks_obtained'].toInt().toString();
+            _marksData[sid]![subjectId] = existing['marks_obtained'].toInt().toString();
           }
           if (existing['mark_status'] != null) {
             _statusMap[sid] = existing['mark_status'];
           }
         }
-        // Listen for real-time draft saving
-        ctrl.addListener(_onMarkChanged);
-        _markCtrls[sid]![subjectId] = ctrl;
       }
     }
 
-    setState(() {
-      _students = students;
-      _isLoading = false;
-    });
+      setState(() {
+        _students = students;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connection error: $e'), backgroundColor: AppColors.errorText),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _onMarkChanged() {
@@ -148,9 +161,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       _absentMap[studentId] = !(_absentMap[studentId] ?? false);
       if (_absentMap[studentId]!) {
         // Clear marks when marking absent
-        for (final ctrl in _markCtrls[studentId]!.values) {
-          ctrl.clear();
-        }
+        _marksData[studentId]?.clear();
       }
       _onMarkChanged();
     });
@@ -180,8 +191,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
       for (final es in _subjects) {
         final subjectId = es['subject']?['id'] as String? ?? '';
-        final ctrl = _markCtrls[sid]?[subjectId];
-        final marksText = ctrl?.text.trim() ?? '';
+        final marksText = _marksData[sid]?[subjectId] ?? '';
         final marksVal = marksText.isNotEmpty ? double.tryParse(marksText) : null;
 
         input.add({
@@ -291,7 +301,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
             decoration: BoxDecoration(
               color: AppColors.cardSurface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+              border: Border.all(color: AppColors.outlineLight),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,7 +312,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                     const Spacer(),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                      decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(4)),
                       child: Text('Auto Total: ${_exam!['total_marks'] ?? 0}', style: AppTextStyles.labelXs.copyWith(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 12)),
                     ),
                   ],
@@ -370,7 +380,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.primary, width: 1),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                  backgroundColor: AppColors.primary.withOpacity(0.05),
+                  backgroundColor: AppColors.primaryFaint,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
               ),
@@ -387,7 +397,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+        border: Border.all(color: AppColors.outlineLight),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,7 +439,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 );
               },
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.outline.withOpacity(0.3)),
+                side: BorderSide(color: AppColors.outlineMediumLight),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
                 padding: EdgeInsets.zero,
                 backgroundColor: Colors.white,
@@ -455,7 +465,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+        border: Border.all(color: AppColors.outlineLight),
       ),
       child: Column(
         children: [
@@ -484,7 +494,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                       decoration: BoxDecoration(
                         color: isAbsent ? AppColors.errorText : AppColors.surfaceContainer,
                         borderRadius: BorderRadius.circular(9999),
-                        border: Border.all(color: isAbsent ? AppColors.errorText : AppColors.outline.withOpacity(0.15)),
+                        border: Border.all(color: isAbsent ? AppColors.errorText : AppColors.outlineLight),
                       ),
                       child: Text(
                         isAbsent ? 'ABSENT' : 'MARK ABSENT',
@@ -520,47 +530,48 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           ),
           const SizedBox(height: 16),
           // Subject mark inputs (grid)
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 2.4),
-            itemCount: _subjects.length,
-            itemBuilder: (_, i) {
-              final es = _subjects[i];
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _subjects.map((es) {
               final subjectId = es['subject']?['id'] as String? ?? '';
               final subjectName = es['subject']?['name'] as String? ?? '';
-              final ctrl = _markCtrls[sid]?[subjectId];
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: Text(subjectName.toUpperCase(), style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withOpacity(0.6))),
-                  ),
-                  const SizedBox(height: 4),
-                  Expanded(
-                    child: TextField(
-                      controller: ctrl,
+              return SizedBox(
+                width: (MediaQuery.of(context).size.width - 80) / 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(subjectName.toUpperCase(), style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
+                    ),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      initialValue: _marksData[sid]?[subjectId],
+                      onChanged: (val) {
+                        _marksData[sid]![subjectId] = val;
+                        _onMarkChanged();
+                      },
                       enabled: !isAbsent,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700),
                       decoration: InputDecoration(
                         hintText: '00',
-                        hintStyle: AppTextStyles.headerSmall.copyWith(color: AppColors.outline.withOpacity(0.5)),
+                        hintStyle: AppTextStyles.headerSmall.copyWith(color: AppColors.outline.withValues(alpha: 0.5)),
                         filled: true,
-                        fillColor: isAbsent ? AppColors.surfaceVariant.withOpacity(0.3) : Colors.white,
-                        contentPadding: EdgeInsets.zero,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outline.withOpacity(0.15))),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.outline.withOpacity(0.15))),
+                        fillColor: isAbsent ? AppColors.surfaceVariant.withValues(alpha: 0.3) : Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.outlineLight)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.outlineLight)),
                         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
-            },
+            }).toList(),
           ),
         ],
       ),
@@ -593,7 +604,7 @@ class _ConfigRow extends StatelessWidget {
         children: [
           SpacerPosition(
             width: 80,
-            child: Text(label, style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withOpacity(0.6))),
+            child: Text(label, style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
           ),
           Expanded(child: Text(value, style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain))),
         ],

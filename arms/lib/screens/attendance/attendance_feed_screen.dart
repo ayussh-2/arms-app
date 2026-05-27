@@ -51,22 +51,42 @@ class _AttendanceFeedScreenState extends State<AttendanceFeedScreen> {
   }
 
   Future<void> _loadStudents() async {
-    final client = GraphQLProvider.of(context).value;
-    final result = await client.query(QueryOptions(
-      document: gql(GqlQueries.getStudents),
-      variables: {'classId': _classId, 'sectionId': _sectionId},
-    ));
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.query(QueryOptions(
+        document: gql(GqlQueries.getStudents),
+        variables: {'classId': _classId, 'sectionId': _sectionId},
+      ));
 
-    if (!mounted) return;
-
-    final list = (result.data?['students'] as List? ?? []).cast<Map<String, dynamic>>();
-    setState(() {
-      _students = list;
-      for (final s in list) {
-        _statuses[s['id']] = AttendanceStatus.unmarked;
+      if (!mounted) return;
+      if (result.hasException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load students: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
       }
-      _isLoading = false;
-    });
+
+      final list = (result.data?['students'] as List? ?? []).cast<Map<String, dynamic>>();
+      setState(() {
+        _students = list;
+        for (final s in list) {
+          _statuses[s['id']] = AttendanceStatus.unmarked;
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Connection error: $e'), backgroundColor: AppColors.errorText),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _setAllStatus(AttendanceStatus status) {
@@ -103,7 +123,7 @@ class _AttendanceFeedScreenState extends State<AttendanceFeedScreen> {
           backgroundColor: AppColors.background,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-            side: BorderSide(color: AppColors.outline.withOpacity(0.15)),
+            side: BorderSide(color: AppColors.outlineLight),
           ),
           title: Text('Unmarked Students', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
           content: Text('You have $_unmarkedCount unmarked student(s). Save them as absent?', style: AppTextStyles.bodyMedium),
@@ -175,43 +195,55 @@ class _AttendanceFeedScreenState extends State<AttendanceFeedScreen> {
           : Stack(
               children: [
                 // Student list
-                ListView(
-                  padding: EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
-                  children: [
-                    // Header
-                    Text(_title, style: AppTextStyles.displayMobile),
-                    const SizedBox(height: 4),
-                    Text(_date, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant)),
-                    const SizedBox(height: AppSpacing.stackLg),
+                CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 0),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          // Header
+                          Text(_title, style: AppTextStyles.displayMobile),
+                          const SizedBox(height: 4),
+                          Text(_date, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant)),
+                          const SizedBox(height: AppSpacing.stackLg),
 
-                    // Bulk actions
-                    Text('BULK ACTIONS', style: AppTextStyles.labelXsUppercase),
-                    const SizedBox(height: AppSpacing.stackSm),
-                    Row(
-                      children: [
-                        _BulkButton(label: 'All Present', onTap: () => _setAllStatus(AttendanceStatus.present)),
-                        const SizedBox(width: 8),
-                        _BulkButton(label: 'All Absent', onTap: () => _setAllStatus(AttendanceStatus.absent)),
-                        const SizedBox(width: 8),
-                        _BulkButton(label: 'Undo', icon: Icons.undo, onTap: _lastBulkSnapshot != null ? _undoBulk : null),
-                      ],
+                          // Bulk actions
+                          Text('BULK ACTIONS', style: AppTextStyles.labelXsUppercase),
+                          const SizedBox(height: AppSpacing.stackSm),
+                          Row(
+                            children: [
+                              _BulkButton(label: 'All Present', onTap: () => _setAllStatus(AttendanceStatus.present)),
+                              const SizedBox(width: 8),
+                              _BulkButton(label: 'All Absent', onTap: () => _setAllStatus(AttendanceStatus.absent)),
+                              const SizedBox(width: 8),
+                              _BulkButton(label: 'Undo', icon: Icons.undo, onTap: _lastBulkSnapshot != null ? _undoBulk : null),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.stackMd),
+                        ]),
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.stackMd),
-
-                    // Student rows
-                    ...List.generate(_students.length, (i) {
-                      final s = _students[i];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: ArmsStudentRow(
-                          studentName: s['name'] ?? '',
-                          rollNo: 'Roll ${s['roll_no'] ?? ''}',
-                          avatarUrl: s['image_url'],
-                          status: _statuses[s['id']] ?? AttendanceStatus.unmarked,
-                          onStatusChanged: (status) => setState(() => _statuses[s['id']] = status),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, i) {
+                            final s = _students[i];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: ArmsStudentRow(
+                                studentName: s['name'] ?? '',
+                                rollNo: 'Roll ${s['roll_no'] ?? ''}',
+                                avatarUrl: s['image_url'],
+                                status: _statuses[s['id']] ?? AttendanceStatus.unmarked,
+                                onStatusChanged: (status) => setState(() => _statuses[s['id']] = status),
+                              ),
+                            );
+                          },
+                          childCount: _students.length,
                         ),
-                      );
-                    }),
+                      ),
+                    ),
                   ],
                 ),
 
@@ -275,7 +307,7 @@ class _BulkButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: onTap != null ? AppColors.outline.withOpacity(0.5) : AppColors.outline.withOpacity(0.2)),
+        side: BorderSide(color: onTap != null ? AppColors.outline.withValues(alpha: 0.5) : AppColors.outline.withValues(alpha: 0.2)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),

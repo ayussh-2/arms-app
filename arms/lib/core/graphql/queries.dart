@@ -1,5 +1,3 @@
-/// All GraphQL query and mutation strings used by the app.
-/// Centralised here so changes to the schema propagate from one file.
 class GqlQueries {
   GqlQueries._();
 

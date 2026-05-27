@@ -23,6 +23,14 @@ class AppColors {
   // Outlines
   static const Color outline = Color(0xFFC4C7C7);
   static const Color outlineMedium = Color(0xFF747878);
+  static const Color outlineLight = Color(0x26C4C7C7);       // 0.15 opacity
+  static const Color outlineMediumLight = Color(0x4DC4C7C7); // 0.3 opacity
+  static const Color outlineFaint = Color(0x14C4C7C7);       // 0.08 opacity
+  
+  // Opacity variants for other colors
+  static const Color primaryLight = Color(0x1A0051D5);       // 0.1 opacity
+  static const Color primaryFaint = Color(0x0C0051D5);       // 0.05 opacity
+  static const Color accentLight = Color(0x1A2563EB);        // 0.1 opacity
 
   // Semantic — Success
   static const Color successBg = Color(0xFFDCFCE7);

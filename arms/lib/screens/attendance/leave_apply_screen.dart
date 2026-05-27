@@ -45,6 +45,8 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     _searchController.dispose();
     _reasonController.dispose();
     _rejectedReasonController.dispose();
+    _allStudents.clear();
+    _filteredStudents.clear();
     super.dispose();
   }
 
@@ -209,7 +211,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                          border: Border.all(color: AppColors.outline.withOpacity(0.3)),
+                          border: Border.all(color: AppColors.outlineMediumLight),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.05),
@@ -259,7 +261,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.cardSurface,
                         borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-                        border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+                        border: Border.all(color: AppColors.outlineLight),
                       ),
                       child: Row(
                         children: [
@@ -313,7 +315,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                 decoration: BoxDecoration(
                                   color: AppColors.cardSurface,
                                   borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                                  border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+                                  border: Border.all(color: AppColors.outlineLight),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -341,7 +343,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                 decoration: BoxDecoration(
                                   color: AppColors.cardSurface,
                                   borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                                  border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+                                  border: Border.all(color: AppColors.outlineLight),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -393,11 +395,11 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                       filled: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                        borderSide: BorderSide(color: AppColors.outline.withOpacity(0.15)),
+                        borderSide: const BorderSide(color: AppColors.outlineLight),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                        borderSide: BorderSide(color: AppColors.outline.withOpacity(0.15)),
+                        borderSide: const BorderSide(color: AppColors.outlineLight),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
@@ -414,7 +416,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.cardSurface,
                       borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-                      border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+                      border: Border.all(color: AppColors.outlineLight),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,7 +488,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                             color: AppColors.cardSurface,
                             borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
                             border: Border.all(
-                              color: AppColors.outline.withOpacity(0.15),
+                              color: AppColors.outlineLight,
                               width: 1,
                             ),
                           ),
@@ -509,7 +511,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                   decoration: BoxDecoration(
                                     color: AppColors.cardSurface,
                                     borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                                    border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+                                    border: Border.all(color: AppColors.outlineLight),
                                   ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
@@ -745,7 +747,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                     width: 48,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: AppColors.outline.withOpacity(0.3),
+                      color: AppColors.outlineMediumLight,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),

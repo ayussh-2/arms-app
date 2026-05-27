@@ -3,11 +3,9 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import '../debug/debug_service.dart';
 import '../debug/logging_http_link.dart';
 
-/// Provides a configured GraphQL client pointing at the ARMS mock backend.
 class ArmsGraphQLClient {
   ArmsGraphQLClient._();
 
-  // Change this to your machine's local IP when testing on a physical device.
   static const String _defaultEndpoint = 'http://192.168.29.188:4000/graphql';
 
   static String _normalizeEndpoint(String url) {
@@ -25,14 +23,11 @@ class ArmsGraphQLClient {
 
   static GraphQLClient _buildClient(DebugService service) {
     final endpoint = _normalizeEndpoint(service.apiBaseUrl.value);
-    final httpLink = LoggingHttpLink(
-      endpoint,
-      debugService: service,
-    );
+    final httpLink = LoggingHttpLink(endpoint, debugService: service);
 
     return GraphQLClient(
       link: httpLink,
-      cache: GraphQLCache(store: InMemoryStore()),
+      cache: GraphQLCache(store: HiveStore()),
     );
   }
 
