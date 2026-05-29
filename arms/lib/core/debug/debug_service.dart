@@ -14,6 +14,7 @@ class DebugService {
   final List<DebugLog> _logs = [];
   final ValueNotifier<List<DebugLog>> logs = ValueNotifier([]);
   final ValueNotifier<String> apiBaseUrl = ValueNotifier('http://192.168.29.188:6582/api/graphql');
+  final ValueNotifier<bool> isDebugMode = ValueNotifier(true);
 
   static const int maxLogs = 100;
 
@@ -94,6 +95,7 @@ class DebugService {
 
   /// Internal method to add log and manage list size
   void _addLog(DebugLog log) {
+    if (!isDebugMode.value) return;
     _logs.add(log);
 
     // Keep only the most recent logs

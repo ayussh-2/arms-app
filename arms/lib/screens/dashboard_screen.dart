@@ -88,6 +88,10 @@ class DashboardScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.settings, color: AppColors.textSecondary),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout, color: AppColors.textSecondary),
             onPressed: () => _showLogoutDialog(context),
           ),

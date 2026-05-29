@@ -197,43 +197,167 @@ class GqlQueries {
 
   // ──────────── Exams ────────────
 
+  static const String getExamLookups = r'''
+    query GetExamLookups($organisationId: ID!) {
+      getExamLookups(organisationId: $organisationId) {
+        schools { id name display_order }
+        classes { id name display_order }
+        sections { id name display_order }
+        series { id name code display_order }
+        subjects { id name code display_order }
+      }
+    }
+  ''';
+
   static const String getExams = r'''
-    query GetExams($seriesId: ID, $classId: ID, $sectionId: ID) {
-      exams(seriesId: $seriesId, classId: $classId, sectionId: $sectionId) {
-        id name exam_date total_marks mark_saved topic
+    query GetExams($organisationId: ID!, $isDeleted: Boolean) {
+      getExams(organisationId: $organisationId, isDeleted: $isDeleted) {
+        id
+        name
+        exam_date
+        total_marks
+        mark_saved
         series { id name code }
-        subjects { id subject { id name code } max_marks }
-        for_school for_class for_section
+        subjects { id name code }
       }
     }
   ''';
 
-  static const String getExam = r'''
-    query GetExam($id: ID!) {
-      exam(id: $id) {
-        id name exam_date total_marks mark_saved topic
-        series { id name code }
-        subjects { id subject { id name code } max_marks }
-        for_school for_class for_section
+  static const String getExamsPaginated = r'''
+    query GetExamsPaginated(
+      $organisationId: ID!
+      $isDeleted: Boolean
+      $pagination: PaginationInput!
+    ) {
+      getExamsPaginated(
+        organisationId: $organisationId
+        isDeleted: $isDeleted
+        pagination: $pagination
+      ) {
+        items {
+          id
+          name
+          exam_date
+          total_marks
+          mark_saved
+          for_school
+          for_class
+          for_section
+          series { id name code }
+          subjects { id name code }
+        }
+        pagination {
+          total
+          limit
+          offset
+          hasMore
+        }
       }
     }
   ''';
 
-  static const String getMarks = r'''
-    query GetMarks($examId: ID!) {
-      marks(examId: $examId) {
-        id marks_obtained is_absent mark_status
-        student { id name roll_no image_url }
-        subject { id name }
+  static const String searchExams = r'''
+    query SearchExams(
+      $organisationId: ID!
+      $query: String
+      $filters: ExamFiltersInput
+      $isDeleted: Boolean
+      $pagination: PaginationInput!
+    ) {
+      searchExams(
+        organisationId: $organisationId
+        query: $query
+        filters: $filters
+        isDeleted: $isDeleted
+        pagination: $pagination
+      ) {
+        items {
+          id
+          name
+          exam_date
+          total_marks
+          mark_saved
+          for_school
+          for_class
+          for_section
+          series { id name code }
+          subjects { id name code }
+        }
+        pagination {
+          total
+          limit
+          offset
+          hasMore
+        }
       }
+    }
+  ''';
+
+  static const String getExamDetails = r'''
+    query GetExamDetails($examId: ID!, $organisationId: ID!) {
+      getExamDetails(examId: $examId, organisationId: $organisationId) {
+        exam {
+          id
+          name
+          exam_date
+          total_marks
+          mark_saved
+          attendance_pdf_url
+          question_pdf_url
+        }
+        subjects {
+          id
+          name
+          code
+          max_marks
+        }
+        students {
+          id
+          name
+          roll_no
+        }
+        marks {
+          id
+          student_id
+          subject_id
+          marks_obtained
+          mark_status
+          is_absent
+        }
+      }
+    }
+  ''';
+
+  static const String createExam = r'''
+    mutation CreateExam($input: CreateExamInput!) {
+      createExam(input: $input)
     }
   ''';
 
   static const String saveMarks = r'''
-    mutation SaveMarks($input: [MarkInput!]!) {
-      saveMarks(input: $input)
+    mutation SaveMarks($examId: ID!, $marks: [MarkInput!]!, $isDraft: Boolean) {
+      saveMarks(examId: $examId, marks: $marks, isDraft: $isDraft)
     }
   ''';
+
+  static const String updateExamSetup = r'''
+    mutation UpdateExamSetup($examId: ID!, $input: UpdateExamSetupInput!) {
+      updateExamSetup(examId: $examId, input: $input)
+    }
+  ''';
+
+  static const String updateExamPdfs = r'''
+    mutation UpdateExamPdfs($examId: ID!, $attendancePdf: String, $questionPdf: String) {
+      updateExamPdfs(examId: $examId, attendancePdf: $attendancePdf, questionPdf: $questionPdf)
+    }
+  ''';
+
+  static const String toggleExamDelete = r'''
+    mutation ToggleExamDelete($examId: ID!, $isDeleted: Boolean!) {
+      toggleExamDelete(examId: $examId, isDeleted: $isDeleted)
+    }
+  ''';
+
 
   static const String login = r'''
     query Login($adminId: String!, $password: String!) {

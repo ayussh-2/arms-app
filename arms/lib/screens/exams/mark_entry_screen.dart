@@ -5,8 +5,10 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
+import '../../core/auth/auth_service.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_sticky_footer.dart';
+import '../../widgets/arms_input_field.dart';
 
 /// Mark entry screen matching mark-entry.html.
 /// Shows student cards with subject-wise mark inputs, absent toggle, reference documents,
@@ -21,9 +23,12 @@ class MarkEntryScreen extends StatefulWidget {
 class _MarkEntryScreenState extends State<MarkEntryScreen> {
   Map<String, dynamic>? _exam;
   List<Map<String, dynamic>> _students = [];
+  List<Map<String, dynamic>> _filteredStudents = [];
   List<Map<String, dynamic>> _subjects = [];
   bool _isLoading = true;
   bool _isSaving = false;
+
+  final _searchCtrl = TextEditingController();
 
   // Auto-save state
   bool _isDraftSaved = false;
@@ -38,6 +43,27 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   final Map<String, String> _statusMap = {};
 
   @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(_filterStudents);
+  }
+
+  void _filterStudents() {
+    final q = _searchCtrl.text.toLowerCase();
+    setState(() {
+      if (q.isEmpty) {
+        _filteredStudents = _students;
+      } else {
+        _filteredStudents = _students.where((student) {
+          final name = (student['name'] as String? ?? '').toLowerCase();
+          final roll = (student['roll_no']?.toString() ?? '');
+          return name.contains(q) || roll.contains(q);
+        }).toList();
+      }
+    });
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_isLoading) {
@@ -49,41 +75,34 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _loadData() async {
     try {
+      final orgId = AuthService.currentAdmin?.organization?.id;
+      if (orgId == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
       final client = GraphQLProvider.of(context).value;
 
-      // Extract subjects from exam
-      final examSubjects = (_exam!['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
-      _subjects = examSubjects;
-
-      // Get the class/section from the exam to load students
-      final classId = _exam!['for_class'];
-      final sectionId = _exam!['for_section'];
-
-      final results = await Future.wait([
-        client.query(QueryOptions(
-          document: gql(GqlQueries.getStudents),
-          variables: {
-            if (classId != null) 'classId': classId,
-            if (sectionId != null) 'sectionId': sectionId,
-          },
-        )),
-        client.query(QueryOptions(
-          document: gql(GqlQueries.getMarks),
-          variables: {'examId': _exam!['id']},
-        ))
-      ]);
-      final studentResult = results[0];
-      final marksResult = results[1];
+      final result = await client.query(QueryOptions(
+        document: gql(GqlQueries.getExamDetails),
+        variables: {
+          'examId': _exam!['id'],
+          'organisationId': orgId,
+        },
+        fetchPolicy: FetchPolicy.cacheAndNetwork,
+      ));
 
       if (!mounted) return;
-      if (studentResult.hasException || marksResult.hasException) {
+      if (result.hasException) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load data'), backgroundColor: AppColors.errorText),
+          SnackBar(content: Text('Failed to load exam details: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
         );
         setState(() {
           _isLoading = false;
@@ -91,45 +110,64 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         return;
       }
 
-    final students = (studentResult.data?['students'] as List? ?? []).cast<Map<String, dynamic>>();
-    final existingMarks = (marksResult.data?['marks'] as List? ?? []).cast<Map<String, dynamic>>();
+      final details = result.data?['getExamDetails'] as Map<String, dynamic>?;
+      if (details != null) {
+        final examData = details['exam'] as Map<String, dynamic>?;
+        final students = (details['students'] as List? ?? []).cast<Map<String, dynamic>>();
+        final existingMarks = (details['marks'] as List? ?? []).cast<Map<String, dynamic>>();
+        final subjects = (details['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
 
-    // Build lookup: studentId_subjectId -> mark data
-    final markLookup = <String, Map<String, dynamic>>{};
-    for (final m in existingMarks) {
-      final key = '${m['student']?['id']}_${m['subject']?['id']}';
-      markLookup[key] = m;
-    }
+        if (examData != null) {
+          _exam = {
+            ..._exam!,
+            ...examData,
+            'subjects': subjects,
+          };
+        }
+        _subjects = subjects;
 
-    // Initialize controllers
-    for (final student in students) {
-      final sid = student['id'] as String;
-      _marksData[sid] = {};
-      _absentMap[sid] = false;
-      _statusMap[sid] = 'NORMAL';
+        // Build lookup: studentId_subjectId -> mark data using flat fields from database response
+        final markLookup = <String, Map<String, dynamic>>{};
+        for (final m in existingMarks) {
+          final key = '${m['student_id']}_${m['subject_id']}';
+          markLookup[key] = m;
+        }
 
-      for (final es in examSubjects) {
-        final subjectId = es['subject']?['id'] as String? ?? '';
-        final key = '${sid}_$subjectId';
-        final existing = markLookup[key];
+        // Initialize controllers
+        for (final student in students) {
+          final sid = student['id'] as String;
+          _marksData[sid] = {};
+          _absentMap[sid] = false;
+          _statusMap[sid] = 'NORMAL';
 
-        if (existing != null) {
-          if (existing['is_absent'] == true) {
-            _absentMap[sid] = true;
-          } else if (existing['marks_obtained'] != null) {
-            _marksData[sid]![subjectId] = existing['marks_obtained'].toInt().toString();
-          }
-          if (existing['mark_status'] != null) {
-            _statusMap[sid] = existing['mark_status'];
+          for (final es in _subjects) {
+            final subjectId = es['id'] as String? ?? '';
+            final key = '${sid}_$subjectId';
+            final existing = markLookup[key];
+
+            if (existing != null) {
+              if (existing['is_absent'] == true) {
+                _absentMap[sid] = true;
+              } else if (existing['marks_obtained'] != null) {
+                _marksData[sid]![subjectId] = existing['marks_obtained'].toInt().toString();
+              }
+              if (existing['mark_status'] != null) {
+                _statusMap[sid] = existing['mark_status'];
+              }
+            }
           }
         }
-      }
-    }
 
-      setState(() {
-        _students = students;
-        _isLoading = false;
-      });
+        setState(() {
+          _students = students;
+          _filteredStudents = students;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -144,14 +182,55 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
   void _onMarkChanged() {
     _autoSaveTimer?.cancel();
-    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        final now = DateTime.now();
-        final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-        setState(() {
-          _isDraftSaved = true;
-          _lastSavedTime = timeStr;
-        });
+    _autoSaveTimer = Timer(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+
+      final client = GraphQLProvider.of(context).value;
+      final input = <Map<String, dynamic>>[];
+      for (final student in _students) {
+        final sid = student['id'] as String;
+        final isAbsent = _absentMap[sid] ?? false;
+
+        for (final es in _subjects) {
+          final subjectId = es['id'] as String? ?? '';
+          final marksText = _marksData[sid]?[subjectId] ?? '';
+          final marksVal = marksText.isNotEmpty ? double.tryParse(marksText) : null;
+
+          input.add({
+            'student_id': sid,
+            'subject_id': subjectId,
+            'marks_obtained': isAbsent ? null : marksVal,
+            'is_absent': isAbsent,
+            'mark_status': _statusMap[sid] ?? 'NORMAL',
+          });
+        }
+      }
+
+      try {
+        final result = await client.mutate(MutationOptions(
+          document: gql(GqlQueries.saveMarks),
+          variables: {
+            'examId': _exam!['id'],
+            'marks': input,
+            'isDraft': true,
+          },
+        ));
+
+        if (result.hasException) {
+          debugPrint('Draft Save Exception: ${result.exception}');
+          return;
+        }
+
+        if (mounted) {
+          final now = DateTime.now();
+          final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+          setState(() {
+            _isDraftSaved = true;
+            _lastSavedTime = timeStr;
+          });
+        }
+      } catch (e) {
+        debugPrint('Draft Save Error: $e');
       }
     });
   }
@@ -190,13 +269,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       final isAbsent = _absentMap[sid] ?? false;
 
       for (final es in _subjects) {
-        final subjectId = es['subject']?['id'] as String? ?? '';
+        final subjectId = es['id'] as String? ?? '';
         final marksText = _marksData[sid]?[subjectId] ?? '';
         final marksVal = marksText.isNotEmpty ? double.tryParse(marksText) : null;
 
         input.add({
           'student_id': sid,
-          'exam_id': _exam!['id'],
           'subject_id': subjectId,
           'marks_obtained': isAbsent ? null : marksVal,
           'is_absent': isAbsent,
@@ -208,7 +286,11 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     try {
       final result = await client.mutate(MutationOptions(
         document: gql(GqlQueries.saveMarks),
-        variables: {'input': input},
+        variables: {
+          'examId': _exam!['id'],
+          'marks': input,
+          'isDraft': false,
+        },
       ));
 
       if (result.hasException) {
@@ -219,7 +301,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       messenger.showSnackBar(
         const SnackBar(content: Text('Marks saved successfully'), backgroundColor: AppColors.successText),
       );
-      navigator.pop();
+      navigator.pop(true); // Return true to trigger refresh!
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
@@ -268,12 +350,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                     children: [
                       ListView.builder(
                         padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
-                        itemCount: _students.length + 1,
+                        itemCount: _filteredStudents.length + 1,
                         itemBuilder: (_, i) {
                           if (i == 0) return _buildConfigHeader();
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: _buildStudentCard(_students[i - 1]),
+                            child: _buildStudentCard(_filteredStudents[i - 1]),
                           );
                         },
                       ),
@@ -326,7 +408,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 _ConfigRow(label: 'SERIES', value: _exam!['series']?['name'] ?? 'N/A'),
                 _ConfigRow(label: 'DATE', value: _exam!['exam_date'] ?? 'N/A'),
                 _ConfigRow(label: 'EXAM NAME', value: _exam!['name'] ?? ''),
-                _ConfigRow(label: 'SUBJECTS', value: _subjects.map((s) => s['subject']?['name'] ?? '').join(', ')),
+                _ConfigRow(label: 'SUBJECTS', value: _subjects.map((s) => s['name'] ?? '').join(', ')),
               ],
             ),
           ),
@@ -390,6 +472,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          ArmsInputField(
+            controller: _searchCtrl,
+            hintText: 'Search students by name or roll number...',
+            prefixIcon: Icons.search,
           ),
         ],
       ),
@@ -539,8 +627,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
             spacing: 12,
             runSpacing: 12,
             children: _subjects.map((es) {
-              final subjectId = es['subject']?['id'] as String? ?? '';
-              final subjectName = es['subject']?['name'] as String? ?? '';
+              final subjectId = es['id'] as String? ?? '';
+              final subjectName = es['name'] as String? ?? '';
 
               return SizedBox(
                 width: (MediaQuery.of(context).size.width - 80) / 2,

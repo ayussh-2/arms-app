@@ -13,6 +13,7 @@ import 'screens/attendance/leave_history_screen.dart';
 import 'screens/exams/exam_view_screen.dart';
 import 'screens/exams/mark_entry_screen.dart';
 import 'screens/exams/exam_create_screen.dart';
+import 'screens/settings_screen.dart';
 import 'widgets/debug_overlay.dart';
 
 import 'core/auth/auth_service.dart';
@@ -61,12 +62,21 @@ class _ArmsAppState extends State<ArmsApp> {
           '/exam-view': (_) => const ExamViewScreen(),
           '/mark-entry': (_) => const MarkEntryScreen(),
           '/exam-create': (_) => const ExamCreateScreen(),
+          '/settings': (_) => const SettingsScreen(),
         },
         builder: (context, child) {
           if (kDebugMode) {
-            return DebugOverlay(
-              debugService: debugService,
-              child: child!,
+            return ValueListenableBuilder<bool>(
+              valueListenable: debugService.isDebugMode,
+              builder: (context, isDebug, _) {
+                if (isDebug) {
+                  return DebugOverlay(
+                    debugService: debugService,
+                    child: child!,
+                  );
+                }
+                return child!;
+              },
             );
           }
           return child!;

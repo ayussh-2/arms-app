@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
+import '../../core/auth/auth_service.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_input_field.dart';
 
@@ -49,27 +52,72 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
 
   Future<void> _loadMarks() async {
     try {
+      final orgId = AuthService.currentAdmin?.organization?.id;
+      if (orgId == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
       final client = GraphQLProvider.of(context).value;
       final result = await client.query(QueryOptions(
-        document: gql(GqlQueries.getMarks),
-        variables: {'examId': _exam!['id']},
+        document: gql(GqlQueries.getExamDetails),
+        variables: {
+          'examId': _exam!['id'],
+          'organisationId': orgId,
+        },
+        fetchPolicy: FetchPolicy.cacheAndNetwork,
       ));
       if (!mounted) return;
       if (result.hasException) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load marks: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
+          SnackBar(content: Text('Failed to load exam details: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
         );
         setState(() {
           _isLoading = false;
         });
         return;
       }
-      final list = (result.data?['marks'] as List? ?? []).cast<Map<String, dynamic>>();
-      setState(() {
-        _marks = list;
-        _filteredMarks = list;
-        _isLoading = false;
-      });
+
+      final details = result.data?['getExamDetails'] as Map<String, dynamic>?;
+      if (details != null) {
+        final examData = details['exam'] as Map<String, dynamic>?;
+        final rawMarks = (details['marks'] as List? ?? []).cast<Map<String, dynamic>>();
+        final students = (details['students'] as List? ?? []).cast<Map<String, dynamic>>();
+        final subjects = (details['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
+
+        // Create lookups
+        final studentMap = { for (var s in students) s['id']: s };
+        final subjectMap = { for (var s in subjects) s['id']: s };
+
+        // Enrich marks with student and subject details
+        final enrichedMarks = rawMarks.map((m) {
+          final sId = m['student_id'];
+          final subId = m['subject_id'];
+          return {
+            ...m,
+            'student': studentMap[sId],
+            'subject': subjectMap[subId],
+          };
+        }).toList();
+
+        setState(() {
+          if (examData != null) {
+            _exam = {
+              ..._exam!,
+              ...examData,
+              'subjects': subjects,
+            };
+          }
+          _marks = enrichedMarks;
+          _filteredMarks = enrichedMarks;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -287,7 +335,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
     }
 
     final subjects = _exam!['subjects'] as List? ?? [];
-    final subjectNames = subjects.map((s) => s['subject']?['name'] ?? '').join(', ');
+    final subjectNames = subjects.map((s) => s['name'] ?? '').join(', ');
     final totalMarks = _exam!['total_marks'] ?? 0;
 
     return Scaffold(
@@ -350,7 +398,15 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
             ),
       // FAB for edit
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).pushNamed('/mark-entry', arguments: _exam),
+        onPressed: () async {
+          final result = await Navigator.of(context).pushNamed('/mark-entry', arguments: _exam);
+          if (result == true) {
+            setState(() {
+              _isLoading = true;
+            });
+            _loadMarks();
+          }
+        },
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         icon: const Icon(Icons.edit),
@@ -376,7 +432,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _HeaderMeta(label: 'DATE', value: _exam!['exam_date'] ?? 'N/A'),
+              _HeaderMeta(label: 'DATE', value: _formatExamDate(_exam!['exam_date'])),
               _HeaderMeta(label: 'TOTAL MARKS', value: '$totalMarks Marks'),
             ],
           ),
@@ -406,21 +462,48 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           _ActionChip(
             icon: Icons.description_outlined,
             label: 'Attendance PDF',
-            filled: true,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Downloading Attendance PDF...'), backgroundColor: AppColors.primary),
-              );
+            onTap: () async {
+              final url = _exam!['attendance_pdf_url'] as String? ?? '';
+              if (url.isNotEmpty) {
+                final uri = Uri.parse(url);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not launch URL: $url'), backgroundColor: AppColors.errorText),
+                    );
+                  }
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No Attendance PDF URL found.'), backgroundColor: AppColors.errorText),
+                );
+              }
             },
           ),
           const SizedBox(width: 8),
           _ActionChip(
             icon: Icons.quiz_outlined,
             label: 'Question Paper',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Opening Question Paper...')),
-              );
+            onTap: () async {
+              final url = _exam!['question_pdf_url'] as String? ?? '';
+              if (url.isNotEmpty) {
+                final uri = Uri.parse(url);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not launch URL: $url'), backgroundColor: AppColors.errorText),
+                    );
+                  }
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No Question Paper URL found.'), backgroundColor: AppColors.errorText),
+                );
+              }
             },
           ),
           const SizedBox(width: 8),
@@ -589,5 +672,16 @@ class _ActionChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Helper to format date from 'YYYY-MM-DD' to 'd MMM yyyy' (e.g. '29 May 2026')
+String _formatExamDate(String? dateStr) {
+  if (dateStr == null || dateStr.trim().isEmpty) return 'N/A';
+  try {
+    final parsedDate = DateTime.parse(dateStr.trim());
+    return DateFormat('d MMM yyyy').format(parsedDate);
+  } catch (e) {
+    return dateStr;
   }
 }

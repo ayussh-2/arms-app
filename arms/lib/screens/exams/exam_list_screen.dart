@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
+import '../../core/auth/auth_service.dart';
 import '../../widgets/arms_input_field.dart';
 
 /// Exam list screen matching exam-list.html.
@@ -17,9 +20,16 @@ class ExamListScreen extends StatefulWidget {
 
 class _ExamListScreenState extends State<ExamListScreen> {
   final _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   List<Map<String, dynamic>> _allExams = [];
   List<Map<String, dynamic>> _filteredExams = [];
   bool _isLoading = true;
+
+  // Pagination State
+  int _offset = 0;
+  final int _limit = 10;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
 
   // Tab State: 0 = Exams, 1 = Reports
   int _activeSubTab = 0;
@@ -31,53 +41,204 @@ class _ExamListScreenState extends State<ExamListScreen> {
   String? _selectedClass;
   String? _selectedSection;
 
+  // Lookups data from GetExamLookups
+  List<Map<String, dynamic>> _schoolsLookup = [];
+  List<Map<String, dynamic>> _classesLookup = [];
+  List<Map<String, dynamic>> _sectionsLookup = [];
+  List<Map<String, dynamic>> _seriesLookup = [];
+  List<Map<String, dynamic>> _subjectsLookup = [];
+
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_filterExams);
+    _scrollController.addListener(_onScroll);
+    _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_isLoading) _loadExams();
+    if (_isLoading && _allExams.isEmpty) {
+      _loadLookups();
+      _loadExams();
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (_hasMore && !_isLoadingMore && !_isLoading) {
+        _loadMoreExams();
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      _resetAndLoadExams();
+    });
+  }
+
+  Future<void> _loadLookups() async {
+    try {
+      final orgId = AuthService.currentAdmin?.organization?.id;
+      if (orgId == null) return;
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getExamLookups),
+          variables: {
+            'organisationId': orgId,
+          },
+          fetchPolicy: FetchPolicy.cacheAndNetwork,
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result.hasException) {
+        debugPrint('Failed to load exam lookups: ${result.exception.toString()}');
+        return;
+      }
+
+      final lookups = result.data?['getExamLookups'];
+      if (lookups != null) {
+        setState(() {
+          _schoolsLookup = (lookups['schools'] as List? ?? []).cast<Map<String, dynamic>>();
+          _classesLookup = (lookups['classes'] as List? ?? []).cast<Map<String, dynamic>>();
+          _sectionsLookup = (lookups['sections'] as List? ?? []).cast<Map<String, dynamic>>();
+          _seriesLookup = (lookups['series'] as List? ?? []).cast<Map<String, dynamic>>();
+          _subjectsLookup = (lookups['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading exam lookups: $e');
+    }
+  }
+
+  Future<void> _resetAndLoadExams() async {
+    setState(() {
+      _offset = 0;
+      _hasMore = true;
+      _isLoading = true;
+      _allExams.clear();
+      _filteredExams.clear();
+    });
+    await _loadExams();
   }
 
   Future<void> _loadExams() async {
     try {
+      final orgId = AuthService.currentAdmin?.organization?.id;
+      if (orgId == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
       final client = GraphQLProvider.of(context).value;
+
+      final isSearch = _searchController.text.trim().isNotEmpty;
+      final hasServerFilters = _selectedSeries != null ||
+          _selectedSubject != null ||
+          _selectedClass != null ||
+          _selectedSchool != null ||
+          _selectedSection != null;
+      final queryStr = (isSearch || hasServerFilters) ? GqlQueries.searchExams : GqlQueries.getExamsPaginated;
+
+      final variables = <String, dynamic>{
+        'organisationId': orgId,
+        'isDeleted': false,
+        'pagination': {
+          'limit': _limit,
+          'offset': _offset,
+        },
+      };
+
+      if (isSearch) {
+        variables['query'] = _searchController.text.trim();
+      } else if (hasServerFilters) {
+        variables['query'] = '';
+      }
+
+      if (hasServerFilters) {
+        final filters = <String, dynamic>{};
+        if (_selectedSeriesId != null) {
+          filters['seriesIds'] = [_selectedSeriesId];
+        }
+        if (_selectedClassId != null) {
+          filters['classIds'] = [_selectedClassId];
+        }
+        if (_selectedSubjectId != null) {
+          filters['subjectIds'] = [_selectedSubjectId];
+        }
+        if (_selectedSchoolId != null) {
+          filters['schoolIds'] = [_selectedSchoolId];
+        }
+        if (_selectedSectionId != null) {
+          filters['sectionIds'] = [_selectedSectionId];
+        }
+        variables['filters'] = filters;
+      }
+
       final result = await client.query(
         QueryOptions(
-          document: gql(GqlQueries.getExams),
+          document: gql(queryStr),
+          variables: variables,
           fetchPolicy: FetchPolicy.cacheAndNetwork,
         ),
       );
+
       if (!mounted) return;
+
       if (result.hasException) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load exams: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
+          SnackBar(
+            content: Text('Failed to load exams: ${result.exception.toString()}'),
+            backgroundColor: AppColors.errorText,
+          ),
         );
         setState(() {
           _isLoading = false;
         });
         return;
       }
-      final list = (result.data?['exams'] as List? ?? []).cast<Map<String, dynamic>>();
+
+      final queryKey = (isSearch || hasServerFilters) ? 'searchExams' : 'getExamsPaginated';
+      final responseData = result.data?[queryKey];
+      final items = (responseData?['items'] as List? ?? []).cast<Map<String, dynamic>>();
+      final paginationInfo = responseData?['pagination'] as Map<String, dynamic>?;
+
       setState(() {
-        _allExams = list;
+        _allExams = items;
+        if (paginationInfo != null) {
+          _hasMore = paginationInfo['hasMore'] as bool? ?? false;
+        } else {
+          _hasMore = items.length >= _limit;
+        }
         _isLoading = false;
       });
+
       _filterExams();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connection error: $e'), backgroundColor: AppColors.errorText),
+          SnackBar(
+            content: Text('Connection error: $e'),
+            backgroundColor: AppColors.errorText,
+          ),
         );
         setState(() {
           _isLoading = false;
@@ -86,90 +247,232 @@ class _ExamListScreenState extends State<ExamListScreen> {
     }
   }
 
+  Future<void> _loadMoreExams() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final orgId = AuthService.currentAdmin?.organization?.id;
+      if (orgId == null) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+        return;
+      }
+      final nextOffset = _offset + _limit;
+      final client = GraphQLProvider.of(context).value;
+
+      final isSearch = _searchController.text.trim().isNotEmpty;
+      final hasServerFilters = _selectedSeries != null ||
+          _selectedSubject != null ||
+          _selectedClass != null ||
+          _selectedSchool != null ||
+          _selectedSection != null;
+      final queryStr = (isSearch || hasServerFilters) ? GqlQueries.searchExams : GqlQueries.getExamsPaginated;
+
+      final variables = <String, dynamic>{
+        'organisationId': orgId,
+        'isDeleted': false,
+        'pagination': {
+          'limit': _limit,
+          'offset': nextOffset,
+        },
+      };
+
+      if (isSearch) {
+        variables['query'] = _searchController.text.trim();
+      } else if (hasServerFilters) {
+        variables['query'] = '';
+      }
+
+      if (hasServerFilters) {
+        final filters = <String, dynamic>{};
+        if (_selectedSeriesId != null) {
+          filters['seriesIds'] = [_selectedSeriesId];
+        }
+        if (_selectedClassId != null) {
+          filters['classIds'] = [_selectedClassId];
+        }
+        if (_selectedSubjectId != null) {
+          filters['subjectIds'] = [_selectedSubjectId];
+        }
+        if (_selectedSchoolId != null) {
+          filters['schoolIds'] = [_selectedSchoolId];
+        }
+        if (_selectedSectionId != null) {
+          filters['sectionIds'] = [_selectedSectionId];
+        }
+        variables['filters'] = filters;
+      }
+
+      final result = await client.query(
+        QueryOptions(
+          document: gql(queryStr),
+          variables: variables,
+          fetchPolicy: FetchPolicy.cacheAndNetwork,
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result.hasException) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load more exams: ${result.exception.toString()}'),
+            backgroundColor: AppColors.errorText,
+          ),
+        );
+        setState(() {
+          _isLoadingMore = false;
+        });
+        return;
+      }
+
+      final queryKey = (isSearch || hasServerFilters) ? 'searchExams' : 'getExamsPaginated';
+      final responseData = result.data?[queryKey];
+      final items = (responseData?['items'] as List? ?? []).cast<Map<String, dynamic>>();
+      final paginationInfo = responseData?['pagination'] as Map<String, dynamic>?;
+
+      setState(() {
+        _offset = nextOffset;
+        _allExams.addAll(items);
+        if (paginationInfo != null) {
+          _hasMore = paginationInfo['hasMore'] as bool? ?? false;
+        } else {
+          _hasMore = items.length >= _limit;
+        }
+        _isLoadingMore = false;
+      });
+
+      _filterExams();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Connection error: $e'),
+            backgroundColor: AppColors.errorText,
+          ),
+        );
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refreshExams() async {
+    _loadLookups();
+    await _resetAndLoadExams();
+  }
+
   // Dynamic lists from loaded data
   List<String> get uniqueSeries {
-    return _allExams
-        .map((e) => e['series']?['name'] as String?)
+    return _seriesLookup
+        .map((e) => e['name'] as String?)
         .whereType<String>()
-        .toSet()
         .toList();
   }
 
   List<String> get uniqueSubjects {
-    final list = <String>[];
-    for (final e in _allExams) {
-      final subs = e['subjects'] as List? ?? [];
-      for (final s in subs) {
-        final name = s['subject']?['name'] as String?;
-        if (name != null) list.add(name);
-      }
-    }
-    return list.toSet().toList();
+    return _subjectsLookup
+        .map((e) => e['name'] as String?)
+        .whereType<String>()
+        .toList();
   }
 
   List<String> get uniqueSchools {
-    return _allExams
-        .map((e) => e['for_school'] as String?)
+    return _schoolsLookup
+        .map((e) => e['name'] as String?)
         .whereType<String>()
-        .toSet()
         .toList();
   }
 
   List<String> get uniqueClasses {
-    return _allExams
-        .map((e) => e['for_class'] as String?)
+    return _classesLookup
+        .map((e) => e['name'] as String?)
         .whereType<String>()
-        .toSet()
         .toList();
   }
 
   List<String> get uniqueSections {
-    return _allExams
-        .map((e) => e['for_section'] as String?)
+    return _sectionsLookup
+        .map((e) => e['name'] as String?)
         .whereType<String>()
-        .toSet()
         .toList();
+  }
+
+  String? get _selectedSeriesId {
+    if (_selectedSeries == null) return null;
+    final found = _seriesLookup.firstWhere(
+      (e) => e['name'] == _selectedSeries,
+      orElse: () => <String, dynamic>{},
+    );
+    return found['id'] as String?;
+  }
+
+  String? get _selectedSubjectId {
+    if (_selectedSubject == null) return null;
+    final found = _subjectsLookup.firstWhere(
+      (e) => e['name'] == _selectedSubject,
+      orElse: () => <String, dynamic>{},
+    );
+    return found['id'] as String?;
+  }
+
+  String? get _selectedClassId {
+    if (_selectedClass == null) return null;
+    final found = _classesLookup.firstWhere(
+      (e) => e['name'] == _selectedClass,
+      orElse: () => <String, dynamic>{},
+    );
+    return found['id'] as String?;
+  }
+
+  String? get _selectedSchoolId {
+    if (_selectedSchool == null) return null;
+    final found = _schoolsLookup.firstWhere(
+      (e) => e['name'] == _selectedSchool,
+      orElse: () => <String, dynamic>{},
+    );
+    return found['id'] as String?;
+  }
+
+  String? get _selectedSectionId {
+    if (_selectedSection == null) return null;
+    final found = _sectionsLookup.firstWhere(
+      (e) => e['name'] == _selectedSection,
+      orElse: () => <String, dynamic>{},
+    );
+    return found['id'] as String?;
   }
 
   void _filterExams() {
     final q = _searchController.text.toLowerCase();
     setState(() {
       _filteredExams = _allExams.where((e) {
-        // Search filter
+        // Search filter (client-side backup/refinement)
         final name = (e['name'] as String? ?? '').toLowerCase();
         final series = (e['series']?['name'] as String? ?? '').toLowerCase();
         final subjects = e['subjects'] as List? ?? [];
-        final subjectNames = subjects.map((s) => (s['subject']?['name'] as String? ?? '').toLowerCase()).join(' ');
+        final subjectNames = subjects.map((s) => (s['name'] as String? ?? '').toLowerCase()).join(' ');
 
         final matchesSearch = q.isEmpty ||
             name.contains(q) ||
             series.contains(q) ||
             subjectNames.contains(q);
 
-        // Filter pills
-        final matchesSeries = _selectedSeries == null ||
-            (e['series']?['name'] as String?) == _selectedSeries;
-
-        final matchesSubject = _selectedSubject == null ||
-            subjects.any((s) => (s['subject']?['name'] as String?) == _selectedSubject);
-
-        final matchesSchool = _selectedSchool == null ||
-            (e['for_school'] as String?) == _selectedSchool;
-
-        final matchesClass = _selectedClass == null ||
-            (e['for_class'] as String?) == _selectedClass;
-
-        final matchesSection = _selectedSection == null ||
-            (e['for_section'] as String?) == _selectedSection;
-
-        return matchesSearch &&
-            matchesSeries &&
-            matchesSubject &&
-            matchesSchool &&
-            matchesClass &&
-            matchesSection;
+        return matchesSearch;
       }).toList();
     });
+
+    // Auto-load more if filters returned no matches but there is more data in the backend
+    if (_filteredExams.isEmpty && _hasMore && !_isLoadingMore && !_isLoading && _activeSubTab == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadMoreExams();
+      });
+    }
   }
 
   void _showFilterOptions(
@@ -278,7 +581,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
                       Text(exam['name'] ?? '', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 4),
                       Text(
-                        '${exam['series']?['name'] ?? ''} • ${exam['exam_date'] ?? ''}',
+                        '${exam['series']?['name'] ?? ''} • ${_formatExamDate(exam['exam_date'])}',
                         style: AppTextStyles.labelXs,
                       ),
                     ],
@@ -498,180 +801,207 @@ class _ExamListScreenState extends State<ExamListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+      body: _activeSubTab == 0
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Fixed Header: Title, Search, Filters
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 60, AppSpacing.marginPage, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Exams',
+                            style: AppTextStyles.displayMobile.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textMain,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _refreshExams,
+                            icon: const Icon(
+                              Icons.refresh,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
+                            tooltip: 'Refresh list',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ArmsInputField(
+                        controller: _searchController,
+                        hintText: 'Search exams...',
+                        prefixIcon: Icons.search,
+                      ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildFilterPill(
+                              label: 'Series',
+                              selectedValue: _selectedSeries,
+                              options: uniqueSeries,
+                              onSelected: (val) {
+                                setState(() {
+                                  _selectedSeries = val;
+                                });
+                                _resetAndLoadExams();
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterPill(
+                              label: 'Subjects',
+                              selectedValue: _selectedSubject,
+                              options: uniqueSubjects,
+                              onSelected: (val) {
+                                setState(() {
+                                  _selectedSubject = val;
+                                });
+                                _resetAndLoadExams();
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterPill(
+                              label: 'Schools',
+                              selectedValue: _selectedSchool,
+                              options: uniqueSchools,
+                              onSelected: (val) {
+                                setState(() {
+                                  _selectedSchool = val;
+                                });
+                                _resetAndLoadExams();
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterPill(
+                              label: 'Classes',
+                              selectedValue: _selectedClass,
+                              options: uniqueClasses,
+                              onSelected: (val) {
+                                setState(() {
+                                  _selectedClass = val;
+                                });
+                                _resetAndLoadExams();
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            _buildFilterPill(
+                              label: 'Sections',
+                              selectedValue: _selectedSection,
+                              options: uniqueSections,
+                              onSelected: (val) {
+                                setState(() {
+                                  _selectedSection = val;
+                                });
+                                _resetAndLoadExams();
+                              },
+                            ),
+                            if (hasAnyFilter) ...[
+                              const SizedBox(width: 12),
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedSeries = null;
+                                    _selectedSubject = null;
+                                    _selectedSchool = null;
+                                    _selectedClass = null;
+                                    _selectedSection = null;
+                                  });
+                                  _resetAndLoadExams();
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Clear',
+                                  style: AppTextStyles.labelXs.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Scrollable Exam Container
+                Expanded(
+                  child: _isLoading && _allExams.isEmpty
+                      ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                      : RefreshIndicator(
+                          color: AppColors.primary,
+                          onRefresh: _refreshExams,
+                          child: _filteredExams.isEmpty
+                              ? ListView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 64),
+                                      child: Center(
+                                        child: Column(
+                                          children: [
+                                            const Icon(Icons.assignment_outlined, size: 64, color: AppColors.outline),
+                                            const SizedBox(height: 16),
+                                            Text('No exams found', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : ListView.builder(
+                                  controller: _scrollController,
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppSpacing.marginPage,
+                                    0,
+                                    AppSpacing.marginPage,
+                                    120, // Padding for bottom nav bar spacing
+                                  ),
+                                  itemCount: _filteredExams.length + (_isLoadingMore ? 1 : 0),
+                                  itemBuilder: (_, i) {
+                                    if (i == _filteredExams.length) {
+                                      return const Padding(
+                                        padding: EdgeInsets.symmetric(vertical: 16),
+                                        child: Center(
+                                          child: CircularProgressIndicator(color: AppColors.primary),
+                                        ),
+                                      );
+                                    }
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
+                                      child: _ExamCard(
+                                        exam: _filteredExams[i],
+                                        onTap: () => _showActionSheet(_filteredExams[i]),
+                                        schoolsLookup: _schoolsLookup,
+                                        classesLookup: _classesLookup,
+                                        sectionsLookup: _sectionsLookup,
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                ),
+              ],
+            )
           : RefreshIndicator(
               color: AppColors.primary,
-              onRefresh: _loadExams,
+              onRefresh: _refreshExams,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
-                  if (_activeSubTab == 0) ...[
-                    // SEARCH & FILTERS
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 60, AppSpacing.marginPage, 0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Exams',
-                                  style: AppTextStyles.displayMobile.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textMain,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isLoading = true;
-                                    });
-                                    _loadExams();
-                                  },
-                                  icon: const Icon(
-                                    Icons.refresh,
-                                    color: AppColors.primary,
-                                    size: 24,
-                                  ),
-                                  tooltip: 'Refresh list',
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            ArmsInputField(
-                              controller: _searchController,
-                              hintText: 'Search exams...',
-                              prefixIcon: Icons.search,
-                            ),
-                          const SizedBox(height: 12),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                _buildFilterPill(
-                                  label: 'Series',
-                                  selectedValue: _selectedSeries,
-                                  options: uniqueSeries,
-                                  onSelected: (val) {
-                                    _selectedSeries = val;
-                                    _filterExams();
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                _buildFilterPill(
-                                  label: 'Subjects',
-                                  selectedValue: _selectedSubject,
-                                  options: uniqueSubjects,
-                                  onSelected: (val) {
-                                    _selectedSubject = val;
-                                    _filterExams();
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                _buildFilterPill(
-                                  label: 'Schools',
-                                  selectedValue: _selectedSchool,
-                                  options: uniqueSchools,
-                                  onSelected: (val) {
-                                    _selectedSchool = val;
-                                    _filterExams();
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                _buildFilterPill(
-                                  label: 'Classes',
-                                  selectedValue: _selectedClass,
-                                  options: uniqueClasses,
-                                  onSelected: (val) {
-                                    _selectedClass = val;
-                                    _filterExams();
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                _buildFilterPill(
-                                  label: 'Sections',
-                                  selectedValue: _selectedSection,
-                                  options: uniqueSections,
-                                  onSelected: (val) {
-                                    _selectedSection = val;
-                                    _filterExams();
-                                  },
-                                ),
-                                if (hasAnyFilter) ...[
-                                  const SizedBox(width: 12),
-                                  TextButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _selectedSeries = null;
-                                        _selectedSubject = null;
-                                        _selectedSchool = null;
-                                        _selectedClass = null;
-                                        _selectedSection = null;
-                                        _filterExams();
-                                      });
-                                    },
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      minimumSize: Size.zero,
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    child: Text(
-                                      'Clear',
-                                      style: AppTextStyles.labelXs.copyWith(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.stackLg),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // EXAMS LIST
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.marginPage,
-                      0,
-                      AppSpacing.marginPage,
-                      120, // Padding for bottom nav bar spacing
-                    ),
-                    sliver: _filteredExams.isEmpty
-                        ? SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 64),
-                              child: Center(
-                                child: Column(
-                                  children: [
-                                    const Icon(Icons.assignment_outlined, size: 64, color: AppColors.outline),
-                                    const SizedBox(height: 16),
-                                    Text('No exams found', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )
-                        : SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (_, i) => Padding(
-                                padding: const EdgeInsets.only(bottom: AppSpacing.stackMd),
-                                child: _ExamCard(
-                                  exam: _filteredExams[i],
-                                  onTap: () => _showActionSheet(_filteredExams[i]),
-                                ),
-                              ),
-                              childCount: _filteredExams.length,
-                            ),
-                          ),
-                  ),
-                ] else ...[
                   // REPORTS SUB-TAB DASHBOARD
                   SliverToBoxAdapter(
                     child: Padding(
@@ -762,9 +1092,8 @@ class _ExamListScreenState extends State<ExamListScreen> {
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
       floatingActionButton: _activeSubTab == 0
           ? FloatingActionButton(
               onPressed: () async {
@@ -789,34 +1118,71 @@ class _ExamListScreenState extends State<ExamListScreen> {
 
 /// Individual exam card matching exam-list.html design.
 class _ExamCard extends StatelessWidget {
-  const _ExamCard({required this.exam, required this.onTap});
+  const _ExamCard({
+    required this.exam,
+    required this.onTap,
+    required this.schoolsLookup,
+    required this.classesLookup,
+    required this.sectionsLookup,
+  });
+
   final Map<String, dynamic> exam;
   final VoidCallback onTap;
+  final List<Map<String, dynamic>> schoolsLookup;
+  final List<Map<String, dynamic>> classesLookup;
+  final List<Map<String, dynamic>> sectionsLookup;
 
   String parseMeta(dynamic val, String type) {
     if (val == null) return 'All';
     final str = val.toString().trim();
     if (str.isEmpty || str == '[]' || str == 'null') return 'All';
 
-    // Clean up bracket characters if any
-    final clean = str.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll("'", "");
+    // Clean up bracket characters and quotes if any
+    final clean = str.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll("'", "").trim();
+    if (clean.isEmpty) return 'All';
 
-    // Check if it's a UUID or list of UUIDs
-    final isUuid = clean.contains('-') && clean.length > 15;
-    if (isUuid) {
-      if (type == 'school') return 'Main Campus';
-      if (type == 'class') return 'Class X';
-      if (type == 'section') return 'Sec A';
+    // Handle comma-separated UUID list if any
+    final parts = clean.split(',').map((p) => p.trim()).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return 'All';
+
+    final resolvedNames = <String>[];
+    for (final part in parts) {
+      final isUuid = part.contains('-') && part.length > 15;
+      if (isUuid) {
+        String? resolvedName;
+        if (type == 'school') {
+          final found = schoolsLookup.firstWhere(
+            (e) => e['id'] == part,
+            orElse: () => <String, dynamic>{},
+          );
+          resolvedName = found['name'] as String?;
+        } else if (type == 'class') {
+          final found = classesLookup.firstWhere(
+            (e) => e['id'] == part,
+            orElse: () => <String, dynamic>{},
+          );
+          resolvedName = found['name'] as String?;
+        } else if (type == 'section') {
+          final found = sectionsLookup.firstWhere(
+            (e) => e['id'] == part,
+            orElse: () => <String, dynamic>{},
+          );
+          resolvedName = found['name'] as String?;
+        }
+        resolvedNames.add(resolvedName ?? part);
+      } else {
+        resolvedNames.add(part);
+      }
     }
 
-    return clean;
+    return resolvedNames.join(', ');
   }
 
   @override
   Widget build(BuildContext context) {
     final isSaved = exam['mark_saved'] == true;
     final subjects = exam['subjects'] as List? ?? [];
-    final subjectNames = subjects.map((s) => s['subject']?['name'] ?? '').join(', ');
+    final subjectNames = subjects.map((s) => s['name'] ?? '').join(', ');
 
     return GestureDetector(
       onTap: onTap,
@@ -899,7 +1265,7 @@ class _ExamCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       _MetaItem(
                         icon: Icons.event_outlined,
-                        text: exam['exam_date'] ?? '',
+                        text: _formatExamDate(exam['exam_date']),
                       ),
                     ],
                   ),
@@ -1025,5 +1391,16 @@ class _SheetButton extends StatelessWidget {
               ),
             ),
     );
+  }
+}
+
+/// Helper to format date from 'YYYY-MM-DD' to 'd MMM yyyy' (e.g. '29 May 2026')
+String _formatExamDate(String? dateStr) {
+  if (dateStr == null || dateStr.trim().isEmpty) return '';
+  try {
+    final parsedDate = DateTime.parse(dateStr.trim());
+    return DateFormat('d MMM yyyy').format(parsedDate);
+  } catch (e) {
+    return dateStr;
   }
 }
