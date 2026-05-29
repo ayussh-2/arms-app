@@ -29,6 +29,9 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
   String downloadSelection = 'All students';
   String downloadFormat = 'PDF Format';
 
+  int _currentPage = 0;
+  static const int _pageSize = 15;
+
   @override
   void initState() {
     super.initState();
@@ -101,6 +104,23 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           };
         }).toList();
 
+        // Sort enriched marks by marks_obtained descending
+        enrichedMarks.sort((a, b) {
+          final aAbsent = a['is_absent'] == true;
+          final bAbsent = b['is_absent'] == true;
+          if (aAbsent && bAbsent) return 0;
+          if (aAbsent) return 1;
+          if (bAbsent) return -1;
+
+          final aMarks = a['marks_obtained'] as num?;
+          final bMarks = b['marks_obtained'] as num?;
+          if (aMarks == null && bMarks == null) return 0;
+          if (aMarks == null) return 1;
+          if (bMarks == null) return -1;
+          
+          return bMarks.toDouble().compareTo(aMarks.toDouble());
+        });
+
         setState(() {
           if (examData != null) {
             _exam = {
@@ -133,6 +153,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
   void _filterMarks() {
     final q = _searchCtrl.text.toLowerCase();
     setState(() {
+      _currentPage = 0;
       if (q.isEmpty) {
         _filteredMarks = _marks;
       } else {
@@ -150,16 +171,9 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
     final str = val.toString().trim();
     if (str.isEmpty || str == '[]' || str == 'null') return 'All';
 
-    // Clean up bracket characters if any
-    final clean = str.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll("'", "");
-
-    // Check if it's a UUID or list of UUIDs
-    final isUuid = clean.contains('-') && clean.length > 15;
-    if (isUuid) {
-      if (type == 'school') return 'Main Campus';
-      if (type == 'class') return 'Class X';
-      if (type == 'section') return 'Sec A';
-    }
+    // Clean up bracket characters and quotes if any
+    final clean = str.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll("'", "").trim();
+    if (clean.isEmpty) return 'All';
 
     return clean;
   }
@@ -338,6 +352,8 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
     final subjectNames = subjects.map((s) => s['name'] ?? '').join(', ');
     final totalMarks = _exam!['total_marks'] ?? 0;
 
+    final pageMarks = _filteredMarks.skip(_currentPage * _pageSize).take(_pageSize).toList();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const ArmsTopAppBar(
@@ -363,10 +379,6 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
                       Row(
                         children: [
                           Text('Student Marks', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                          const Spacer(),
-                          _iconBtn(Icons.filter_list),
-                          const SizedBox(width: 8),
-                          _iconBtn(Icons.sort),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.stackMd),
@@ -381,11 +393,52 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, i) => _buildMarkRow(i, _filteredMarks[i], totalMarks),
-                      childCount: _filteredMarks.length,
+                      (context, i) => _buildMarkRow((_currentPage * _pageSize) + i, pageMarks[i], totalMarks),
+                      childCount: pageMarks.length,
                     ),
                   ),
                 ),
+                if (_filteredMarks.length > _pageSize)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
+                    sliver: SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Showing ${(_currentPage * _pageSize) + 1} to ${((_currentPage + 1) * _pageSize).clamp(1, _filteredMarks.length)} of ${_filteredMarks.length}',
+                              style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
+                            ),
+                            Row(
+                              children: [
+                                _PaginationButton(
+                                  icon: Icons.chevron_left,
+                                  isEnabled: _currentPage > 0,
+                                  onTap: () {
+                                    setState(() {
+                                      _currentPage--;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                _PaginationButton(
+                                  icon: Icons.chevron_right,
+                                  isEnabled: (_currentPage + 1) * _pageSize < _filteredMarks.length,
+                                  onTap: () {
+                                    setState(() {
+                                      _currentPage++;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
                   sliver: SliverList(
@@ -465,13 +518,18 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
             onTap: () async {
               final url = _exam!['attendance_pdf_url'] as String? ?? '';
               if (url.isNotEmpty) {
-                final uri = Uri.parse(url);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  if (context.mounted) {
+                try {
+                  final uri = Uri.parse(url);
+                  final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  if (!success && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Could not launch URL: $url'), backgroundColor: AppColors.errorText),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error launching URL: $e'), backgroundColor: AppColors.errorText),
                     );
                   }
                 }
@@ -489,13 +547,18 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
             onTap: () async {
               final url = _exam!['question_pdf_url'] as String? ?? '';
               if (url.isNotEmpty) {
-                final uri = Uri.parse(url);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  if (context.mounted) {
+                try {
+                  final uri = Uri.parse(url);
+                  final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  if (!success && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Could not launch URL: $url'), backgroundColor: AppColors.errorText),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error launching URL: $e'), backgroundColor: AppColors.errorText),
                     );
                   }
                 }
@@ -579,7 +642,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(student['name'] ?? '', style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain)),
-                Text('Roll: #${student['roll_no'] ?? ''}', style: AppTextStyles.labelXs.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
+                Text('Roll: ${student['roll_no'] ?? ''}', style: AppTextStyles.labelXs.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
               ],
             ),
           ),
@@ -683,5 +746,40 @@ String _formatExamDate(String? dateStr) {
     return DateFormat('d MMM yyyy').format(parsedDate);
   } catch (e) {
     return dateStr;
+  }
+}
+
+class _PaginationButton extends StatelessWidget {
+  const _PaginationButton({
+    required this.icon,
+    required this.isEnabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool isEnabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isEnabled ? onTap : null,
+      child: Opacity(
+        opacity: isEnabled ? 1.0 : 0.4,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isEnabled ? AppColors.primary : AppColors.cardSurface,
+            shape: BoxShape.circle,
+            border: isEnabled ? null : Border.all(color: AppColors.outlineLight),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: isEnabled ? Colors.white : AppColors.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
   }
 }

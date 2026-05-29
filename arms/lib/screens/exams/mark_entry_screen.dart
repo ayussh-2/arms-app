@@ -37,10 +37,15 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
   // studentId -> { subjectId -> marks }
   final Map<String, Map<String, String>> _marksData = {};
+  // studentId -> { subjectId -> controller }
+  final Map<String, Map<String, TextEditingController>> _controllers = {};
   // studentId -> isAbsent
   final Map<String, bool> _absentMap = {};
   // studentId -> status (NORMAL, RNFP, MLP)
   final Map<String, String> _statusMap = {};
+
+  int _currentPage = 0;
+  static const int _pageSize = 15;
 
   @override
   void initState() {
@@ -51,6 +56,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   void _filterStudents() {
     final q = _searchCtrl.text.toLowerCase();
     setState(() {
+      _currentPage = 0;
       if (q.isEmpty) {
         _filteredStudents = _students;
       } else {
@@ -76,6 +82,11 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   void dispose() {
     _autoSaveTimer?.cancel();
     _searchCtrl.dispose();
+    for (final studentControllers in _controllers.values) {
+      for (final ctrl in studentControllers.values) {
+        ctrl.dispose();
+      }
+    }
     super.dispose();
   }
 
@@ -133,10 +144,37 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           markLookup[key] = m;
         }
 
+        // Sort students by marks descending (matching exam_view_screen.dart)
+        students.sort((a, b) {
+          final aId = a['id'] as String;
+          final bId = b['id'] as String;
+
+          final aStudentMarks = existingMarks.where((m) => m['student_id'] == aId).toList();
+          final bStudentMarks = existingMarks.where((m) => m['student_id'] == bId).toList();
+
+          final aAbsent = aStudentMarks.any((m) => m['is_absent'] == true);
+          final bAbsent = bStudentMarks.any((m) => m['is_absent'] == true);
+          if (aAbsent && bAbsent) return 0;
+          if (aAbsent) return 1;
+          if (bAbsent) return -1;
+
+          final aMarksList = aStudentMarks.map((m) => m['marks_obtained'] as num?).whereType<num>().toList();
+          final bMarksList = bStudentMarks.map((m) => m['marks_obtained'] as num?).whereType<num>().toList();
+
+          if (aMarksList.isEmpty && bMarksList.isEmpty) return 0;
+          if (aMarksList.isEmpty) return 1;
+          if (bMarksList.isEmpty) return -1;
+
+          final aSum = aMarksList.fold<double>(0, (sum, val) => sum + val.toDouble());
+          final bSum = bMarksList.fold<double>(0, (sum, val) => sum + val.toDouble());
+          return bSum.compareTo(aSum); // Descending
+        });
+
         // Initialize controllers
         for (final student in students) {
           final sid = student['id'] as String;
           _marksData[sid] = {};
+          _controllers[sid] = {};
           _absentMap[sid] = false;
           _statusMap[sid] = 'NORMAL';
 
@@ -145,16 +183,19 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
             final key = '${sid}_$subjectId';
             final existing = markLookup[key];
 
+            String markVal = '';
             if (existing != null) {
               if (existing['is_absent'] == true) {
                 _absentMap[sid] = true;
               } else if (existing['marks_obtained'] != null) {
-                _marksData[sid]![subjectId] = existing['marks_obtained'].toInt().toString();
+                markVal = existing['marks_obtained'].toInt().toString();
+                _marksData[sid]![subjectId] = markVal;
               }
               if (existing['mark_status'] != null) {
                 _statusMap[sid] = existing['mark_status'];
               }
             }
+            _controllers[sid]![subjectId] = TextEditingController(text: markVal);
           }
         }
 
@@ -241,6 +282,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       if (_absentMap[studentId]!) {
         // Clear marks when marking absent
         _marksData[studentId]?.clear();
+        _controllers[studentId]?.values.forEach((ctrl) => ctrl.clear());
       }
       _onMarkChanged();
     });
@@ -348,14 +390,57 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 Expanded(
                   child: Stack(
                     children: [
-                      ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
-                        itemCount: _filteredStudents.length + 1,
-                        itemBuilder: (_, i) {
-                          if (i == 0) return _buildConfigHeader();
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: _buildStudentCard(_filteredStudents[i - 1]),
+                      Builder(
+                        builder: (context) {
+                          final pageStudents = _filteredStudents.skip(_currentPage * _pageSize).take(_pageSize).toList();
+                          return ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
+                            itemCount: pageStudents.length + 2,
+                            itemBuilder: (_, i) {
+                              if (i == 0) return _buildConfigHeader();
+                              if (i == pageStudents.length + 1) {
+                                if (_filteredStudents.length <= _pageSize) return const SizedBox(height: 120);
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 24),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Showing ${(_currentPage * _pageSize) + 1} to ${((_currentPage + 1) * _pageSize).clamp(1, _filteredStudents.length)} of ${_filteredStudents.length}',
+                                        style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
+                                      ),
+                                      Row(
+                                        children: [
+                                          _PaginationButton(
+                                            icon: Icons.chevron_left,
+                                            isEnabled: _currentPage > 0,
+                                            onTap: () {
+                                              setState(() {
+                                                _currentPage--;
+                                              });
+                                            },
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _PaginationButton(
+                                            icon: Icons.chevron_right,
+                                            isEnabled: (_currentPage + 1) * _pageSize < _filteredStudents.length,
+                                            onTap: () {
+                                              setState(() {
+                                                _currentPage++;
+                                              });
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildStudentCard(pageStudents[i - 1]),
+                              );
+                            },
                           );
                         },
                       ),
@@ -641,7 +726,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                     ),
                     const SizedBox(height: 4),
                     TextFormField(
-                      initialValue: _marksData[sid]?[subjectId],
+                      controller: _controllers[sid]?[subjectId],
                       onChanged: (val) {
                         _marksData[sid]![subjectId] = val;
                         _onMarkChanged();
@@ -715,5 +800,40 @@ class SpacerPosition extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(width: width, child: child);
+  }
+}
+
+class _PaginationButton extends StatelessWidget {
+  const _PaginationButton({
+    required this.icon,
+    required this.isEnabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool isEnabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isEnabled ? onTap : null,
+      child: Opacity(
+        opacity: isEnabled ? 1.0 : 0.4,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isEnabled ? AppColors.primary : AppColors.cardSurface,
+            shape: BoxShape.circle,
+            border: isEnabled ? null : Border.all(color: AppColors.outlineLight),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: isEnabled ? Colors.white : AppColors.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
   }
 }

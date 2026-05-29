@@ -48,6 +48,11 @@ class _ExamListScreenState extends State<ExamListScreen> {
   List<Map<String, dynamic>> _seriesLookup = [];
   List<Map<String, dynamic>> _subjectsLookup = [];
 
+  // Pre-computed Map lookups for instant O(1) rendering in _ExamCard
+  Map<String, String> _schoolsMap = {};
+  Map<String, String> _classesMap = {};
+  Map<String, String> _sectionsMap = {};
+
   Timer? _searchDebounce;
 
   @override
@@ -121,6 +126,10 @@ class _ExamListScreenState extends State<ExamListScreen> {
           _sectionsLookup = (lookups['sections'] as List? ?? []).cast<Map<String, dynamic>>();
           _seriesLookup = (lookups['series'] as List? ?? []).cast<Map<String, dynamic>>();
           _subjectsLookup = (lookups['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
+
+          _schoolsMap = { for (var item in _schoolsLookup) item['id']: item['name'] ?? '' };
+          _classesMap = { for (var item in _classesLookup) item['id']: item['name'] ?? '' };
+          _sectionsMap = { for (var item in _sectionsLookup) item['id']: item['name'] ?? '' };
         });
       }
     } catch (e) {
@@ -985,9 +994,9 @@ class _ExamListScreenState extends State<ExamListScreen> {
                                       child: _ExamCard(
                                         exam: _filteredExams[i],
                                         onTap: () => _showActionSheet(_filteredExams[i]),
-                                        schoolsLookup: _schoolsLookup,
-                                        classesLookup: _classesLookup,
-                                        sectionsLookup: _sectionsLookup,
+                                        schoolsLookup: _schoolsMap,
+                                        classesLookup: _classesMap,
+                                        sectionsLookup: _sectionsMap,
                                       ),
                                     );
                                   },
@@ -1128,9 +1137,9 @@ class _ExamCard extends StatelessWidget {
 
   final Map<String, dynamic> exam;
   final VoidCallback onTap;
-  final List<Map<String, dynamic>> schoolsLookup;
-  final List<Map<String, dynamic>> classesLookup;
-  final List<Map<String, dynamic>> sectionsLookup;
+  final Map<String, String> schoolsLookup;
+  final Map<String, String> classesLookup;
+  final Map<String, String> sectionsLookup;
 
   String parseMeta(dynamic val, String type) {
     if (val == null) return 'All';
@@ -1151,23 +1160,11 @@ class _ExamCard extends StatelessWidget {
       if (isUuid) {
         String? resolvedName;
         if (type == 'school') {
-          final found = schoolsLookup.firstWhere(
-            (e) => e['id'] == part,
-            orElse: () => <String, dynamic>{},
-          );
-          resolvedName = found['name'] as String?;
+          resolvedName = schoolsLookup[part];
         } else if (type == 'class') {
-          final found = classesLookup.firstWhere(
-            (e) => e['id'] == part,
-            orElse: () => <String, dynamic>{},
-          );
-          resolvedName = found['name'] as String?;
+          resolvedName = classesLookup[part];
         } else if (type == 'section') {
-          final found = sectionsLookup.firstWhere(
-            (e) => e['id'] == part,
-            orElse: () => <String, dynamic>{},
-          );
-          resolvedName = found['name'] as String?;
+          resolvedName = sectionsLookup[part];
         }
         resolvedNames.add(resolvedName ?? part);
       } else {

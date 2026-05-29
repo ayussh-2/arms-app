@@ -304,6 +304,9 @@ class GqlQueries {
           mark_saved
           attendance_pdf_url
           question_pdf_url
+          for_school
+          for_class
+          for_section
         }
         subjects {
           id
