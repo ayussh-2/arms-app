@@ -53,7 +53,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
     super.dispose();
   }
 
-  Future<void> _loadMarks() async {
+  Future<void> _loadMarks({bool forceRefresh = false}) async {
     try {
       final orgId = AuthService.currentAdmin?.organization?.id;
       if (orgId == null) {
@@ -69,7 +69,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           'examId': _exam!['id'],
           'organisationId': orgId,
         },
-        fetchPolicy: FetchPolicy.cacheAndNetwork,
+        fetchPolicy: forceRefresh ? FetchPolicy.networkOnly : FetchPolicy.cacheAndNetwork,
       ));
       if (!mounted) return;
       if (result.hasException) {
@@ -93,16 +93,43 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
         final studentMap = { for (var s in students) s['id']: s };
         final subjectMap = { for (var s in subjects) s['id']: s };
 
-        // Enrich marks with student and subject details
-        final enrichedMarks = rawMarks.map((m) {
-          final sId = m['student_id'];
-          final subId = m['subject_id'];
-          return {
-            ...m,
-            'student': studentMap[sId],
-            'subject': subjectMap[subId],
-          };
-        }).toList();
+        // Group rawMarks by student_id and aggregate marks across all subjects
+        final studentMarksGrouped = <String, List<Map<String, dynamic>>>{};
+        for (final m in rawMarks) {
+          final sId = m['student_id'] as String? ?? '';
+          if (sId.isNotEmpty) {
+            studentMarksGrouped.putIfAbsent(sId, () => []).add(m);
+          }
+        }
+
+        final enrichedMarks = <Map<String, dynamic>>[];
+        for (final student in students) {
+          final sId = student['id'] as String? ?? '';
+          final studentMarks = studentMarksGrouped[sId] ?? [];
+
+          double totalObtained = 0.0;
+          bool anyAttempted = false;
+          bool allAbsent = studentMarks.isNotEmpty;
+
+          for (final m in studentMarks) {
+            final isAbsent = m['is_absent'] == true;
+            if (!isAbsent) {
+              allAbsent = false;
+              final marks = m['marks_obtained'] as num?;
+              if (marks != null) {
+                totalObtained += marks.toDouble();
+                anyAttempted = true;
+              }
+            }
+          }
+
+          enrichedMarks.add({
+            'student_id': sId,
+            'student': student,
+            'is_absent': studentMarks.isEmpty ? false : allAbsent,
+            'marks_obtained': anyAttempted ? totalObtained : null,
+          });
+        }
 
         // Sort enriched marks by marks_obtained descending
         enrichedMarks.sort((a, b) {
@@ -356,9 +383,20 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const ArmsTopAppBar(
+      appBar: ArmsTopAppBar(
         title: 'Exam Details',
         showBackButton: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppColors.textMain),
+            onPressed: () {
+              setState(() {
+                _isLoading = true;
+              });
+              _loadMarks(forceRefresh: true);
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
@@ -457,7 +495,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
             setState(() {
               _isLoading = true;
             });
-            _loadMarks();
+            _loadMarks(forceRefresh: true);
           }
         },
         backgroundColor: AppColors.primary,

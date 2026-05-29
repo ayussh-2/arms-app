@@ -338,8 +338,8 @@ class GqlQueries {
   ''';
 
   static const String saveMarks = r'''
-    mutation SaveMarks($examId: ID!, $marks: [MarkInput!]!, $isDraft: Boolean) {
-      saveMarks(examId: $examId, marks: $marks, isDraft: $isDraft)
+    mutation SaveMarks($examId: ID!, $marks: [MarkInput!]!) {
+      saveMarks(examId: $examId, marks: $marks)
     }
   ''';
 
