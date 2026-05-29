@@ -15,9 +15,12 @@ import 'screens/exams/mark_entry_screen.dart';
 import 'screens/exams/exam_create_screen.dart';
 import 'widgets/debug_overlay.dart';
 
+import 'core/auth/auth_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initHiveForFlutter();
+  await AuthService.init();
   runApp(const ArmsApp());
 }
 
@@ -47,7 +50,7 @@ class _ArmsAppState extends State<ArmsApp> {
         title: 'ARMS',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        initialRoute: '/login',
+        initialRoute: AuthService.isLoggedIn ? '/shell' : '/login',
         routes: {
           '/login': (_) => const LoginScreen(),
           '/shell': (_) => const ShellScreen(),

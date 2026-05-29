@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
+import '../core/utils/image_url_helper.dart';
 
 /// Attendance status for a student row.
 enum AttendanceStatus { present, absent, unmarked }
@@ -29,13 +30,15 @@ class ArmsStudentRow extends StatelessWidget {
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
-    return studentName.substring(0, studentName.length.clamp(0, 2)).toUpperCase();
+    return studentName
+        .substring(0, studentName.length.clamp(0, 2))
+        .toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(12),
@@ -55,6 +58,7 @@ class ArmsStudentRow extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 16),
           // P / A buttons
           Row(
             children: [
@@ -82,7 +86,7 @@ class ArmsStudentRow extends StatelessWidget {
     if (avatarUrl != null && avatarUrl!.isNotEmpty) {
       return CircleAvatar(
         radius: 20,
-        backgroundImage: NetworkImage(avatarUrl!),
+        backgroundImage: NetworkImage(ImageUrlHelper.sanitizeUrl(avatarUrl)!),
         backgroundColor: AppColors.surfaceVariant,
       );
     }

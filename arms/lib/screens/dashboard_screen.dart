@@ -4,6 +4,8 @@ import '../core/theme/app_text_styles.dart';
 import '../core/theme/app_spacing.dart';
 import '../widgets/arms_top_app_bar.dart';
 import '../widgets/arms_dashboard_button.dart';
+import '../core/auth/auth_service.dart';
+import '../core/utils/image_url_helper.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
@@ -15,8 +17,55 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToAttendance;
   final VoidCallback? onNavigateToExams;
 
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.cardSurface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Confirm Logout',
+            style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Are you sure you want to sign out of ARMS?',
+            style: AppTextStyles.bodyMedium,
+          ),
+          actions: [
+            TextButton(
+              child: Text(
+                'Cancel',
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.errorText,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                elevation: 0,
+              ),
+              child: const Text('Logout'),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await AuthService.clearSession();
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final admin = AuthService.currentAdmin;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: ArmsTopAppBar(
@@ -24,14 +73,25 @@ class DashboardScreen extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: GestureDetector(
             onTap: () {
-              // Profile action – not yet implemented (YAGNI)
+              // Profile action
             },
-            child: const CircleAvatar(
+            child: CircleAvatar(
               backgroundColor: AppColors.cardSurface,
-              child: Icon(Icons.person, color: AppColors.textSecondary),
+              backgroundImage: admin?.imageURL != null && admin!.imageURL!.isNotEmpty
+                  ? NetworkImage(ImageUrlHelper.sanitizeUrl(admin.imageURL)!)
+                  : null,
+              child: admin?.imageURL == null || admin!.imageURL!.isEmpty
+                  ? const Icon(Icons.person, color: AppColors.textSecondary)
+                  : null,
             ),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: AppColors.textSecondary),
+            onPressed: () => _showLogoutDialog(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
@@ -43,9 +103,16 @@ class DashboardScreen extends StatelessWidget {
           children: [
             // Welcome
             Text(
-              'Welcome to\nPariksit ARMS',
+              'Welcome,\n${admin?.name ?? "Admin"}',
               style: AppTextStyles.displayMobile,
             ),
+            if (admin?.organization?.displayName != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                admin!.organization!.displayName!,
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
             const SizedBox(height: AppSpacing.stackLg),
 
             // Feature cards

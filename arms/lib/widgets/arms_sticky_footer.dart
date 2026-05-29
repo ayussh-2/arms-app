@@ -11,19 +11,20 @@ class ArmsStickyFooter extends StatelessWidget {
     super.key,
     this.summaryWidget,
     required this.primaryButtonText,
-    required this.onPrimaryPressed,
+    this.onPrimaryPressed,
     this.secondaryButtonText,
     this.onSecondaryPressed,
   });
 
   final Widget? summaryWidget;
   final String primaryButtonText;
-  final VoidCallback onPrimaryPressed;
+  final VoidCallback? onPrimaryPressed;
   final String? secondaryButtonText;
   final VoidCallback? onSecondaryPressed;
 
   @override
   Widget build(BuildContext context) {
+    final isEnabled = onPrimaryPressed != null;
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
@@ -76,8 +77,8 @@ class ArmsStickyFooter extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onPrimaryPressed,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.onPrimary,
+                    backgroundColor: isEnabled ? AppColors.primary : AppColors.cardSurface,
+                    foregroundColor: isEnabled ? AppColors.onPrimary : AppColors.textSecondary,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(9999),
@@ -86,7 +87,7 @@ class ArmsStickyFooter extends StatelessWidget {
                   child: Text(
                     primaryButtonText,
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.onPrimary,
+                      color: isEnabled ? AppColors.onPrimary : AppColors.textSecondary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

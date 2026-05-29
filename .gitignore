@@ -27,3 +27,6 @@ Thumbs.db
 
 # Misc
 *.log
+
+
+backend/

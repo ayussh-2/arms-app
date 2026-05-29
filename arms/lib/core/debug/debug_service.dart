@@ -13,7 +13,7 @@ class DebugService {
 
   final List<DebugLog> _logs = [];
   final ValueNotifier<List<DebugLog>> logs = ValueNotifier([]);
-  final ValueNotifier<String> apiBaseUrl = ValueNotifier('http://192.168.29.188:4000/graphql');
+  final ValueNotifier<String> apiBaseUrl = ValueNotifier('http://192.168.29.188:6582/api/graphql');
 
   static const int maxLogs = 100;
 

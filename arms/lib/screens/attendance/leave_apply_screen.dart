@@ -9,6 +9,9 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_dropdown_selector.dart';
+import '../../core/auth/auth_service.dart';
+import '../../core/services/upload_service.dart';
+import '../../core/utils/image_url_helper.dart';
 
 class LeaveApplyScreen extends StatefulWidget {
   const LeaveApplyScreen({super.key});
@@ -26,7 +29,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   Map<String, dynamic>? _selectedStudent;
   DateTime _fromDate = DateTime.now();
   DateTime _toDate = DateTime.now().add(const Duration(days: 2));
-  String _leaveType = 'Fever';
+  String _leaveType = 'FEVER';
   bool _isApproved = true;
   bool _isSaving = false;
   bool _hasAttachment = false;
@@ -34,18 +37,94 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   String? _attachmentName;
   bool _isAttachmentPdf = false;
 
-  final List<String> _leaveTypes = ['Fever', 'Casual', 'Marriage', 'Other'];
+  static const Map<String, String> leaveTypeMap = {
+    'FEVER': 'fever',
+    'MEDICAL SELF': 'medical_self',
+    'MEDICAL RELATIVE': 'medical_relative',
+    'MARRIAGE': 'marriage',
+    'CASUAL': 'casual',
+    'STOMACH PAIN': 'stomach_pain',
+    'BODY PAIN HEADACHE': 'body_pain_headache',
+    'OTHER': 'other',
+  };
 
-  List<Map<String, dynamic>> _allStudents = [];
+  final List<String> _leaveTypes = [
+    'FEVER',
+    'MEDICAL SELF',
+    'MEDICAL RELATIVE',
+    'MARRIAGE',
+    'CASUAL',
+    'STOMACH PAIN',
+    'BODY PAIN HEADACHE',
+    'OTHER',
+  ];
+
+  String _getUiLeaveType(String dbValue) {
+    final cleanDbVal = dbValue.trim().toLowerCase();
+    for (final entry in leaveTypeMap.entries) {
+      if (entry.value == cleanDbVal) {
+        return entry.key;
+      }
+    }
+    final upper = cleanDbVal.toUpperCase().replaceAll('_', ' ');
+    if (_leaveTypes.contains(upper)) {
+      return upper;
+    }
+    return 'OTHER';
+  }
+
   List<Map<String, dynamic>> _filteredStudents = [];
   bool _isSearching = false;
+
+  bool _hasLoadedArgs = false;
+  Map<String, dynamic>? _editingLeave;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoadedArgs) {
+      _hasLoadedArgs = true;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic>) {
+        final leave = args['leave'] as Map<String, dynamic>?;
+        final student = args['student'] as Map<String, dynamic>?;
+        if (leave != null) {
+          _editingLeave = leave;
+          _selectedStudent = student;
+          
+          if (leave['from_date'] != null) {
+            try {
+              _fromDate = DateTime.parse(leave['from_date']);
+            } catch (_) {}
+          }
+          if (leave['to_date'] != null) {
+            try {
+              _toDate = DateTime.parse(leave['to_date']);
+            } catch (_) {}
+          }
+          
+          _leaveType = _getUiLeaveType(leave['leave_type'] as String? ?? '');
+          
+          _reasonController.text = leave['reason'] ?? '';
+          _isApproved = leave['approved'] as bool? ?? false;
+          _rejectedReasonController.text = leave['rejected_reason'] ?? '';
+          
+          if (leave['leave_application_image_url'] != null && (leave['leave_application_image_url'] as String).isNotEmpty) {
+            _hasAttachment = true;
+            _attachmentPath = leave['leave_application_image_url'];
+            _attachmentName = 'Attached Image';
+            _isAttachmentPdf = _attachmentPath!.toLowerCase().endsWith('.pdf');
+          }
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
     _reasonController.dispose();
     _rejectedReasonController.dispose();
-    _allStudents.clear();
     _filteredStudents.clear();
     super.dispose();
   }
@@ -135,7 +214,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     }
   }
 
-  void _onSearchChanged(String query) {
+  Future<void> _onSearchChanged(String query) async {
     if (query.trim().isEmpty) {
       setState(() {
         _filteredStudents = [];
@@ -146,13 +225,36 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
 
     setState(() {
       _isSearching = true;
-      _filteredStudents = _allStudents.where((s) {
-        final name = (s['name'] as String? ?? '').toLowerCase();
-        final roll = s['roll_no']?.toString() ?? '';
-        final q = query.toLowerCase();
-        return name.contains(q) || roll.contains(q);
-      }).toList();
     });
+
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final orgId = AuthService.currentAdmin?.organization?.id;
+      if (orgId == null) return;
+
+      final result = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getPaginatedStudents),
+          variables: {
+            'organisationId': orgId,
+            'searchQuery': query.trim(),
+            'page': 1,
+            'limit': 15,
+          },
+          fetchPolicy: FetchPolicy.networkOnly,
+        ),
+      );
+
+      if (!mounted) return;
+      if (result.data != null) {
+        final studentsData = result.data!['getPaginatedStudents']?['students'] as List? ?? [];
+        setState(() {
+          _filteredStudents = studentsData.cast<Map<String, dynamic>>();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error searching students: $e');
+    }
   }
 
   @override
@@ -162,24 +264,14 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
       appBar: const ArmsTopAppBar(
         showBackButton: true,
       ),
-      body: Query(
-        options: QueryOptions(
-          document: gql(GqlQueries.getStudents),
-          variables: const {},
-        ),
-        builder: (QueryResult result, {VoidCallback? refetch, FetchMore? fetchMore}) {
-          if (result.data != null && _allStudents.isEmpty) {
-            _allStudents = (result.data!['students'] as List? ?? []).cast<Map<String, dynamic>>();
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage, vertical: AppSpacing.stackMd),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Apply Leave', style: AppTextStyles.displayMobile),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage, vertical: AppSpacing.stackMd),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_editingLeave != null ? 'Edit Leave' : 'Apply Leave', style: AppTextStyles.displayMobile),
                   const SizedBox(height: AppSpacing.stackLg),
 
                   // Student Picker / Search
@@ -229,7 +321,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                               leading: CircleAvatar(
                                 radius: 16,
                                 backgroundColor: AppColors.surfaceVariant,
-                                backgroundImage: s['image_url'] != null ? NetworkImage(s['image_url']) : null,
+                                backgroundImage: s['image_url'] != null ? NetworkImage(ImageUrlHelper.sanitizeUrl(s['image_url'])!) : null,
                                 child: s['image_url'] == null ? Text(s['name']?[0] ?? 'S') : null,
                               ),
                               title: Text(s['name'] ?? '', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500)),
@@ -265,15 +357,21 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: AppColors.surfaceVariant,
-                            backgroundImage: _selectedStudent!['image_url'] != null
-                                ? NetworkImage(_selectedStudent!['image_url'])
-                                : null,
-                            child: _selectedStudent!['image_url'] == null
-                                ? Text(_selectedStudent!['name']?[0] ?? 'S')
-                                : null,
+                          Builder(
+                            builder: (context) {
+                              final studentImg = _selectedStudent!['image_url'] as String?;
+                              final hasImg = studentImg != null && studentImg.trim().isNotEmpty;
+                              return CircleAvatar(
+                                radius: 20,
+                                backgroundColor: AppColors.surfaceVariant,
+                                backgroundImage: hasImg
+                                    ? NetworkImage(ImageUrlHelper.sanitizeUrl(studentImg)!)
+                                    : null,
+                                child: !hasImg
+                                    ? Text(_selectedStudent!['name']?[0] ?? 'S')
+                                    : null,
+                              );
+                            }
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -281,7 +379,14 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(_selectedStudent!['name'] ?? '', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-                                Text('CS-2023-${_selectedStudent!['roll_no']?.toString().padLeft(3, '0')}', style: AppTextStyles.labelXs),
+                                Builder(
+                                  builder: (context) {
+                                    final rollNoVal = _selectedStudent!['roll_no']?.toString();
+                                    final hasRollNo = rollNoVal != null && rollNoVal.trim().isNotEmpty && rollNoVal != 'null';
+                                    final rollNoDisplay = hasRollNo ? 'Roll No: $rollNoVal' : 'Roll No: N/A';
+                                    return Text(rollNoDisplay, style: AppTextStyles.labelXs);
+                                  }
+                                ),
                               ],
                             ),
                           ),
@@ -534,12 +639,19 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                           ),
                                         )
                                       : (_attachmentPath != null
-                                          ? Image.file(
-                                              File(_attachmentPath!),
-                                              fit: BoxFit.cover,
-                                              width: 80,
-                                              height: 80,
-                                            )
+                                          ? (_attachmentPath!.startsWith('http')
+                                              ? Image.network(
+                                                  ImageUrlHelper.sanitizeUrl(_attachmentPath!)!,
+                                                  fit: BoxFit.cover,
+                                                  width: 80,
+                                                  height: 80,
+                                                )
+                                              : Image.file(
+                                                  File(_attachmentPath!),
+                                                  fit: BoxFit.cover,
+                                                  width: 80,
+                                                  height: 80,
+                                                ))
                                           : const Center(
                                               child: Icon(Icons.file_present, color: AppColors.primary),
                                             )),
@@ -583,129 +695,236 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                   // Actions (Apply / Cancel)
                   Mutation(
                     options: MutationOptions(
-                      document: gql(GqlQueries.applyLeave),
+                      document: gql(GqlQueries.deleteLeave),
                     ),
-                    builder: (RunMutation runApply, QueryResult? applyResult) {
+                    builder: (RunMutation runDelete, QueryResult? deleteResult) {
                       return Mutation(
                         options: MutationOptions(
-                          document: gql(GqlQueries.updateLeaveStatus),
+                          document: gql(GqlQueries.createLeave),
                         ),
-                        builder: (RunMutation runUpdate, QueryResult? updateResult) {
-                          final isLoading = _isSaving || (applyResult?.isLoading ?? false) || (updateResult?.isLoading ?? false);
+                        builder: (RunMutation runCreate, QueryResult? createResult) {
+                          final isLoading = _isSaving || 
+                              (createResult?.isLoading ?? false) || 
+                              (deleteResult?.isLoading ?? false);
 
-                          return Column(
-                            children: [
-                              SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: ElevatedButton(
-                                  onPressed: isLoading
-                                      ? null
-                                      : () async {
-                                          if (_selectedStudent == null) {
+                      return Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: isLoading
+                                  ? null
+                                  : () async {
+                                      if (_selectedStudent == null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Please search and select a student first'),
+                                            backgroundColor: AppColors.errorText,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      if (_formKey.currentState!.validate()) {
+                                        setState(() => _isSaving = true);
+                                        try {
+                                          String? leaveAttachmentUrl = _attachmentPath;
+                                          
+                                          if (_hasAttachment && _attachmentPath != null && !_attachmentPath!.startsWith('http')) {
+                                            final rollNo = _selectedStudent?['roll_no']?.toString() ?? 'unknown';
+                                            final schoolName = _selectedStudent?['school']?['name']?.toString() ?? 'school';
+                                            final className = _selectedStudent?['class']?['name']?.toString() ?? 'class';
+                                            final sectionName = _selectedStudent?['section']?['name']?.toString() ?? 'section';
+                                            
+                                            final timestamp = DateTime.now().millisecondsSinceEpoch;
+                                            final sanitize = (String value) {
+                                              return value
+                                                  .trim()
+                                                  .toLowerCase()
+                                                  .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+                                                  .replaceAll(RegExp(r'^_+|_+$'), '');
+                                            };
+
+                                            final filenameBase = [
+                                              timestamp,
+                                              sanitize(rollNo),
+                                              sanitize(schoolName),
+                                              sanitize(className),
+                                              sanitize(sectionName),
+                                            ].join('-');
+                                            
+                                            final orgFolder = AuthService.currentAdmin?.organization?.name ?? 'org';
+                                            
+                                            final uploadedUrl = await UploadService.uploadFile(
+                                              apiUrlPath: '/api/leave-applications',
+                                              organisationFolder: orgFolder,
+                                              filenameBase: filenameBase,
+                                              file: File(_attachmentPath!),
+                                            );
+                                            
+                                            leaveAttachmentUrl = uploadedUrl;
+                                          }
+
+                                          final createRes = await runCreate({
+                                            'input': {
+                                              if (_editingLeave != null) 'id': _editingLeave!['id'],
+                                              'organisation_id': AuthService.currentAdmin?.organization?.id,
+                                              'student_id': _selectedStudent!['id'],
+                                              'from_date': _formatDate(_fromDate),
+                                              'to_date': _formatDate(_toDate),
+                                              'leave_type': leaveTypeMap[_leaveType] ?? 'other',
+                                              'reason': _reasonController.text.trim(),
+                                              'approved': _isApproved,
+                                              'approved_by': AuthService.currentAdmin?.id,
+                                              'leave_application_image_url': leaveAttachmentUrl,
+                                              'rejected_reason': !_isApproved && _rejectedReasonController.text.trim().isNotEmpty
+                                                  ? _rejectedReasonController.text.trim()
+                                                  : null,
+                                            }
+                                          }).networkResult;
+
+                                          if (createRes?.hasException == true) {
+                                            throw createRes!.exception!;
+                                          }
+
+                                          if (mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Please search and select a student first'),
+                                              SnackBar(
+                                                content: Text(_editingLeave != null ? 'Leave updated successfully' : 'Leave applied successfully'),
+                                                backgroundColor: AppColors.successText,
+                                              ),
+                                            );
+                                            Navigator.pop(context, true);
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Error: $e'),
                                                 backgroundColor: AppColors.errorText,
                                               ),
                                             );
-                                            return;
                                           }
-                                          if (_formKey.currentState!.validate()) {
-                                            setState(() => _isSaving = true);
-                                            try {
-                                              // 1. Call applyLeave mutation
-                                              final applyRes = await runApply({
-                                                'input': {
-                                                  'student_id': _selectedStudent!['id'],
-                                                  'from_date': _formatDate(_fromDate),
-                                                  'to_date': _formatDate(_toDate),
-                                                  'leave_type': _leaveType.toLowerCase(),
-                                                  'reason': _reasonController.text.trim(),
-                                                  'admin_id': 'admin-001',
-                                                }
-                                              }).networkResult;
+                                        } finally {
+                                          if (mounted) setState(() => _isSaving = false);
+                                        }
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull)),
+                                elevation: 0,
+                              ),
+                              child: isLoading
+                                  ? const CircularProgressIndicator(color: AppColors.onPrimary)
+                                  : Text(_editingLeave != null ? 'Save' : 'Apply', style: AppTextStyles.headerSmall.copyWith(color: AppColors.onPrimary)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          if (_editingLeave != null) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton(
+                                onPressed: isLoading
+                                    ? null
+                                    : () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            backgroundColor: AppColors.background,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
+                                              side: const BorderSide(color: AppColors.outlineLight),
+                                            ),
+                                            title: Text('Delete Leave', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
+                                            content: Text('Are you sure you want to delete this leave application? This action cannot be undone.', style: AppTextStyles.bodyMedium),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx, false),
+                                                child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant)),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () => Navigator.pop(ctx, true),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: AppColors.errorText,
+                                                  foregroundColor: Colors.white,
+                                                  elevation: 0,
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundEight)),
+                                                ),
+                                                child: const Text('Delete'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
 
-                                              if (applyRes?.hasException == true) {
-                                                throw applyRes!.exception!;
-                                              }
+                                        if (confirm == true) {
+                                          setState(() => _isSaving = true);
+                                          try {
+                                            final orgId = AuthService.currentAdmin?.organization?.id;
+                                            final res = await runDelete({
+                                              'id': _editingLeave!['id'],
+                                              'organisationId': orgId,
+                                            }).networkResult;
 
-                                              final newLeave = applyRes?.data?['applyLeave'];
-                                              if (newLeave != null && newLeave['id'] != null) {
-                                                // 2. Call updateLeaveStatus if they marked approved status or provided rejected reason
-                                                // If approved is true, or if they provided a rejection reason
-                                                final leaveId = newLeave['id'];
-                                                final rejectedReasonText = _rejectedReasonController.text.trim();
-                                                
-                                                final updateRes = await runUpdate({
-                                                  'id': leaveId,
-                                                  'approved': _isApproved,
-                                                  'rejectedReason': rejectedReasonText.isNotEmpty ? rejectedReasonText : null,
-                                                }).networkResult;
-
-                                                if (updateRes?.hasException == true) {
-                                                  throw updateRes!.exception!;
-                                                }
-                                              }
-
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text('Leave applied successfully'),
-                                                    backgroundColor: AppColors.successText,
-                                                  ),
-                                                );
-                                                Navigator.pop(context, true);
-                                              }
-                                            } catch (e) {
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Error: $e'),
-                                                    backgroundColor: AppColors.errorText,
-                                                  ),
-                                                );
-                                              }
-                                            } finally {
-                                              if (mounted) setState(() => _isSaving = false);
+                                            if (res?.hasException == true) {
+                                              throw res!.exception!;
                                             }
+
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Leave application deleted successfully'),
+                                                  backgroundColor: AppColors.successText,
+                                                ),
+                                              );
+                                              Navigator.pop(context, true);
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Error deleting: $e'),
+                                                  backgroundColor: AppColors.errorText,
+                                                ),
+                                              );
+                                            }
+                                          } finally {
+                                            if (mounted) setState(() => _isSaving = false);
                                           }
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull)),
-                                    elevation: 0,
-                                  ),
-                                  child: isLoading
-                                      ? const CircularProgressIndicator(color: AppColors.onPrimary)
-                                      : Text('Apply', style: AppTextStyles.headerSmall.copyWith(color: AppColors.onPrimary)),
+                                        }
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: AppColors.errorText, width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull)),
                                 ),
+                                child: Text('Delete Application', style: AppTextStyles.headerSmall.copyWith(color: AppColors.errorText)),
                               ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: AppColors.onSurfaceVariant,
-                                  ),
-                                  child: Text('Cancel', style: AppTextStyles.headerSmall.copyWith(color: AppColors.onSurfaceVariant)),
-                                ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.onSurfaceVariant,
                               ),
-                            ],
-                          );
-                        },
+                              child: Text('Cancel', style: AppTextStyles.headerSmall.copyWith(color: AppColors.onSurfaceVariant)),
+                            ),
+                          ),
+                        ],
                       );
                     },
-                  ),
+                  );
+                },
+              ),
                   const SizedBox(height: 32),
                 ],
               ),
             ),
-          );
-        },
-      ),
+          ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 12.0),
         child: FloatingActionButton(

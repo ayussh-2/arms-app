@@ -206,10 +206,15 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     }
 
     try {
-      await client.mutate(MutationOptions(
+      final result = await client.mutate(MutationOptions(
         document: gql(GqlQueries.saveMarks),
         variables: {'input': input},
       ));
+
+      if (result.hasException) {
+        throw result.exception!;
+      }
+
       if (!mounted) return;
       messenger.showSnackBar(
         const SnackBar(content: Text('Marks saved successfully'), backgroundColor: AppColors.successText),

@@ -3,6 +3,16 @@ class GqlQueries {
 
   // ──────────── Lookups ────────────
 
+  static const String getLookups = r'''
+    query GetLookups($organisationId: ID!) {
+      getLookups(organisationId: $organisationId) {
+        schools { id name display_order }
+        classes { id name display_order }
+        sections { id name display_order }
+      }
+    }
+  ''';
+
   static const String getClasses = r'''
     query GetClasses {
       classes { id name display_order }
@@ -33,55 +43,155 @@ class GqlQueries {
     }
   ''';
 
+  static const String getPaginatedStudents = r'''
+    query GetPaginatedStudents(
+      $organisationId: ID!
+      $page: Int
+      $limit: Int
+      $searchQuery: String
+      $classId: ID
+    ) {
+      getPaginatedStudents(
+        organisationId: $organisationId
+        page: $page
+        limit: $limit
+        searchQuery: $searchQuery
+        classId: $classId
+      ) {
+        students {
+          id
+          name
+          roll_no
+          image_url
+          class { id name }
+          section { id name }
+        }
+        pagination {
+          totalCount
+          totalPages
+          currentPage
+          limit
+        }
+      }
+    }
+  ''';
+
   // ──────────── Attendance ────────────
 
-  static const String getAttendance = r'''
-    query GetAttendance($classId: ID!, $sectionId: ID!, $date: String!) {
-      attendance(classId: $classId, sectionId: $sectionId, date: $date) {
-        id
-        student { id name roll_no image_url }
-        morning_in_status morning_out_status
-        evening_in_status evening_out_status
-        attendance_date
+  static const String getStudentsForAttendance = r'''
+    query GetStudentsForAttendance(
+      $organisationId: ID!
+      $attendanceDate: String!
+      $attendanceSession: String!
+      $classId: ID!
+    ) {
+      getStudentsForAttendance(
+        organisationId: $organisationId
+        attendanceDate: $attendanceDate
+        attendanceSession: $attendanceSession
+        classId: $classId
+      ) {
+        student {
+          id
+          name
+          roll_no
+          image_url
+        }
+        status
+        attendance {
+          id
+          morning_in_status
+          morning_out_status
+          remarks
+        }
       }
     }
   ''';
 
   static const String saveAttendance = r'''
-    mutation SaveAttendance($input: [AttendanceInput!]!) {
-      saveAttendance(input: $input)
+    mutation SaveAttendance(
+      $organisationId: ID!
+      $adminId: ID!
+      $attendanceDate: String!
+      $attendanceSession: String!
+      $updates: [AttendanceUpdateInput!]!
+    ) {
+      saveAttendance(
+        organisationId: $organisationId
+        adminId: $adminId
+        attendanceDate: $attendanceDate
+        attendanceSession: $attendanceSession
+        updates: $updates
+      )
     }
   ''';
 
   // ──────────── Leaves ────────────
 
   static const String getLeaves = r'''
-    query GetLeaves($status: String) {
-      leaves(status: $status) {
+    query GetLeaves($organisationId: ID!) {
+      getLeaves(organisationId: $organisationId) {
         id
-        student { id name roll_no image_url }
-        from_date to_date leave_type reason
-        approved rejected_reason
+        student {
+          id
+          name
+          roll_no
+          image_url
+          school {
+            id
+            name
+          }
+          class {
+            id
+            name
+          }
+          section {
+            id
+            name
+          }
+        }
+        from_date
+        to_date
+        leave_type
+        reason
+        approved
+        approved_by
+        leave_application_image_url
+        rejected_reason
         created_at
       }
     }
   ''';
 
-  static const String applyLeave = r'''
-    mutation ApplyLeave($input: LeaveInput!) {
-      applyLeave(input: $input) {
-        id from_date to_date leave_type reason approved
+  static const String getStudentLeaveHistory = r'''
+    query GetStudentLeaveHistory($studentId: ID!, $organisationId: ID!) {
+      getStudentLeaveHistory(studentId: $studentId, organisationId: $organisationId) {
+        id
+        from_date
+        to_date
+        leave_type
+        reason
+        approved
+        rejected_reason
       }
     }
   ''';
 
-  static const String updateLeaveStatus = r'''
-    mutation UpdateLeaveStatus($id: ID!, $approved: Boolean!, $rejectedReason: String) {
-      updateLeaveStatus(id: $id, approved: $approved, rejectedReason: $rejectedReason) {
-        id
-        approved
-        rejected_reason
-      }
+  static const String createLeave = r'''
+    mutation CreateLeave($input: SaveLeaveInput!) {
+      saveLeave(input: $input)
+    }
+  ''';
+
+  static const String updateLeave = r'''
+    mutation UpdateLeave($input: SaveLeaveInput!) {
+      saveLeave(input: $input)
+    }
+  ''';
+
+  static const String deleteLeave = r'''
+    mutation DeleteLeave($id: ID!, $organisationId: ID!) {
+      deleteLeave(id: $id, organisationId: $organisationId)
     }
   ''';
 
@@ -125,11 +235,35 @@ class GqlQueries {
     }
   ''';
 
-  // ──────────── Admins (for login mock) ────────────
-
-  static const String getAdmins = r'''
-    query GetAdmins {
-      admins { id name email admin_id role img_url }
+  static const String login = r'''
+    query Login($adminId: String!, $password: String!) {
+      login(adminId: $adminId, password: $password) {
+        data {
+          id
+          adminID
+          name
+          email
+          phone1
+          phone2
+          gender
+          age
+          imageURL
+          role
+          address
+          signURL
+          signURLVersion
+          organization {
+            id
+            name
+            displayName
+            headerURL
+            logoURL
+            helpLineNumber
+            createdAt
+          }
+        }
+        error
+      }
     }
   ''';
 }

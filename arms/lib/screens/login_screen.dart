@@ -4,9 +4,10 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/graphql/queries.dart';
+import '../core/auth/auth_service.dart';
 import '../widgets/arms_input_field.dart';
 
-/// Queries the admins list from the backend for mock authentication.
+/// Queries the admins list from the backend for authentication.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -45,7 +46,14 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final client = GraphQLProvider.of(context).value;
       final result = await client.query(
-        QueryOptions(document: gql(GqlQueries.getAdmins)),
+        QueryOptions(
+          document: gql(GqlQueries.login),
+          variables: {
+            'adminId': userId,
+            'password': password,
+          },
+          fetchPolicy: FetchPolicy.networkOnly,
+        ),
       );
 
       if (result.hasException) {
@@ -56,18 +64,23 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      final admins = result.data?['admins'] as List? ?? [];
-      final matchingAdmin = admins.firstWhere(
-        (a) =>
-            (a['admin_id'] == userId || a['email'] == userId) &&
-            password == 'password', // Mock auth
-        orElse: () => null,
-      );
+      final loginResponse = result.data?['login'];
+      final error = loginResponse?['error'];
+      final adminData = loginResponse?['data'];
 
-      if (matchingAdmin != null && mounted) {
-        Navigator.of(
-          context,
-        ).pushReplacementNamed('/shell', arguments: matchingAdmin);
+      if (error != null) {
+        setState(() {
+          _errorMessage = error.toString();
+          _isLoading = false;
+        });
+        return;
+      }
+
+      if (adminData != null && mounted) {
+        await AuthService.saveSession(Map<String, dynamic>.from(adminData));
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/shell');
+        }
       } else {
         setState(() {
           _errorMessage = 'Invalid User ID or Password';
