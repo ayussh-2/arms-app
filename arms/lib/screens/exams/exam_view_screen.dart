@@ -42,7 +42,8 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_isLoading) {
-      _exam = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      _exam =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (_exam != null) _loadMarks();
     }
   }
@@ -63,18 +64,25 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
         return;
       }
       final client = GraphQLProvider.of(context).value;
-      final result = await client.query(QueryOptions(
-        document: gql(GqlQueries.getExamDetails),
-        variables: {
-          'examId': _exam!['id'],
-          'organisationId': orgId,
-        },
-        fetchPolicy: forceRefresh ? FetchPolicy.networkOnly : FetchPolicy.cacheAndNetwork,
-      ));
+      final result = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getExamDetails),
+          variables: {'examId': _exam!['id'], 'organisationId': orgId},
+          fetchPolicy:
+              forceRefresh
+                  ? FetchPolicy.networkOnly
+                  : FetchPolicy.cacheAndNetwork,
+        ),
+      );
       if (!mounted) return;
       if (result.hasException) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load exam details: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
+          SnackBar(
+            content: Text(
+              'Failed to load exam details: ${result.exception.toString()}',
+            ),
+            backgroundColor: AppColors.errorText,
+          ),
         );
         setState(() {
           _isLoading = false;
@@ -85,13 +93,16 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
       final details = result.data?['getExamDetails'] as Map<String, dynamic>?;
       if (details != null) {
         final examData = details['exam'] as Map<String, dynamic>?;
-        final rawMarks = (details['marks'] as List? ?? []).cast<Map<String, dynamic>>();
-        final students = (details['students'] as List? ?? []).cast<Map<String, dynamic>>();
-        final subjects = (details['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
+        final rawMarks =
+            (details['marks'] as List? ?? []).cast<Map<String, dynamic>>();
+        final students =
+            (details['students'] as List? ?? []).cast<Map<String, dynamic>>();
+        final subjects =
+            (details['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
 
         // Create lookups
-        final studentMap = { for (var s in students) s['id']: s };
-        final subjectMap = { for (var s in subjects) s['id']: s };
+        final studentMap = {for (var s in students) s['id']: s};
+        final subjectMap = {for (var s in subjects) s['id']: s};
 
         // Group rawMarks by student_id and aggregate marks across all subjects
         final studentMarksGrouped = <String, List<Map<String, dynamic>>>{};
@@ -144,17 +155,13 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           if (aMarks == null && bMarks == null) return 0;
           if (aMarks == null) return 1;
           if (bMarks == null) return -1;
-          
+
           return bMarks.toDouble().compareTo(aMarks.toDouble());
         });
 
         setState(() {
           if (examData != null) {
-            _exam = {
-              ..._exam!,
-              ...examData,
-              'subjects': subjects,
-            };
+            _exam = {..._exam!, ...examData, 'subjects': subjects};
           }
           _marks = enrichedMarks;
           _filteredMarks = enrichedMarks;
@@ -168,7 +175,10 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Connection error: $e'), backgroundColor: AppColors.errorText),
+          SnackBar(
+            content: Text('Connection error: $e'),
+            backgroundColor: AppColors.errorText,
+          ),
         );
         setState(() {
           _isLoading = false;
@@ -184,11 +194,13 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
       if (q.isEmpty) {
         _filteredMarks = _marks;
       } else {
-        _filteredMarks = _marks.where((m) {
-          final name = (m['student']?['name'] as String? ?? '').toLowerCase();
-          final roll = (m['student']?['roll_no']?.toString() ?? '');
-          return name.contains(q) || roll.contains(q);
-        }).toList();
+        _filteredMarks =
+            _marks.where((m) {
+              final name =
+                  (m['student']?['name'] as String? ?? '').toLowerCase();
+              final roll = (m['student']?['roll_no']?.toString() ?? '');
+              return name.contains(q) || roll.contains(q);
+            }).toList();
       }
     });
   }
@@ -199,7 +211,13 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
     if (str.isEmpty || str == '[]' || str == 'null') return 'All';
 
     // Clean up bracket characters and quotes if any
-    final clean = str.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').replaceAll("'", "").trim();
+    final clean =
+        str
+            .replaceAll('[', '')
+            .replaceAll(']', '')
+            .replaceAll('"', '')
+            .replaceAll("'", "")
+            .trim();
     if (clean.isEmpty) return 'All';
 
     return clean;
@@ -220,87 +238,123 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    12,
+                    24,
+                    MediaQuery.of(context).viewInsets.bottom + 24,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                    Center(
-                      child: Container(
-                        width: 48,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: AppColors.outlineMediumLight,
-                          borderRadius: BorderRadius.circular(3),
+                      Center(
+                        child: Container(
+                          width: 48,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: AppColors.outlineMediumLight,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Download Results', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text('SELECTION', style: AppTextStyles.labelXsUppercase),
-                    const SizedBox(height: 8),
-                    _buildSelectionRadio(setModalState, 'All students'),
-                    _buildSelectionRadio(setModalState, 'Attempted students'),
-                    _buildSelectionRadio(setModalState, 'Not attempted students'),
-                    const SizedBox(height: 16),
-                    Text('EXPORT FORMAT', style: AppTextStyles.labelXsUppercase),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildFormatButton(setModalState, 'PDF Format', Icons.picture_as_pdf, AppColors.errorText),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildFormatButton(setModalState, 'Excel Sheet', Icons.table_chart, AppColors.successText),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  const Icon(Icons.download_done, color: Colors.white),
-                                  const SizedBox(width: 12),
-                                  Text('Exporting $downloadSelection as $downloadFormat...'),
-                                ],
-                              ),
-                              backgroundColor: AppColors.successText,
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Download Results',
+                            style: AppTextStyles.headerSmall.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                        ),
-                        child: Text(
-                          'Confirm Download',
-                          style: AppTextStyles.bodyMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text('SELECTION', style: AppTextStyles.labelXsUppercase),
+                      const SizedBox(height: 8),
+                      _buildSelectionRadio(setModalState, 'All students'),
+                      _buildSelectionRadio(setModalState, 'Attempted students'),
+                      _buildSelectionRadio(
+                        setModalState,
+                        'Not attempted students',
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'EXPORT FORMAT',
+                        style: AppTextStyles.labelXsUppercase,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildFormatButton(
+                              setModalState,
+                              'PDF Format',
+                              Icons.picture_as_pdf,
+                              AppColors.errorText,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildFormatButton(
+                              setModalState,
+                              'Excel Sheet',
+                              Icons.table_chart,
+                              AppColors.successText,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.download_done,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Exporting $downloadSelection as $downloadFormat...',
+                                    ),
+                                  ],
+                                ),
+                                backgroundColor: AppColors.successText,
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(9999),
+                            ),
+                          ),
+                          child: Text(
+                            'Confirm Download',
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
+            );
           },
         );
       },
@@ -320,14 +374,21 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           color: isSelected ? AppColors.cardSurface : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.outlineMediumLight,
+            color:
+                isSelected ? AppColors.primary : AppColors.outlineMediumLight,
             width: isSelected ? 1.5 : 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(val, style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain)),
+            Text(
+              val,
+              style: AppTextStyles.labelXs.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textMain,
+              ),
+            ),
             Radio<String>(
               value: val,
               groupValue: downloadSelection,
@@ -342,7 +403,12 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
     );
   }
 
-  Widget _buildFormatButton(StateSetter setModalState, String format, IconData icon, Color iconColor) {
+  Widget _buildFormatButton(
+    StateSetter setModalState,
+    String format,
+    IconData icon,
+    Color iconColor,
+  ) {
     final isSelected = downloadFormat == format;
     return GestureDetector(
       onTap: () {
@@ -362,7 +428,13 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           children: [
             Icon(icon, size: 36, color: iconColor),
             const SizedBox(height: 8),
-            Text(format, style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain)),
+            Text(
+              format,
+              style: AppTextStyles.labelXs.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textMain,
+              ),
+            ),
           ],
         ),
       ),
@@ -379,7 +451,8 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
     final subjectNames = subjects.map((s) => s['name'] ?? '').join(', ');
     final totalMarks = _exam!['total_marks'] ?? 0;
 
-    final pageMarks = _filteredMarks.skip(_currentPage * _pageSize).take(_pageSize).toList();
+    final pageMarks =
+        _filteredMarks.skip(_currentPage * _pageSize).take(_pageSize).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -398,99 +471,129 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const SizedBox(height: AppSpacing.stackMd),
-                      // Header card
-                      _buildHeaderCard(subjectNames, totalMarks),
-                      const SizedBox(height: AppSpacing.stackLg),
-                      // Quick actions
-                      _buildQuickActions(),
-                      const SizedBox(height: AppSpacing.stackLg),
-                      // Student marks section
-                      Row(
-                        children: [
-                          Text('Student Marks', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.stackMd),
-                      ArmsInputField(controller: _searchCtrl, hintText: 'Search students...', prefixIcon: Icons.search),
-                      const SizedBox(height: AppSpacing.stackMd),
-                      // Table header
-                      _buildTableHeader(),
-                    ]),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, i) => _buildMarkRow((_currentPage * _pageSize) + i, pageMarks[i], totalMarks),
-                      childCount: pageMarks.length,
-                    ),
-                  ),
-                ),
-                if (_filteredMarks.length > _pageSize)
+      body:
+          _isLoading
+              ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+              : CustomScrollView(
+                slivers: [
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
-                    sliver: SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.marginPage,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        const SizedBox(height: AppSpacing.stackMd),
+                        // Header card
+                        _buildHeaderCard(subjectNames, totalMarks),
+                        const SizedBox(height: AppSpacing.stackLg),
+                        // Quick actions
+                        _buildQuickActions(),
+                        const SizedBox(height: AppSpacing.stackLg),
+                        // Student marks section
+                        Row(
                           children: [
                             Text(
-                              'Showing ${(_currentPage * _pageSize) + 1} to ${((_currentPage + 1) * _pageSize).clamp(1, _filteredMarks.length)} of ${_filteredMarks.length}',
-                              style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
-                            ),
-                            Row(
-                              children: [
-                                _PaginationButton(
-                                  icon: Icons.chevron_left,
-                                  isEnabled: _currentPage > 0,
-                                  onTap: () {
-                                    setState(() {
-                                      _currentPage--;
-                                    });
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                _PaginationButton(
-                                  icon: Icons.chevron_right,
-                                  isEnabled: (_currentPage + 1) * _pageSize < _filteredMarks.length,
-                                  onTap: () {
-                                    setState(() {
-                                      _currentPage++;
-                                    });
-                                  },
-                                ),
-                              ],
+                              'Student Marks',
+                              style: AppTextStyles.headerSmall.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: AppSpacing.stackMd),
+                        ArmsInputField(
+                          controller: _searchCtrl,
+                          hintText: 'Search students...',
+                          prefixIcon: Icons.search,
+                        ),
+                        const SizedBox(height: AppSpacing.stackMd),
+                        // Table header
+                        _buildTableHeader(),
+                      ]),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.marginPage,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, i) => _buildMarkRow(
+                          (_currentPage * _pageSize) + i,
+                          pageMarks[i],
+                          totalMarks,
+                        ),
+                        childCount: pageMarks.length,
                       ),
                     ),
                   ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      const SizedBox(height: 120),
-                    ]),
+                  if (_filteredMarks.length > _pageSize)
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.marginPage,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Showing ${(_currentPage * _pageSize) + 1} to ${((_currentPage + 1) * _pageSize).clamp(1, _filteredMarks.length)} of ${_filteredMarks.length}',
+                                style: AppTextStyles.labelXs.copyWith(
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  _PaginationButton(
+                                    icon: Icons.chevron_left,
+                                    isEnabled: _currentPage > 0,
+                                    onTap: () {
+                                      setState(() {
+                                        _currentPage--;
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _PaginationButton(
+                                    icon: Icons.chevron_right,
+                                    isEnabled:
+                                        (_currentPage + 1) * _pageSize <
+                                        _filteredMarks.length,
+                                    onTap: () {
+                                      setState(() {
+                                        _currentPage++;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.marginPage,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        const SizedBox(height: 120),
+                      ]),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
       // FAB for edit
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final result = await Navigator.of(context).pushNamed('/mark-entry', arguments: _exam);
+          final result = await Navigator.of(
+            context,
+          ).pushNamed('/mark-entry', arguments: _exam);
           if (result == true) {
             setState(() {
               _isLoading = true;
@@ -501,7 +604,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         icon: const Icon(Icons.edit),
-        label: const Text('Edit Marks'),
+        label: const Text('Edit'),
       ),
     );
   }
@@ -509,35 +612,66 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
   Widget _buildHeaderCard(String subjectNames, int totalMarks) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: AppColors.cardSurface, borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('EXAM TITLE', style: AppTextStyles.labelXsUppercase.copyWith(color: AppColors.onSurfaceVariant)),
+          Text(
+            'EXAM TITLE',
+            style: AppTextStyles.labelXsUppercase.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(_exam!['name'] ?? '', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            _exam!['name'] ?? '',
+            style: AppTextStyles.headerSmall.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(subjectNames, style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant)),
+          Text(
+            subjectNames,
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 16),
           Container(height: 1, color: AppColors.outlineLight),
           const SizedBox(height: 16),
           Row(
             children: [
-              _HeaderMeta(label: 'DATE', value: _formatExamDate(_exam!['exam_date'])),
+              _HeaderMeta(
+                label: 'DATE',
+                value: _formatExamDate(_exam!['exam_date']),
+              ),
               _HeaderMeta(label: 'TOTAL MARKS', value: '$totalMarks Marks'),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              _HeaderMeta(label: 'SCHOOL', value: _parseMeta(_exam!['for_school'], 'school')),
-              _HeaderMeta(label: 'CLASS / SECTION', value: '${_parseMeta(_exam!['for_class'], 'class')} / ${_parseMeta(_exam!['for_section'], 'section')}'),
+              _HeaderMeta(
+                label: 'SCHOOL',
+                value: _parseMeta(_exam!['for_school'], 'school'),
+              ),
+              _HeaderMeta(
+                label: 'CLASS / SECTION',
+                value:
+                    '${_parseMeta(_exam!['for_class'], 'class')} / ${_parseMeta(_exam!['for_section'], 'section')}',
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              _HeaderMeta(label: 'TOPICS', value: _exam!['topic'] ?? 'Atomic Structure, Chemical Bonding'),
+              _HeaderMeta(
+                label: 'TOPICS',
+                value: _exam!['topic'] ?? 'Atomic Structure, Chemical Bonding',
+              ),
             ],
           ),
         ],
@@ -558,22 +692,34 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
               if (url.isNotEmpty) {
                 try {
                   final uri = Uri.parse(url);
-                  final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  final success = await launchUrl(
+                    uri,
+                    mode: LaunchMode.externalApplication,
+                  );
                   if (!success && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Could not launch URL: $url'), backgroundColor: AppColors.errorText),
+                      SnackBar(
+                        content: Text('Could not launch URL: $url'),
+                        backgroundColor: AppColors.errorText,
+                      ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error launching URL: $e'), backgroundColor: AppColors.errorText),
+                      SnackBar(
+                        content: Text('Error launching URL: $e'),
+                        backgroundColor: AppColors.errorText,
+                      ),
                     );
                   }
                 }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('No Attendance PDF URL found.'), backgroundColor: AppColors.errorText),
+                  const SnackBar(
+                    content: Text('No Attendance PDF URL found.'),
+                    backgroundColor: AppColors.errorText,
+                  ),
                 );
               }
             },
@@ -587,22 +733,34 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
               if (url.isNotEmpty) {
                 try {
                   final uri = Uri.parse(url);
-                  final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  final success = await launchUrl(
+                    uri,
+                    mode: LaunchMode.externalApplication,
+                  );
                   if (!success && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Could not launch URL: $url'), backgroundColor: AppColors.errorText),
+                      SnackBar(
+                        content: Text('Could not launch URL: $url'),
+                        backgroundColor: AppColors.errorText,
+                      ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error launching URL: $e'), backgroundColor: AppColors.errorText),
+                      SnackBar(
+                        content: Text('Error launching URL: $e'),
+                        backgroundColor: AppColors.errorText,
+                      ),
                     );
                   }
                 }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('No Question Paper URL found.'), backgroundColor: AppColors.errorText),
+                  const SnackBar(
+                    content: Text('No Question Paper URL found.'),
+                    backgroundColor: AppColors.errorText,
+                  ),
                 );
               }
             },
@@ -621,23 +779,35 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
             onTap: () {
               showDialog(
                 context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Confirm Delete'),
-                  content: const Text('Are you sure you want to delete this exam draft?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Exam marked as soft-deleted.'), backgroundColor: AppColors.errorText),
-                        );
-                      },
-                      child: const Text('Delete', style: TextStyle(color: AppColors.errorText)),
+                builder:
+                    (ctx) => AlertDialog(
+                      title: const Text('Confirm Delete'),
+                      content: const Text(
+                        'Are you sure you want to delete this exam draft?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Exam marked as soft-deleted.'),
+                                backgroundColor: AppColors.errorText,
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Delete',
+                            style: TextStyle(color: AppColors.errorText),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
               );
             },
           ),
@@ -647,15 +817,24 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
   }
 
   Widget _buildTableHeader() {
-    final style = AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, letterSpacing: 1.5, color: AppColors.onSurfaceVariant);
+    final style = AppTextStyles.labelXsUppercase.copyWith(
+      fontSize: 10,
+      letterSpacing: 1.5,
+      color: AppColors.onSurfaceVariant,
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.surfaceVariant))),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.surfaceVariant)),
+      ),
       child: Row(
         children: [
           SizedBox(width: 40, child: Text('SN', style: style)),
           Expanded(child: Text('STUDENT DETAILS', style: style)),
-          SizedBox(width: 80, child: Text('MARKS', style: style, textAlign: TextAlign.right)),
+          SizedBox(
+            width: 80,
+            child: Text('MARKS', style: style, textAlign: TextAlign.right),
+          ),
         ],
       ),
     );
@@ -674,34 +853,79 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
       ),
       child: Row(
         children: [
-          SizedBox(width: 40, child: Text((index + 1).toString().padLeft(2, '0'), style: AppTextStyles.labelXs)),
+          SizedBox(
+            width: 40,
+            child: Text(
+              (index + 1).toString().padLeft(2, '0'),
+              style: AppTextStyles.labelXs,
+            ),
+          ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(student['name'] ?? '', style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain)),
-                Text('Roll: ${student['roll_no'] ?? ''}', style: AppTextStyles.labelXs.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
+                Text(
+                  student['name'] ?? '',
+                  style: AppTextStyles.labelXs.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMain,
+                  ),
+                ),
+                Text(
+                  'Roll: ${student['roll_no'] ?? ''}',
+                  style: AppTextStyles.labelXs.copyWith(
+                    fontSize: 12,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
           SizedBox(
             width: 80,
-            child: isAbsent
-                ? Align(
-                    alignment: Alignment.centerRight,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: AppColors.errorBg, borderRadius: BorderRadius.circular(9999)),
-                      child: Text('Absent', style: AppTextStyles.labelXsUppercase.copyWith(color: AppColors.errorText, fontSize: 10)),
+            child:
+                isAbsent
+                    ? Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorBg,
+                          borderRadius: BorderRadius.circular(9999),
+                        ),
+                        child: Text(
+                          'Absent',
+                          style: AppTextStyles.labelXsUppercase.copyWith(
+                            color: AppColors.errorText,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    )
+                    : RichText(
+                      textAlign: TextAlign.right,
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${marksObtained?.toInt() ?? 0}',
+                            style: AppTextStyles.labelXs.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '/$totalMarks',
+                            style: AppTextStyles.labelXs.copyWith(
+                              fontSize: 12,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  )
-                : RichText(
-                    textAlign: TextAlign.right,
-                    text: TextSpan(children: [
-                      TextSpan(text: '${marksObtained?.toInt() ?? 0}', style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.primary)),
-                      TextSpan(text: '/$totalMarks', style: AppTextStyles.labelXs.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
-                    ]),
-                  ),
           ),
         ],
       ),
@@ -711,7 +935,10 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
   Widget _iconBtn(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: AppColors.cardSurface, borderRadius: BorderRadius.circular(9999)),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(9999),
+      ),
       child: Icon(icon, size: 20, color: AppColors.onSurfaceVariant),
     );
   }
@@ -728,11 +955,21 @@ class _HeaderMeta extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
+          Text(
+            label,
+            style: AppTextStyles.labelXsUppercase.copyWith(
+              fontSize: 10,
+              letterSpacing: 1,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 2),
           Text(
             value,
-            style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain),
+            style: AppTextStyles.labelXs.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMain,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -743,7 +980,13 @@ class _HeaderMeta extends StatelessWidget {
 }
 
 class _ActionChip extends StatelessWidget {
-  const _ActionChip({required this.icon, required this.label, required this.onTap, this.filled = false, this.color});
+  const _ActionChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.filled = false,
+    this.color,
+  });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -761,14 +1004,30 @@ class _ActionChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: filled ? AppColors.primary : AppColors.cardSurface,
           borderRadius: BorderRadius.circular(9999),
-          border: filled ? null : Border.all(color: color?.withValues(alpha: 0.2) ?? AppColors.outlineLight),
+          border:
+              filled
+                  ? null
+                  : Border.all(
+                    color:
+                        color?.withValues(alpha: 0.2) ?? AppColors.outlineLight,
+                  ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: filled ? AppColors.onPrimary : activeColor),
+            Icon(
+              icon,
+              size: 18,
+              color: filled ? AppColors.onPrimary : activeColor,
+            ),
             const SizedBox(width: 8),
-            Text(label, style: AppTextStyles.labelXs.copyWith(color: filled ? AppColors.onPrimary : activeColor, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: AppTextStyles.labelXs.copyWith(
+                color: filled ? AppColors.onPrimary : activeColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -809,7 +1068,8 @@ class _PaginationButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: isEnabled ? AppColors.primary : AppColors.cardSurface,
             shape: BoxShape.circle,
-            border: isEnabled ? null : Border.all(color: AppColors.outlineLight),
+            border:
+                isEnabled ? null : Border.all(color: AppColors.outlineLight),
           ),
           child: Icon(
             icon,

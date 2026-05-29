@@ -137,7 +137,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
     }
   }
 
-  Future<void> _resetAndLoadExams() async {
+  Future<void> _resetAndLoadExams({bool forceRefresh = false}) async {
     setState(() {
       _offset = 0;
       _hasMore = true;
@@ -145,10 +145,10 @@ class _ExamListScreenState extends State<ExamListScreen> {
       _allExams.clear();
       _filteredExams.clear();
     });
-    await _loadExams();
+    await _loadExams(forceRefresh: forceRefresh);
   }
 
-  Future<void> _loadExams() async {
+  Future<void> _loadExams({bool forceRefresh = false}) async {
     try {
       final orgId = AuthService.currentAdmin?.organization?.id;
       if (orgId == null) {
@@ -206,7 +206,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
         QueryOptions(
           document: gql(queryStr),
           variables: variables,
-          fetchPolicy: FetchPolicy.cacheAndNetwork,
+          fetchPolicy: forceRefresh ? FetchPolicy.networkOnly : FetchPolicy.cacheAndNetwork,
         ),
       );
 
@@ -373,7 +373,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
 
   Future<void> _refreshExams() async {
     _loadLookups();
-    await _resetAndLoadExams();
+    await _resetAndLoadExams(forceRefresh: true);
   }
 
   // Dynamic lists from loaded data
@@ -1107,7 +1107,9 @@ class _ExamListScreenState extends State<ExamListScreen> {
           ? FloatingActionButton(
               onPressed: () async {
                 final result = await Navigator.of(context).pushNamed('/exam-create');
-                if (result != null && result is Map<String, dynamic>) {
+                if (result == true) {
+                  _refreshExams();
+                } else if (result != null && result is Map<String, dynamic>) {
                   setState(() {
                     _allExams.insert(0, result);
                     _filterExams();

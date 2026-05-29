@@ -203,7 +203,7 @@ class GqlQueries {
         schools { id name display_order }
         classes { id name display_order }
         sections { id name display_order }
-        series { id name code display_order }
+        series { id name code display_order subject_ids }
         subjects { id name code display_order }
       }
     }
