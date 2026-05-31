@@ -16,6 +16,7 @@ class ArmsInputField extends StatelessWidget {
     this.keyboardType,
     this.readOnly = false,
     this.onTap,
+    this.focusNode,
   });
 
   final TextEditingController controller;
@@ -26,10 +27,12 @@ class ArmsInputField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool readOnly;
   final VoidCallback? onTap;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      focusNode: focusNode,
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,

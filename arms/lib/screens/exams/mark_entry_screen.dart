@@ -32,8 +32,18 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   bool _isSaving = false;
 
   final _searchCtrl = TextEditingController();
+  late final FocusNode _searchFocusNode;
+  late final ScrollController _scrollController;
 
+  // State for dynamic button behavior
+  bool _isSearchFocused = true;
+  String? _currentEditingStudentId;
+  List<FocusNode>? _currentMarkFieldFocusNodes;
+  int _currentMarkFieldIndex = 0;
 
+  // Global keys for student cards to enable scrolling
+  final Map<String, GlobalKey> _markFieldKeys = {};
+  final GlobalKey _searchFieldKey = GlobalKey();
 
   // studentId -> { subjectId -> marks }
   final Map<String, Map<String, String>> _marksData = {};
@@ -50,7 +60,24 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   @override
   void initState() {
     super.initState();
+    _searchFocusNode = FocusNode();
+    _scrollController = ScrollController();
     _searchCtrl.addListener(_filterStudents);
+
+    // Track search field focus changes
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isSearchFocused = _searchFocusNode.hasFocus;
+      });
+      if (_searchFocusNode.hasFocus) {
+        _scrollToSearchFieldTop();
+      }
+    });
+
+    // Auto-focus search field on load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchFocusNode.requestFocus();
+    });
   }
 
   void _filterStudents() {
@@ -81,6 +108,9 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _searchFocusNode.dispose();
+    _scrollController.dispose();
+    _currentMarkFieldFocusNodes?.forEach((node) => node.dispose());
     for (final studentControllers in _controllers.values) {
       for (final ctrl in studentControllers.values) {
         ctrl.dispose();
@@ -203,6 +233,9 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           _filteredStudents = students;
           _isLoading = false;
         });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToSearchFieldTop();
+        });
       } else {
         setState(() {
           _isLoading = false;
@@ -240,6 +273,164 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     setState(() {
       _statusMap[studentId] = statuses[nextIdx];
     });
+  }
+
+  void _navigateToMarkFields() {
+    if (_filteredStudents.isEmpty) return;
+
+    // Get the first student from filtered list
+    final firstStudent = _filteredStudents.first;
+    final studentId = firstStudent['id'] as String;
+
+    setState(() {
+      _currentEditingStudentId = studentId;
+      _currentMarkFieldIndex = 0;
+    });
+
+    // Create focus nodes for mark fields
+    _currentMarkFieldFocusNodes = List.generate(
+      _subjects.length,
+      (index) {
+        final node = FocusNode();
+        node.addListener(() {
+          if (node.hasFocus) {
+            _scrollFocusedFieldIntoView(node);
+          }
+        });
+        return node;
+      },
+    );
+
+    // Focus on the first mark field and scroll to the search field
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_currentMarkFieldFocusNodes != null && _currentMarkFieldFocusNodes!.isNotEmpty) {
+        _currentMarkFieldFocusNodes!.first.requestFocus();
+      }
+
+      // Scroll to show the search field using Scrollable.ensureVisible
+      final searchContext = _searchFieldKey.currentContext;
+      if (searchContext != null) {
+        Scrollable.ensureVisible(
+          searchContext,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+          alignment: 0.3, // Position search field about 30% from top
+        );
+      }
+    });
+  }
+
+  bool _areAllMarksEntered() {
+    if (_currentEditingStudentId == null) return false;
+
+    final isAbsent = _absentMap[_currentEditingStudentId] ?? false;
+    if (isAbsent) return true; // Absent students don't need marks
+
+    for (final subject in _subjects) {
+      final subjectId = subject['id'] as String? ?? '';
+      final marksText = _marksData[_currentEditingStudentId]?[subjectId] ?? '';
+      if (marksText.isEmpty) return false;
+    }
+    return true;
+  }
+
+  void _handleMarkEntryCompletion() {
+    if (_areAllMarksEntered()) {
+      setState(() {
+        _currentEditingStudentId = null;
+        _isSearchFocused = true;
+      });
+
+      // Return focus to search field
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusSearchField();
+      });
+    }
+  }
+
+  void _handleActionButtonPressed(BuildContext context) {
+    final keyboardOpen = _isKeyboardOpen(context);
+    if (keyboardOpen) {
+      if (_isSearchFocused) {
+        // User is in search box, navigate to mark fields
+        _navigateToMarkFields();
+      } else {
+        // User is in mark fields, move to next input or search
+        _focusNextMarkField();
+      }
+    } else {
+      // Only save when keyboard is closed
+      _save();
+    }
+  }
+
+  void _focusNextMarkField() {
+    if (_currentEditingStudentId == null || _currentMarkFieldFocusNodes == null) {
+      _focusSearchField();
+      return;
+    }
+
+    final focusNodes = _currentMarkFieldFocusNodes!;
+    if (focusNodes.isEmpty) {
+      _focusSearchField();
+      return;
+    }
+
+    // Try moving to the next field in order.
+    if (_currentMarkFieldIndex < focusNodes.length - 1) {
+      _currentMarkFieldIndex += 1;
+      focusNodes[_currentMarkFieldIndex].requestFocus();
+      return;
+    }
+
+    // We are at the last field. Always return to search.
+    _currentEditingStudentId = null;
+    _currentMarkFieldIndex = 0;
+    _focusSearchField();
+  }
+
+  bool _isKeyboardOpen(BuildContext context) {
+    return MediaQuery.of(context).viewInsets.bottom > 0;
+  }
+
+  void _focusSearchField() {
+    _searchFocusNode.requestFocus();
+    _scrollToSearchField();
+  }
+
+  void _scrollToSearchField() {
+    final searchContext = _searchFieldKey.currentContext;
+    if (searchContext != null) {
+      Scrollable.ensureVisible(
+        searchContext,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+        alignment: 0.2,
+      );
+    }
+  }
+
+  void _scrollToSearchFieldTop() {
+    final searchContext = _searchFieldKey.currentContext;
+    if (searchContext != null) {
+      Scrollable.ensureVisible(
+        searchContext,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
+        alignment: 0.0,
+      );
+    }
+  }
+
+  void _scrollFocusedFieldIntoView(FocusNode node) {
+    final fieldContext = node.context;
+    if (fieldContext == null) return;
+    Scrollable.ensureVisible(
+      fieldContext,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      alignment: 0.35,
+    );
   }
 
   Future<void> _save() async {
@@ -324,6 +515,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardOpen = _isKeyboardOpen(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const ArmsTopAppBar(title: 'Marks Entry', showBackButton: true),
@@ -335,6 +527,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                   builder: (context) {
                     final pageStudents = _filteredStudents.skip(_currentPage * _pageSize).take(_pageSize).toList();
                     return ListView.builder(
+                      controller: _scrollController,
                       padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
                       itemCount: pageStudents.length + 2,
                       itemBuilder: (_, i) {
@@ -390,8 +583,10 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                   right: 0,
                   bottom: 0,
                   child: ArmsStickyFooter(
-                    primaryButtonText: _isSaving ? 'Saving...' : 'Save & Close',
-                    onPrimaryPressed: _isSaving ? () {} : _save,
+                    primaryButtonText: _isSaving
+                        ? 'Saving...'
+                        : (keyboardOpen ? 'Next' : 'Save & Close'),
+                    onPrimaryPressed: _isSaving ? () {} : () => _handleActionButtonPressed(context),
                   ),
                 ),
               ],
@@ -501,11 +696,15 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          ArmsInputField(
-            controller: _searchCtrl,
-            hintText: 'Search students by name or roll number...',
-            prefixIcon: Icons.search,
+          const SizedBox(height: AppSpacing.stackLg),
+          Container(
+            key: _searchFieldKey,
+            child: ArmsInputField(
+              controller: _searchCtrl,
+              focusNode: _searchFocusNode,
+              hintText: 'Search students by name or roll number...',
+              prefixIcon: Icons.search,
+            ),
           ),
         ],
       ),
@@ -514,7 +713,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
   Widget _buildDocCardDynamic(String title, String? url, String type) {
     final bool hasUrl = url != null && url.trim().isNotEmpty;
-    
+
     // We can extract a readable filename from the URL, or default to a standard name
     String filename = '${title.replaceAll(" ", "_")}.pdf';
     if (hasUrl) {
@@ -648,7 +847,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     final ctrl = TextEditingController(text: currentUrl);
     final isAttendance = type == 'attendance';
     final title = isAttendance ? 'Attendance PDF' : 'Question Paper PDF';
-    
+
     final resultUrl = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -726,7 +925,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
             _exam!['question_pdf_url'] = resultUrl;
           }
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('$title updated successfully!'), backgroundColor: AppColors.successText),
@@ -747,7 +946,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   void _showEditExamDetailsSheet() {
     final nameCtrl = TextEditingController(text: _exam!['name'] ?? '');
     final marksCtrl = TextEditingController(text: (_exam!['total_marks'] ?? 0).toString());
-    
+
     final rawDate = _exam!['exam_date'] as String? ?? '';
     String initialDateStr = '';
     if (rawDate.isNotEmpty) {
@@ -925,7 +1124,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     final isAbsent = _absentMap[sid] ?? false;
     final status = _statusMap[sid] ?? 'NORMAL';
 
+    // Create or get global key for this student card
+    _markFieldKeys.putIfAbsent(sid, () => GlobalKey());
+    final cardKey = _markFieldKeys[sid]!;
+
     return Container(
+      key: cardKey,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
@@ -998,55 +1202,67 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: _subjects.map((es) {
+            children: _subjects.asMap().entries.map((entry) {
+              final subjectIndex = entry.key;
+              final es = entry.value;
               final subjectId = es['id'] as String? ?? '';
               final subjectName = es['name'] as String? ?? '';
+              final maxMarks = es['max_marks'] as num? ?? 100;
+              final currentText = _marksData[sid]?[subjectId] ?? '';
+              final currentVal = double.tryParse(currentText);
+              final isError = currentVal != null && currentVal > maxMarks.toDouble();
 
-                    final maxMarks = es['max_marks'] as num? ?? 100;
-                    final currentText = _marksData[sid]?[subjectId] ?? '';
-                    final currentVal = double.tryParse(currentText);
-                    final isError = currentVal != null && currentVal > maxMarks.toDouble();
+              // Create focus node for this mark field
+              FocusNode? markFieldFocusNode;
+              if (_currentEditingStudentId == sid && _currentMarkFieldFocusNodes != null) {
+                if (subjectIndex < _currentMarkFieldFocusNodes!.length) {
+                  markFieldFocusNode = _currentMarkFieldFocusNodes![subjectIndex];
+                }
+              }
 
-                    return SizedBox(
-                      width: (MediaQuery.of(context).size.width - 80) / 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4),
-                            child: Text(subjectName.toUpperCase(), style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
-                          ),
-                          const SizedBox(height: 4),
-                          TextFormField(
-                            controller: _controllers[sid]?[subjectId],
-                            onChanged: (val) {
-                              setState(() {
-                                _marksData[sid]![subjectId] = val;
-                              });
-                            },
-                            enabled: !isAbsent,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            textAlign: TextAlign.center,
-                            style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700),
-                            decoration: InputDecoration(
-                              hintText: '00',
-                              hintStyle: AppTextStyles.headerSmall.copyWith(color: AppColors.outline.withValues(alpha: 0.5)),
-                              filled: true,
-                              fillColor: isAbsent ? AppColors.surfaceVariant.withValues(alpha: 0.3) : Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                              errorText: isError ? 'Max: $maxMarks' : null,
-                              errorStyle: AppTextStyles.labelXs.copyWith(color: AppColors.errorText, fontSize: 10),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.outlineLight)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.outlineLight)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
-                            ),
-                          ),
-                        ],
+              return SizedBox(
+                width: (MediaQuery.of(context).size.width - 80) / 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(subjectName.toUpperCase(), style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
+                    ),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      focusNode: markFieldFocusNode,
+                      controller: _controllers[sid]?[subjectId],
+                      onChanged: (val) {
+                        setState(() {
+                          _marksData[sid]![subjectId] = val;
+                        });
+                        // Check if all marks are entered
+                        _handleMarkEntryCompletion();
+                      },
+                      enabled: !isAbsent,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700),
+                      decoration: InputDecoration(
+                        hintText: '00',
+                        hintStyle: AppTextStyles.headerSmall.copyWith(color: AppColors.outline.withValues(alpha: 0.5)),
+                        filled: true,
+                        fillColor: isAbsent ? AppColors.surfaceVariant.withValues(alpha: 0.3) : Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        errorText: isError ? 'Max: $maxMarks' : null,
+                        errorStyle: AppTextStyles.labelXs.copyWith(color: AppColors.errorText, fontSize: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.outlineLight)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.outlineLight)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
                       ),
-                    );
+                    ),
+                  ],
+                ),
+              );
             }).toList(),
           ),
         ],
@@ -1155,7 +1371,7 @@ DateTime _parseDate(String dateStr) {
   if (dateStr.isEmpty) return DateTime.now();
   final parsed = DateTime.tryParse(dateStr);
   if (parsed != null) return parsed;
-  
+
   // Try case-insensitive MMM parsing by normalizing month names
   try {
     final parts = dateStr.split(RegExp(r'\s+'));
