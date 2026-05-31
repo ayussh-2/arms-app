@@ -591,15 +591,13 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
       // FAB for edit
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final result = await Navigator.of(
+          await Navigator.of(
             context,
           ).pushNamed('/mark-entry', arguments: _exam);
-          if (result == true) {
-            setState(() {
-              _isLoading = true;
-            });
-            _loadMarks(forceRefresh: true);
-          }
+          setState(() {
+            _isLoading = true;
+          });
+          _loadMarks(forceRefresh: true);
         },
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,

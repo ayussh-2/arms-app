@@ -17,6 +17,7 @@ import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_sticky_footer.dart';
 import '../../widgets/arms_input_field.dart';
 import 'exam_edit_details_screen.dart';
+import 'excel_upload_modal.dart';
 
 /// Mark entry screen matching mark-entry.html.
 /// Shows student cards with subject-wise mark inputs, absent toggle, reference documents,
@@ -178,7 +179,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           'examId': _exam!['id'],
           'organisationId': orgId,
         },
-        fetchPolicy: FetchPolicy.cacheAndNetwork,
+        fetchPolicy: FetchPolicy.networkOnly,
       ));
 
       if (!mounted) return;
@@ -201,11 +202,21 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         final subjects = (details['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
 
         if (examData != null) {
-          _exam = {
-            ..._exam!,
-            ...examData,
-            'subjects': subjects,
-          };
+          final oldExam = _exam;
+          if (oldExam != null) {
+            final merged = {
+              ...oldExam,
+              ...examData,
+              'subjects': subjects,
+            };
+            oldExam.clear();
+            oldExam.addAll(merged);
+          } else {
+            _exam = {
+              ...examData,
+              'subjects': subjects,
+            };
+          }
         }
         _subjects = subjects;
 
@@ -690,6 +701,56 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     );
   }
 
+  Future<void> _openExcelUploadModal(BuildContext context) async {
+    if (_exam == null) return;
+
+    final Map<String, Map<String, String>>? importedMarks = await showDialog<Map<String, Map<String, String>>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ExcelMarksUploadModal(
+        exam: _exam!,
+        subjects: _subjects,
+        students: _students,
+        schoolsLookup: _schoolsLookup,
+        classesLookup: _classesLookup,
+        sectionsLookup: _sectionsLookup,
+      ),
+    );
+
+    if (importedMarks != null && mounted) {
+      setState(() {
+        importedMarks.forEach((studentId, subjectMarks) {
+          if (_absentMap[studentId] == true) {
+            _absentMap[studentId] = false;
+            _absentNotifierMap[studentId]?.value = false;
+          }
+
+          subjectMarks.forEach((subjectId, score) {
+            _marksData.putIfAbsent(studentId, () => {})[subjectId] = score;
+
+            final ctrl = _controllers[studentId]?[subjectId];
+            if (ctrl != null) {
+              ctrl.text = score;
+            }
+          });
+        });
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Marks imported from Excel successfully!'),
+            ],
+          ),
+          backgroundColor: AppColors.successText,
+        ),
+      );
+    }
+  }
+
   Widget _buildConfigHeader() {
     return Padding(
       padding: const EdgeInsets.only(
@@ -826,21 +887,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 ),
               ),
               OutlinedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(Icons.upload_file, color: Colors.white),
-                          SizedBox(width: 12),
-                          Text(
-                              'Excel processing completed. Student marks parsed!'),
-                        ],
-                      ),
-                      backgroundColor: AppColors.successText,
-                    ),
-                  );
-                },
+                onPressed: () => _openExcelUploadModal(context),
                 icon: const Icon(Icons.upload_file,
                     size: 16, color: AppColors.primary),
                 label: Text(
