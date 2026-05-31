@@ -307,6 +307,8 @@ class GqlQueries {
           for_school
           for_class
           for_section
+          chapter
+          topic
         }
         subjects {
           id

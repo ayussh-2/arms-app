@@ -93,17 +93,9 @@ class DebugService {
     developer.log('ℹ️ $message');
   }
 
-  /// Internal method to add log and manage list size
+  /// Internal method to add log (disabled to prevent network log capturing)
   void _addLog(DebugLog log) {
-    if (!isDebugMode.value) return;
-    _logs.add(log);
-
-    // Keep only the most recent logs
-    if (_logs.length > maxLogs) {
-      _logs.removeRange(0, _logs.length - maxLogs);
-    }
-
-    logs.value = List.from(_logs);
+    // No-op: network log capture is disabled from now on
   }
 
   /// Clear all logs

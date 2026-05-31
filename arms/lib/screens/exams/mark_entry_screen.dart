@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -9,9 +12,11 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/services/upload_service.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_sticky_footer.dart';
 import '../../widgets/arms_input_field.dart';
+import 'exam_edit_details_screen.dart';
 
 /// Mark entry screen matching mark-entry.html.
 /// Shows student cards with subject-wise mark inputs, absent toggle, reference documents,
@@ -24,12 +29,18 @@ class MarkEntryScreen extends StatefulWidget {
 }
 
 class _MarkEntryScreenState extends State<MarkEntryScreen> {
+  static const int _maxExamPdfSizeBytes = 3 * 1024 * 1024;
+
   Map<String, dynamic>? _exam;
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _filteredStudents = [];
   List<Map<String, dynamic>> _subjects = [];
+  List<Map<String, dynamic>> _schoolsLookup = [];
+  List<Map<String, dynamic>> _classesLookup = [];
+  List<Map<String, dynamic>> _sectionsLookup = [];
   bool _isLoading = true;
   bool _isSaving = false;
+  Timer? _searchDebounce;
 
   final _searchCtrl = TextEditingController();
   late final FocusNode _searchFocusNode;
@@ -41,8 +52,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   List<FocusNode>? _currentMarkFieldFocusNodes;
   int _currentMarkFieldIndex = 0;
 
-  // Global keys for student cards to enable scrolling
-  final Map<String, GlobalKey> _markFieldKeys = {};
+  // Global key for search field to enable scrolling
   final GlobalKey _searchFieldKey = GlobalKey();
 
   // studentId -> { subjectId -> marks }
@@ -53,25 +63,30 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   final Map<String, bool> _absentMap = {};
   // studentId -> status (NORMAL, RNFP, MLP)
   final Map<String, String> _statusMap = {};
+  // studentId -> notifier for isAbsent
+  final Map<String, ValueNotifier<bool>> _absentNotifierMap = {};
+  // studentId -> notifier for status
+  final Map<String, ValueNotifier<String>> _statusNotifierMap = {};
 
   int _currentPage = 0;
   static const int _pageSize = 10;
+  static const int _lowEndPageSize = 6;
 
   @override
   void initState() {
     super.initState();
     _searchFocusNode = FocusNode();
     _scrollController = ScrollController();
-    _searchCtrl.addListener(_filterStudents);
+    _searchCtrl.addListener(_onSearchChanged);
 
-    // Track search field focus changes
+    // FIX 3: Guard setState with a value-equality check — prevents a full
+    // rebuild on every focus event when the focused state hasn't changed.
     _searchFocusNode.addListener(() {
-      setState(() {
-        _isSearchFocused = _searchFocusNode.hasFocus;
-      });
-      if (_searchFocusNode.hasFocus) {
-        _scrollToSearchFieldTop();
+      final hasFocus = _searchFocusNode.hasFocus;
+      if (_isSearchFocused != hasFocus) {
+        setState(() => _isSearchFocused = hasFocus);
       }
+      if (hasFocus) _scrollToSearchFieldTop();
     });
 
     // Auto-focus search field on load
@@ -110,7 +125,14 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     _searchCtrl.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
+    _searchDebounce?.cancel();
     _currentMarkFieldFocusNodes?.forEach((node) => node.dispose());
+    for (final notifier in _absentNotifierMap.values) {
+      notifier.dispose();
+    }
+    for (final notifier in _statusNotifierMap.values) {
+      notifier.dispose();
+    }
     for (final studentControllers in _controllers.values) {
       for (final ctrl in studentControllers.values) {
         ctrl.dispose();
@@ -119,16 +141,36 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     super.dispose();
   }
 
+  void _onSearchChanged() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 150), _filterStudents);
+  }
+
   Future<void> _loadData() async {
     try {
       final orgId = AuthService.currentAdmin?.organization?.id;
       if (orgId == null) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         return;
       }
       final client = GraphQLProvider.of(context).value;
+
+      final lookupsResult = await client.query(QueryOptions(
+        document: gql(GqlQueries.getExamLookups),
+        variables: {
+          'organisationId': orgId,
+        },
+        fetchPolicy: FetchPolicy.cacheFirst,
+      ));
+
+      if (lookupsResult.data != null) {
+        final lookups = lookupsResult.data!['getExamLookups'];
+        if (lookups != null) {
+          _schoolsLookup = (lookups['schools'] as List? ?? []).cast<Map<String, dynamic>>();
+          _classesLookup = (lookups['classes'] as List? ?? []).cast<Map<String, dynamic>>();
+          _sectionsLookup = (lookups['sections'] as List? ?? []).cast<Map<String, dynamic>>();
+        }
+      }
 
       final result = await client.query(QueryOptions(
         document: gql(GqlQueries.getExamDetails),
@@ -142,11 +184,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       if (!mounted) return;
       if (result.hasException) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load exam details: ${result.exception.toString()}'), backgroundColor: AppColors.errorText),
+          SnackBar(
+            content: Text('Failed to load exam details: ${result.exception.toString()}'),
+            backgroundColor: AppColors.errorText,
+          ),
         );
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         return;
       }
 
@@ -166,20 +209,28 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         }
         _subjects = subjects;
 
-        // Build lookup: studentId_subjectId -> mark data using flat fields from database response
+        // Build lookup: studentId_subjectId -> mark data
         final markLookup = <String, Map<String, dynamic>>{};
         for (final m in existingMarks) {
           final key = '${m['student_id']}_${m['subject_id']}';
           markLookup[key] = m;
         }
 
-        // Sort students by marks descending (matching exam_view_screen.dart)
+        // FIX 1: Pre-build a per-student lookup map ONCE before sorting.
+        // The original code called .where() on the full existingMarks list
+        // inside the comparator, making the sort O(n²·m). With this map the
+        // sort is O(n log n) and the pre-build is a single O(m) pass.
+        final marksByStudent = <String, List<Map<String, dynamic>>>{};
+        for (final m in existingMarks) {
+          marksByStudent.putIfAbsent(m['student_id'] as String, () => []).add(m);
+        }
+
         students.sort((a, b) {
           final aId = a['id'] as String;
           final bId = b['id'] as String;
 
-          final aStudentMarks = existingMarks.where((m) => m['student_id'] == aId).toList();
-          final bStudentMarks = existingMarks.where((m) => m['student_id'] == bId).toList();
+          final aStudentMarks = marksByStudent[aId] ?? [];
+          final bStudentMarks = marksByStudent[bId] ?? [];
 
           final aAbsent = aStudentMarks.any((m) => m['is_absent'] == true);
           final bAbsent = bStudentMarks.any((m) => m['is_absent'] == true);
@@ -187,8 +238,14 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           if (aAbsent) return 1;
           if (bAbsent) return -1;
 
-          final aMarksList = aStudentMarks.map((m) => m['marks_obtained'] as num?).whereType<num>().toList();
-          final bMarksList = bStudentMarks.map((m) => m['marks_obtained'] as num?).whereType<num>().toList();
+          final aMarksList = aStudentMarks
+              .map((m) => m['marks_obtained'] as num?)
+              .whereType<num>()
+              .toList();
+          final bMarksList = bStudentMarks
+              .map((m) => m['marks_obtained'] as num?)
+              .whereType<num>()
+              .toList();
 
           if (aMarksList.isEmpty && bMarksList.isEmpty) return 0;
           if (aMarksList.isEmpty) return 1;
@@ -206,6 +263,10 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           _controllers[sid] = {};
           _absentMap[sid] = false;
           _statusMap[sid] = 'NORMAL';
+          _absentNotifierMap[sid]?.dispose();
+          _statusNotifierMap[sid]?.dispose();
+          _absentNotifierMap[sid] = ValueNotifier<bool>(false);
+          _statusNotifierMap[sid] = ValueNotifier<String>('NORMAL');
 
           for (final es in _subjects) {
             final subjectId = es['id'] as String? ?? '';
@@ -216,12 +277,14 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
             if (existing != null) {
               if (existing['is_absent'] == true) {
                 _absentMap[sid] = true;
+                _absentNotifierMap[sid]?.value = true;
               } else if (existing['marks_obtained'] != null) {
                 markVal = existing['marks_obtained'].toInt().toString();
                 _marksData[sid]![subjectId] = markVal;
               }
               if (existing['mark_status'] != null) {
                 _statusMap[sid] = existing['mark_status'];
+                _statusNotifierMap[sid]?.value = existing['mark_status'];
               }
             }
             _controllers[sid]![subjectId] = TextEditingController(text: markVal);
@@ -237,48 +300,41 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           _scrollToSearchFieldTop();
         });
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Connection error: $e'), backgroundColor: AppColors.errorText),
         );
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
 
-
-
   void _toggleAbsent(String studentId) {
-    setState(() {
-      _absentMap[studentId] = !(_absentMap[studentId] ?? false);
-      if (_absentMap[studentId]!) {
-        // Clear marks when marking absent
-        _marksData[studentId]?.clear();
-        _controllers[studentId]?.values.forEach((ctrl) => ctrl.clear());
-      }
-    });
+    final nextValue = !(_absentMap[studentId] ?? false);
+    _absentMap[studentId] = nextValue;
+    _absentNotifierMap[studentId]?.value = nextValue;
+    if (nextValue) {
+      // Clear marks when marking absent
+      _marksData[studentId]?.clear();
+      _controllers[studentId]?.values.forEach((ctrl) => ctrl.clear());
+    }
   }
 
   void _cycleStatus(String studentId) {
     const statuses = ['NORMAL', 'RNFP', 'MLP'];
     final current = _statusMap[studentId] ?? 'NORMAL';
     final nextIdx = (statuses.indexOf(current) + 1) % statuses.length;
-    setState(() {
-      _statusMap[studentId] = statuses[nextIdx];
-    });
+    final nextValue = statuses[nextIdx];
+    _statusMap[studentId] = nextValue;
+    _statusNotifierMap[studentId]?.value = nextValue;
   }
 
   void _navigateToMarkFields() {
     if (_filteredStudents.isEmpty) return;
 
-    // Get the first student from filtered list
     final firstStudent = _filteredStudents.first;
     final studentId = firstStudent['id'] as String;
 
@@ -287,34 +343,33 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       _currentMarkFieldIndex = 0;
     });
 
-    // Create focus nodes for mark fields
+    // FIX 6: Dispose previous FocusNodes before allocating new ones.
+    // Without this, every call to _navigateToMarkFields leaked the previous
+    // set of nodes as live listeners until the screen was destroyed.
+    _currentMarkFieldFocusNodes?.forEach((node) => node.dispose());
     _currentMarkFieldFocusNodes = List.generate(
       _subjects.length,
       (index) {
         final node = FocusNode();
         node.addListener(() {
-          if (node.hasFocus) {
-            _scrollFocusedFieldIntoView(node);
-          }
+          if (node.hasFocus) _scrollFocusedFieldIntoView(node);
         });
         return node;
       },
     );
 
-    // Focus on the first mark field and scroll to the search field
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_currentMarkFieldFocusNodes != null && _currentMarkFieldFocusNodes!.isNotEmpty) {
+      if (_currentMarkFieldFocusNodes != null &&
+          _currentMarkFieldFocusNodes!.isNotEmpty) {
         _currentMarkFieldFocusNodes!.first.requestFocus();
       }
-
-      // Scroll to show the search field using Scrollable.ensureVisible
       final searchContext = _searchFieldKey.currentContext;
       if (searchContext != null) {
         Scrollable.ensureVisible(
           searchContext,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-          alignment: 0.3, // Position search field about 30% from top
+          alignment: 0.3,
         );
       }
     });
@@ -322,10 +377,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
   bool _areAllMarksEntered() {
     if (_currentEditingStudentId == null) return false;
-
     final isAbsent = _absentMap[_currentEditingStudentId] ?? false;
     if (isAbsent) return true; // Absent students don't need marks
-
     for (final subject in _subjects) {
       final subjectId = subject['id'] as String? ?? '';
       final marksText = _marksData[_currentEditingStudentId]?[subjectId] ?? '';
@@ -334,17 +387,18 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     return true;
   }
 
+  // FIX 2: Guard setState so it only fires when the editing state truly
+  // changes. The original code called setState on EVERY keystroke via
+  // onChanged → _handleMarkEntryCompletion, rebuilding the entire widget tree
+  // each time. Now setState is skipped if no active editing session exists.
   void _handleMarkEntryCompletion() {
+    if (_currentEditingStudentId == null) return; // Nothing active — skip entirely
     if (_areAllMarksEntered()) {
       setState(() {
         _currentEditingStudentId = null;
         _isSearchFocused = true;
       });
-
-      // Return focus to search field
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _focusSearchField();
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _focusSearchField());
     }
   }
 
@@ -352,14 +406,11 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     final keyboardOpen = _isKeyboardOpen(context);
     if (keyboardOpen) {
       if (_isSearchFocused) {
-        // User is in search box, navigate to mark fields
         _navigateToMarkFields();
       } else {
-        // User is in mark fields, move to next input or search
         _focusNextMarkField();
       }
     } else {
-      // Only save when keyboard is closed
       _save();
     }
   }
@@ -369,21 +420,17 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       _focusSearchField();
       return;
     }
-
     final focusNodes = _currentMarkFieldFocusNodes!;
     if (focusNodes.isEmpty) {
       _focusSearchField();
       return;
     }
-
-    // Try moving to the next field in order.
     if (_currentMarkFieldIndex < focusNodes.length - 1) {
       _currentMarkFieldIndex += 1;
       focusNodes[_currentMarkFieldIndex].requestFocus();
       return;
     }
-
-    // We are at the last field. Always return to search.
+    // We are at the last field — always return to search.
     _currentEditingStudentId = null;
     _currentMarkFieldIndex = 0;
     _focusSearchField();
@@ -455,7 +502,9 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         if (marksVal != null && marksVal > maxMarks.toDouble()) {
           messenger.showSnackBar(
             SnackBar(
-              content: Text('Error: Marks for ${student['name']} in ${es['name']} exceed maximum marks ($maxMarks)'),
+              content: Text(
+                'Error: Marks for ${student['name']} in ${es['name']} exceed maximum marks ($maxMarks)',
+              ),
               backgroundColor: AppColors.errorText,
             ),
           );
@@ -494,15 +543,16 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         },
       ));
 
-      if (result.hasException) {
-        throw result.exception!;
-      }
+      if (result.hasException) throw result.exception!;
 
       if (!mounted) return;
       messenger.showSnackBar(
-        const SnackBar(content: Text('Marks saved successfully'), backgroundColor: AppColors.successText),
+        const SnackBar(
+          content: Text('Marks saved successfully'),
+          backgroundColor: AppColors.successText,
+        ),
       );
-      navigator.pop(true); // Return true to trigger refresh!
+      navigator.pop(true); // Return true to trigger refresh
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
@@ -516,6 +566,17 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboardOpen = _isKeyboardOpen(context);
+
+    // FIX 5: Compute item width once here in build() and pass it down as a
+    // plain double. Previously MediaQuery was called inside every subject's
+    // SizedBox inside every student card — O(students × subjects) calls per
+    // frame. Now it is one call per build pass.
+    final media = MediaQuery.of(context);
+    final itemWidth = (media.size.width - 80) / 2;
+    final effectivePageSize = media.size.shortestSide < 360
+        ? _lowEndPageSize
+        : _pageSize;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const ArmsTopAppBar(title: 'Marks Entry', showBackButton: true),
@@ -525,44 +586,48 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
               children: [
                 Builder(
                   builder: (context) {
-                    final pageStudents = _filteredStudents.skip(_currentPage * _pageSize).take(_pageSize).toList();
+                    final pageStudents = _filteredStudents
+                        .skip(_currentPage * effectivePageSize)
+                        .take(effectivePageSize)
+                        .toList();
                     return ListView.builder(
                       controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.marginPage, 0, AppSpacing.marginPage, 200),
                       itemCount: pageStudents.length + 2,
                       itemBuilder: (_, i) {
                         if (i == 0) return _buildConfigHeader();
                         if (i == pageStudents.length + 1) {
-                          if (_filteredStudents.length <= _pageSize) return const SizedBox(height: 120);
+                          if (_filteredStudents.length <= effectivePageSize) {
+                            return const SizedBox(height: 120);
+                          }
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 24),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Showing ${(_currentPage * _pageSize) + 1} to ${((_currentPage + 1) * _pageSize).clamp(1, _filteredStudents.length)} of ${_filteredStudents.length}',
-                                  style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
+                                  'Showing ${(_currentPage * effectivePageSize) + 1} to '
+                                  '${((_currentPage + 1) * effectivePageSize).clamp(1, _filteredStudents.length)} '
+                                  'of ${_filteredStudents.length}',
+                                  style: AppTextStyles.labelXs
+                                      .copyWith(color: AppColors.onSurfaceVariant),
                                 ),
                                 Row(
                                   children: [
                                     _PaginationButton(
                                       icon: Icons.chevron_left,
                                       isEnabled: _currentPage > 0,
-                                      onTap: () {
-                                        setState(() {
-                                          _currentPage--;
-                                        });
-                                      },
+                                      onTap: () => setState(() => _currentPage--),
                                     ),
                                     const SizedBox(width: 8),
                                     _PaginationButton(
                                       icon: Icons.chevron_right,
-                                      isEnabled: (_currentPage + 1) * _pageSize < _filteredStudents.length,
-                                      onTap: () {
-                                        setState(() {
-                                          _currentPage++;
-                                        });
-                                      },
+                                      isEnabled: (_currentPage + 1) *
+                                              effectivePageSize <
+                                          _filteredStudents.length,
+                                      onTap: () => setState(() => _currentPage++),
                                     ),
                                   ],
                                 ),
@@ -570,9 +635,38 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                             ),
                           );
                         }
+
+                        final student = pageStudents[i - 1];
+                        final sid = student['id'] as String;
+
+                        // FIX 4: _StudentCard is a StatelessWidget instead of a
+                        // plain method call. Flutter can now reconcile each card
+                        // independently so an absent-toggle or status-cycle on
+                        // one student doesn't force every other card to rebuild.
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildStudentCard(pageStudents[i - 1], (_currentPage * _pageSize) + i),
+                          child: RepaintBoundary(
+                            child: _StudentCard(
+                              key: ValueKey(sid),
+                              student: student,
+                              slNo: (_currentPage * effectivePageSize) + i,
+                              absentListenable: _absentNotifierMap[sid]!,
+                              statusListenable: _statusNotifierMap[sid]!,
+                              controllers: _controllers[sid] ?? {},
+                              subjects: _subjects,
+                              isEditing: _currentEditingStudentId == sid,
+                              focusNodes: _currentEditingStudentId == sid
+                                  ? _currentMarkFieldFocusNodes
+                                  : null,
+                              itemWidth: itemWidth,
+                              onAbsentToggle: () => _toggleAbsent(sid),
+                              onStatusCycle: () => _cycleStatus(sid),
+                              onMarkChanged: (subjectId, val) {
+                                _marksData[sid]![subjectId] = val;
+                                _handleMarkEntryCompletion();
+                              },
+                            ),
+                          ),
                         );
                       },
                     );
@@ -586,7 +680,9 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                     primaryButtonText: _isSaving
                         ? 'Saving...'
                         : (keyboardOpen ? 'Next' : 'Save & Close'),
-                    onPrimaryPressed: _isSaving ? () {} : () => _handleActionButtonPressed(context),
+                    onPrimaryPressed: _isSaving
+                        ? () {}
+                        : () => _handleActionButtonPressed(context),
                   ),
                 ),
               ],
@@ -596,11 +692,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
   Widget _buildConfigHeader() {
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.stackMd, bottom: AppSpacing.stackLg),
+      padding: const EdgeInsets.only(
+          top: AppSpacing.stackMd, bottom: AppSpacing.stackLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Exam configurations details card
+          // Exam configuration details card
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -616,27 +713,81 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                     Text('EXAM DETAILS', style: AppTextStyles.labelXsUppercase),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: _showEditExamDetailsSheet,
-                      child: const Icon(Icons.edit, size: 16, color: AppColors.primary),
+                      onTap: () async {
+                        final result = await Navigator.push<Map<String, dynamic>>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ExamEditDetailsScreen(
+                              exam: _exam!,
+                              subjects: _subjects,
+                              schoolsLookup: _schoolsLookup,
+                              classesLookup: _classesLookup,
+                              sectionsLookup: _sectionsLookup,
+                            ),
+                          ),
+                        );
+                        if (result != null && mounted) {
+                          setState(() {
+                            _exam!['name'] = result['name'];
+                            _exam!['chapter'] = result['chapter'];
+                            _exam!['topic'] = result['topic'];
+                            _exam!['exam_date'] = result['exam_date'];
+                            _exam!['for_school'] = result['for_school'];
+                            _exam!['for_class'] = result['for_class'];
+                            _exam!['for_section'] = result['for_section'];
+                            _exam!['total_marks'] = result['total_marks'];
+
+                            final updatedMarks = result['subject_marks'] as Map<String, int>? ?? {};
+                            for (final sub in _subjects) {
+                              final subId = sub['id'] as String;
+                              if (updatedMarks.containsKey(subId)) {
+                                sub['max_marks'] = updatedMarks[subId];
+                              }
+                            }
+                          });
+                          _loadData();
+                        }
+                      },
+                      child: const Icon(Icons.edit,
+                          size: 16, color: AppColors.primary),
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: AppColors.accentLight, borderRadius: BorderRadius.circular(4)),
-                      child: Text('Total: ${_exam!['total_marks'] ?? 0}', style: AppTextStyles.labelXs.copyWith(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentLight,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Total: ${_exam!['total_marks'] ?? 0}',
+                        style: AppTextStyles.labelXs.copyWith(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                _ConfigRow(label: 'SERIES', value: _exam!['series']?['name'] ?? 'N/A'),
-                _ConfigRow(label: 'DATE', value: _formatExamDate(_exam!['exam_date'])),
+                _ConfigRow(
+                    label: 'SERIES',
+                    value: _exam!['series']?['name'] ?? 'N/A'),
+                _ConfigRow(
+                    label: 'DATE',
+                    value: _formatExamDate(_exam!['exam_date'])),
                 _ConfigRow(label: 'EXAM NAME', value: _exam!['name'] ?? ''),
-                _ConfigRow(label: 'SUBJECTS', value: _subjects.map((s) => s['name'] ?? '').join(', ')),
+                _ConfigRow(
+                    label: 'SUBJECTS',
+                    value: _subjects
+                        .map((s) => s['name'] ?? '')
+                        .join(', ')),
               ],
             ),
           ),
           const SizedBox(height: AppSpacing.stackLg),
-          // Reference Documents Section matching mark-entry.html
+          // Reference Documents Section
           Text(
             'Reference Documents'.toUpperCase(),
             style: AppTextStyles.labelXsUppercase.copyWith(
@@ -647,9 +798,19 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _buildDocCardDynamic('Attendance PDF', _exam!['attendance_pdf_url'], 'attendance')),
+              Expanded(
+                child: _buildDocCardDynamic(
+                    'Attendance PDF',
+                    _exam!['attendance_pdf_url'],
+                    'attendance'),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _buildDocCardDynamic('Question Paper', _exam!['question_pdf_url'], 'question')),
+              Expanded(
+                child: _buildDocCardDynamic(
+                    'Question Paper',
+                    _exam!['question_pdf_url'],
+                    'question'),
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.stackLg),
@@ -672,14 +833,16 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                         children: [
                           Icon(Icons.upload_file, color: Colors.white),
                           SizedBox(width: 12),
-                          Text('Excel processing completed. Student marks parsed!'),
+                          Text(
+                              'Excel processing completed. Student marks parsed!'),
                         ],
                       ),
                       backgroundColor: AppColors.successText,
                     ),
                   );
                 },
-                icon: const Icon(Icons.upload_file, size: 16, color: AppColors.primary),
+                icon: const Icon(Icons.upload_file,
+                    size: 16, color: AppColors.primary),
                 label: Text(
                   'UPLOAD EXCEL',
                   style: AppTextStyles.labelXs.copyWith(
@@ -689,9 +852,11 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.primary, width: 1),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(9999)),
                   backgroundColor: AppColors.primaryFaint,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 ),
               ),
             ],
@@ -714,7 +879,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   Widget _buildDocCardDynamic(String title, String? url, String type) {
     final bool hasUrl = url != null && url.trim().isNotEmpty;
 
-    // We can extract a readable filename from the URL, or default to a standard name
+    // Extract a readable filename from the URL, or default to a standard name
     String filename = '${title.replaceAll(" ", "_")}.pdf';
     if (hasUrl) {
       try {
@@ -733,7 +898,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: hasUrl ? AppColors.outlineLight : AppColors.outlineMediumLight,
+          color:
+              hasUrl ? AppColors.outlineLight : AppColors.outlineMediumLight,
         ),
       ),
       child: hasUrl
@@ -743,7 +909,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.picture_as_pdf, color: AppColors.errorText, size: 24),
+                    const Icon(Icons.picture_as_pdf,
+                        color: AppColors.errorText, size: 24),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -751,13 +918,17 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                         children: [
                           Text(
                             title,
-                            style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain),
+                            style: AppTextStyles.labelXs.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textMain),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             filename,
-                            style: AppTextStyles.labelXs.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant),
+                            style: AppTextStyles.labelXs.copyWith(
+                                fontSize: 10,
+                                color: AppColors.onSurfaceVariant),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -772,17 +943,34 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                       child: SizedBox(
                         height: 28,
                         child: OutlinedButton(
-                          onPressed: () => _updatePdf(type, url),
+                          onPressed: _isSaving ? null : () => _updatePdf(type),
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.outlineMediumLight),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                            side: BorderSide(
+                                color: AppColors.outlineMediumLight),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(9999)),
                             padding: EdgeInsets.zero,
                             backgroundColor: Colors.white,
                           ),
-                          child: Text(
-                            'Replace',
-                            style: AppTextStyles.labelXs.copyWith(color: AppColors.textMain, fontWeight: FontWeight.w700, fontSize: 11),
-                          ),
+                          child: _isSaving
+                              ? SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppColors.primary,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  'Replace',
+                                  style: AppTextStyles.labelXs.copyWith(
+                                    color: AppColors.textMain,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -792,13 +980,19 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                         height: 28,
                         child: ElevatedButton(
                           onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(context);
+                            final messenger =
+                                ScaffoldMessenger.of(context);
                             try {
                               final uri = Uri.parse(url.trim());
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              await launchUrl(uri,
+                                  mode: LaunchMode.externalApplication);
                             } catch (e) {
                               messenger.showSnackBar(
-                                SnackBar(content: Text('Could not open URL: $e'), backgroundColor: AppColors.errorText),
+                                SnackBar(
+                                  content:
+                                      Text('Could not open URL: $e'),
+                                  backgroundColor: AppColors.errorText,
+                                ),
                               );
                             }
                           },
@@ -806,12 +1000,17 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                             backgroundColor: AppColors.primaryFaint,
                             foregroundColor: AppColors.primary,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(9999)),
                             padding: EdgeInsets.zero,
                           ),
                           child: Text(
                             'View',
-                            style: AppTextStyles.labelXs.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 11),
+                            style: AppTextStyles.labelXs.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11,
+                            ),
                           ),
                         ),
                       ),
@@ -821,15 +1020,27 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
               ],
             )
           : InkWell(
-              onTap: () => _updatePdf(type, ''),
+              onTap: _isSaving ? null : () => _updatePdf(type),
               borderRadius: BorderRadius.circular(16),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.upload_file_outlined, color: AppColors.primary, size: 28),
+                  _isSaving
+                      ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.primary,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.upload_file_outlined,
+                          color: AppColors.primary, size: 28),
                   const SizedBox(height: 6),
                   Text(
-                    'Upload New $title',
+                    _isSaving ? 'Uploading...' : 'Upload New $title',
                     textAlign: TextAlign.center,
                     style: AppTextStyles.labelXs.copyWith(
                       color: AppColors.primary,
@@ -843,435 +1054,200 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     );
   }
 
-  Future<void> _updatePdf(String type, String currentUrl) async {
-    final ctrl = TextEditingController(text: currentUrl);
+  String _sanitizeFilename(String value) {
+    final sanitized = value
+        .trim()
+        .replaceAll(RegExp(r'[^a-z0-9]+', caseSensitive: false), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '')
+        .toLowerCase();
+
+    return sanitized.isEmpty ? 'exam' : sanitized;
+  }
+
+  Future<void> _updatePdf(String type) async {
+    if (_exam == null) return;
+    final messenger = ScaffoldMessenger.of(context);
     final isAttendance = type == 'attendance';
     final title = isAttendance ? 'Attendance PDF' : 'Question Paper PDF';
+    final examId = _exam!['id']?.toString();
 
-    final resultUrl = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Update $title', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Please enter the URL for the PDF:', style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: ctrl,
-              decoration: InputDecoration(
-                hintText: 'https://example.com/file.pdf',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      ctrl.text = isAttendance
-                          ? 'https://arms-demo.s3.amazonaws.com/attendance_list_2026.pdf'
-                          : 'https://arms-demo.s3.amazonaws.com/midterm_math_2026.pdf';
-                    },
-                    child: const Text('Use Demo URL'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+    if (examId == null || examId.trim().isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Create or open an exam before uploading the PDF'),
+          backgroundColor: AppColors.errorText,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+      );
+      return;
+    }
 
-    if (resultUrl != null) {
+    final organisationFolder =
+        AuthService.currentAdmin?.organization?.name?.trim();
+    if (organisationFolder == null || organisationFolder.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content:
+              Text('Organisation folder is missing. Please login again.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    FilePickerResult? pickerResult;
+    try {
+      pickerResult = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _isSaving = true);
-      try {
-        final client = GraphQLProvider.of(context).value;
-        final mutationResult = await client.mutate(MutationOptions(
-          document: gql(GqlQueries.updateExamPdfs),
-          variables: {
-            'examId': _exam!['id'],
-            'attendancePdf': isAttendance ? resultUrl : _exam!['attendance_pdf_url'],
-            'questionPdf': !isAttendance ? resultUrl : _exam!['question_pdf_url'],
-          },
-        ));
-
-        if (mutationResult.hasException) {
-          throw mutationResult.exception!;
-        }
-
-        setState(() {
-          if (isAttendance) {
-            _exam!['attendance_pdf_url'] = resultUrl;
-          } else {
-            _exam!['question_pdf_url'] = resultUrl;
-          }
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$title updated successfully!'), backgroundColor: AppColors.successText),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error updating PDF: $e'), backgroundColor: AppColors.errorText),
-          );
-        }
-      } finally {
-        setState(() => _isSaving = false);
-      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to open file picker: $e'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
     }
-  }
 
-  void _showEditExamDetailsSheet() {
-    final nameCtrl = TextEditingController(text: _exam!['name'] ?? '');
-    final marksCtrl = TextEditingController(text: (_exam!['total_marks'] ?? 0).toString());
-
-    final rawDate = _exam!['exam_date'] as String? ?? '';
-    String initialDateStr = '';
-    if (rawDate.isNotEmpty) {
-      try {
-        final parsed = _parseDate(rawDate);
-        initialDateStr = "${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}";
-      } catch (_) {
-        initialDateStr = rawDate;
-      }
+    if (pickerResult == null || pickerResult.files.single.path == null) {
+      return;
     }
-    final dateCtrl = TextEditingController(text: initialDateStr);
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 48,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: AppColors.outlineMediumLight,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Edit Exam Details', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text('EXAM NAME', style: AppTextStyles.labelXsUppercase),
-                    const SizedBox(height: 8),
-                    ArmsInputField(
-                      controller: nameCtrl,
-                      hintText: 'Enter Exam Name',
-                    ),
-                    const SizedBox(height: 16),
-                    Text('TOTAL MARKS', style: AppTextStyles.labelXsUppercase),
-                    const SizedBox(height: 8),
-                    ArmsInputField(
-                      controller: marksCtrl,
-                      hintText: 'Enter Total Marks',
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 16),
-                    Text('EXAM DATE', style: AppTextStyles.labelXsUppercase),
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () async {
-                        final DateTime? picked = await showDatePicker(
-                          context: context,
-                          initialDate: _parseDate(dateCtrl.text),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
-                        );
-                        if (picked != null) {
-                          setModalState(() {
-                            dateCtrl.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                          });
-                        }
-                      },
-                      child: AbsorbPointer(
-                        child: ArmsInputField(
-                          controller: dateCtrl,
-                          hintText: 'YYYY-MM-DD',
-                          prefixIcon: Icons.calendar_today,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          final newName = nameCtrl.text.trim();
-                          final newMarks = int.tryParse(marksCtrl.text.trim()) ?? 0;
-                          final newDate = dateCtrl.text.trim();
+    final filePath = pickerResult.files.single.path!;
+    if (!filePath.toLowerCase().endsWith('.pdf')) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Only PDF uploads are accepted'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
 
-                          if (newName.isEmpty) {
-                            messenger.showSnackBar(
-                              const SnackBar(content: Text('Exam name cannot be empty'), backgroundColor: AppColors.errorText),
-                            );
-                            return;
-                          }
+    final file = File(filePath);
+    final fileSize = await file.length();
+    if (fileSize >= _maxExamPdfSizeBytes) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('PDF must be less than 3 MB'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
 
-                          Navigator.pop(ctx);
+    setState(() => _isSaving = true);
+    try {
+      final examName = (_exam!['name'] ?? 'exam').toString();
+      final uploadedUrl = await UploadService.uploadFile(
+        apiUrlPath: '/api/exam-pdfs',
+        organisationFolder: organisationFolder,
+        filenameBase: _sanitizeFilename(examName),
+        file: file,
+        formFieldName: 'pdf',
+        extraFields: {
+          'examId': examId,
+          'examName': examName,
+          'kind': isAttendance ? 'attendance' : 'question',
+        },
+      );
 
-                          setState(() {
-                            _exam!['name'] = newName;
-                            _exam!['total_marks'] = newMarks;
-                            _exam!['exam_date'] = newDate;
-                            _isSaving = true;
-                          });
+      final client = GraphQLProvider.of(context).value;
+      final mutationResult = await client.mutate(MutationOptions(
+        document: gql(GqlQueries.updateExamPdfs),
+        variables: {
+          'examId': examId,
+          'attendancePdf':
+              isAttendance ? uploadedUrl : _exam!['attendance_pdf_url'],
+          'questionPdf':
+              !isAttendance ? uploadedUrl : _exam!['question_pdf_url'],
+        },
+      ));
 
-                          try {
-                            final client = GraphQLProvider.of(context).value;
-                            final result = await client.mutate(MutationOptions(
-                              document: gql(GqlQueries.updateExamSetup),
-                              variables: {
-                                'examId': _exam!['id'],
-                                'input': {
-                                  'name': newName,
-                                  'exam_date': newDate,
-                                  'total_marks': newMarks,
-                                },
-                              },
-                            ));
+      if (mutationResult.hasException) throw mutationResult.exception!;
 
-                            if (result.hasException) {
-                              throw result.exception!;
-                            }
+      setState(() {
+        if (isAttendance) {
+          _exam!['attendance_pdf_url'] = uploadedUrl;
+        } else {
+          _exam!['question_pdf_url'] = uploadedUrl;
+        }
+      });
 
-                            if (mounted) {
-                              messenger.showSnackBar(
-                                 const SnackBar(content: Text('Exam details updated successfully'), backgroundColor: AppColors.successText),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              messenger.showSnackBar(
-                                SnackBar(content: Text('Failed to update details on server: $e'), backgroundColor: AppColors.errorText),
-                              );
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() => _isSaving = false);
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                        ),
-                        child: Text(
-                          'Save Changes',
-                          style: AppTextStyles.bodyMedium.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('$title uploaded successfully!'),
+            backgroundColor: AppColors.successText,
+          ),
         );
-      },
-    );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Error updating PDF: $e'),
+            backgroundColor: AppColors.errorText,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
-  Widget _buildStudentCard(Map<String, dynamic> student, int slNo) {
-    final sid = student['id'] as String;
-    final isAbsent = _absentMap[sid] ?? false;
-    final status = _statusMap[sid] ?? 'NORMAL';
 
-    // Create or get global key for this student card
-    _markFieldKeys.putIfAbsent(sid, () => GlobalKey());
-    final cardKey = _markFieldKeys[sid]!;
+}
 
-    return Container(
-      key: cardKey,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineLight),
-      ),
-      child: Column(
-        children: [
-          // Header: Name + Absent/Status buttons
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('$slNo. ${student['name'] ?? ''}', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                    Text('Roll No: ${student['roll_no'] ?? ''}', style: AppTextStyles.labelXs.copyWith(fontSize: 12, color: AppColors.onSurfaceVariant)),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // Absent toggle
-                  GestureDetector(
-                    onTap: () => _toggleAbsent(sid),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isAbsent ? AppColors.errorText : AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(9999),
-                        border: Border.all(color: isAbsent ? AppColors.errorText : AppColors.outlineLight),
-                      ),
-                      child: Text(
-                        isAbsent ? 'ABSENT' : 'MARK ABSENT',
-                        style: AppTextStyles.labelXsUppercase.copyWith(
-                          fontSize: 10,
-                          color: isAbsent ? Colors.white : AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Status cycle
-                  GestureDetector(
-                    onTap: () => _cycleStatus(sid),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _statusColor(status),
-                        borderRadius: BorderRadius.circular(9999),
-                      ),
-                      child: Text(
-                        status == 'MLP' ? 'MALPRACTICE' : status,
-                        style: AppTextStyles.labelXsUppercase.copyWith(
-                          fontSize: 10,
-                          color: status == 'NORMAL' ? AppColors.onSurfaceVariant : Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Subject mark inputs (grid)
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _subjects.asMap().entries.map((entry) {
-              final subjectIndex = entry.key;
-              final es = entry.value;
-              final subjectId = es['id'] as String? ?? '';
-              final subjectName = es['name'] as String? ?? '';
-              final maxMarks = es['max_marks'] as num? ?? 100;
-              final currentText = _marksData[sid]?[subjectId] ?? '';
-              final currentVal = double.tryParse(currentText);
-              final isError = currentVal != null && currentVal > maxMarks.toDouble();
+// ---------------------------------------------------------------------------
+// FIX 4: _StudentCard extracted as a StatelessWidget.
+//
+// Previously _buildStudentCard was a plain method on _MarkEntryScreenState.
+// Every setState() call on the parent (absent toggle, status cycle, search)
+// would unconditionally re-invoke the method and rebuild ALL cards on the
+// page, even cards whose data had not changed.
+//
+// As a StatelessWidget with a ValueKey, Flutter's reconciler can skip a card
+// entirely when the identity of its key is stable and the parent rebuild
+// produces the same widget type at the same slot — cutting redundant work
+// proportionally to the number of unchanged cards on screen.
+// ---------------------------------------------------------------------------
+class _StudentCard extends StatelessWidget {
+  const _StudentCard({
+    super.key,
+    required this.student,
+    required this.slNo,
+    required this.absentListenable,
+    required this.statusListenable,
+    required this.controllers,
+    required this.subjects,
+    required this.isEditing,
+    this.focusNodes,
+    required this.itemWidth,
+    required this.onAbsentToggle,
+    required this.onStatusCycle,
+    required this.onMarkChanged,
+  });
 
-              // Create focus node for this mark field
-              FocusNode? markFieldFocusNode;
-              if (_currentEditingStudentId == sid && _currentMarkFieldFocusNodes != null) {
-                if (subjectIndex < _currentMarkFieldFocusNodes!.length) {
-                  markFieldFocusNode = _currentMarkFieldFocusNodes![subjectIndex];
-                }
-              }
+  final Map<String, dynamic> student;
+  final int slNo;
+  final ValueListenable<bool> absentListenable;
+  final ValueListenable<String> statusListenable;
+  final Map<String, TextEditingController> controllers;
+  final List<Map<String, dynamic>> subjects;
+  final bool isEditing;
+  final List<FocusNode>? focusNodes;
+  // FIX 5: itemWidth is pre-computed in the parent's build() and passed as
+  // a plain double so each card no longer subscribes to MediaQuery changes.
+  final double itemWidth;
+  final VoidCallback onAbsentToggle;
+  final VoidCallback onStatusCycle;
+  final void Function(String subjectId, String val) onMarkChanged;
 
-              return SizedBox(
-                width: (MediaQuery.of(context).size.width - 80) / 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: Text(subjectName.toUpperCase(), style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
-                    ),
-                    const SizedBox(height: 4),
-                    TextFormField(
-                      focusNode: markFieldFocusNode,
-                      controller: _controllers[sid]?[subjectId],
-                      onChanged: (val) {
-                        setState(() {
-                          _marksData[sid]![subjectId] = val;
-                        });
-                        // Check if all marks are entered
-                        _handleMarkEntryCompletion();
-                      },
-                      enabled: !isAbsent,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700),
-                      decoration: InputDecoration(
-                        hintText: '00',
-                        hintStyle: AppTextStyles.headerSmall.copyWith(color: AppColors.outline.withValues(alpha: 0.5)),
-                        filled: true,
-                        fillColor: isAbsent ? AppColors.surfaceVariant.withValues(alpha: 0.3) : Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        errorText: isError ? 'Max: $maxMarks' : null,
-                        errorStyle: AppTextStyles.labelXs.copyWith(color: AppColors.errorText, fontSize: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.outlineLight)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.outlineLight)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
+  Color _statusColor(String s) {
+    switch (s) {
       case 'RNFP':
         return AppColors.accent;
       case 'MLP':
@@ -1280,7 +1256,217 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         return AppColors.surfaceContainer;
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: absentListenable,
+      builder: (context, isAbsent, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: statusListenable,
+          builder: (context, status, __) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.cardSurface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.outlineLight),
+              ),
+              child: Column(
+                children: [
+                  // Header: Name + Absent/Status buttons
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$slNo. ${student['name'] ?? ''}',
+                              style: AppTextStyles.headerSmall
+                                  .copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              'Roll No: ${student['roll_no'] ?? ''}',
+                              style: AppTextStyles.labelXs.copyWith(
+                                  fontSize: 12,
+                                  color: AppColors.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Absent toggle
+                          GestureDetector(
+                            onTap: onAbsentToggle,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isAbsent
+                                    ? AppColors.errorText
+                                    : AppColors.surfaceContainer,
+                                borderRadius: BorderRadius.circular(9999),
+                                border: Border.all(
+                                  color: isAbsent
+                                      ? AppColors.errorText
+                                      : AppColors.outlineLight,
+                                ),
+                              ),
+                              child: Text(
+                                isAbsent ? 'ABSENT' : 'MARK ABSENT',
+                                style: AppTextStyles.labelXsUppercase.copyWith(
+                                  fontSize: 10,
+                                  color: isAbsent
+                                      ? Colors.white
+                                      : AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Status cycle
+                          GestureDetector(
+                            onTap: onStatusCycle,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _statusColor(status),
+                                borderRadius: BorderRadius.circular(9999),
+                              ),
+                              child: Text(
+                                status == 'MLP' ? 'MALPRACTICE' : status,
+                                style: AppTextStyles.labelXsUppercase.copyWith(
+                                  fontSize: 10,
+                                  color: status == 'NORMAL'
+                                      ? AppColors.onSurfaceVariant
+                                      : Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Subject mark inputs (grid)
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: subjects.asMap().entries.map((entry) {
+                      final subjectIndex = entry.key;
+                      final es = entry.value;
+                      final subjectId = es['id'] as String? ?? '';
+                      final subjectName = es['name'] as String? ?? '';
+                      final maxMarks = es['max_marks'] as num? ?? 100;
+                      final controller = controllers[subjectId];
+
+                      FocusNode? markFieldFocusNode;
+                      if (isEditing && focusNodes != null) {
+                        if (subjectIndex < focusNodes!.length) {
+                          markFieldFocusNode = focusNodes![subjectIndex];
+                        }
+                      }
+
+                      return SizedBox(
+                        width: itemWidth, // pre-computed; no MediaQuery call here
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4),
+                              child: Text(
+                                subjectName.toUpperCase(),
+                                style: AppTextStyles.labelXsUppercase.copyWith(
+                                  fontSize: 10,
+                                  color: AppColors.onSurfaceVariant
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            if (controller != null)
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: controller,
+                                builder: (context, value, _) {
+                                  final currentVal =
+                                      double.tryParse(value.text);
+                                  final isError = currentVal != null &&
+                                      currentVal > maxMarks.toDouble();
+                                  return TextFormField(
+                                    focusNode: markFieldFocusNode,
+                                    controller: controller,
+                                    onChanged: (val) =>
+                                        onMarkChanged(subjectId, val),
+                                    enabled: !isAbsent,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.headerSmall.copyWith(
+                                        fontWeight: FontWeight.w700),
+                                    decoration: InputDecoration(
+                                      hintText: '00',
+                                      hintStyle: AppTextStyles.headerSmall
+                                          .copyWith(
+                                              color: AppColors.outline
+                                                  .withValues(alpha: 0.5)),
+                                      filled: true,
+                                      fillColor: isAbsent
+                                          ? AppColors.surfaceVariant
+                                              .withValues(alpha: 0.3)
+                                          : Colors.white,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                          vertical: 12),
+                                      errorText:
+                                          isError ? 'Max: $maxMarks' : null,
+                                      errorStyle: AppTextStyles.labelXs.copyWith(
+                                          color: AppColors.errorText,
+                                          fontSize: 10),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                            color: AppColors.outlineLight),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                            color: AppColors.outlineLight),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: const BorderSide(
+                                            color: AppColors.primary, width: 2),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Shared helper widgets
+// ---------------------------------------------------------------------------
 
 class _ConfigRow extends StatelessWidget {
   const _ConfigRow({required this.label, required this.value});
@@ -1296,9 +1482,21 @@ class _ConfigRow extends StatelessWidget {
         children: [
           SpacerPosition(
             width: 80,
-            child: Text(label, style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
+            child: Text(
+              label,
+              style: AppTextStyles.labelXsUppercase.copyWith(
+                fontSize: 10,
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ),
           ),
-          Expanded(child: Text(value, style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMain))),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTextStyles.labelXs.copyWith(
+                  fontWeight: FontWeight.w700, color: AppColors.textMain),
+            ),
+          ),
         ],
       ),
     );
@@ -1307,7 +1505,8 @@ class _ConfigRow extends StatelessWidget {
 
 /// Simple helper to control width without layout errors.
 class SpacerPosition extends StatelessWidget {
-  const SpacerPosition({super.key, required this.width, required this.child});
+  const SpacerPosition(
+      {super.key, required this.width, required this.child});
   final double width;
   final Widget child;
 
@@ -1339,7 +1538,8 @@ class _PaginationButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: isEnabled ? AppColors.primary : AppColors.cardSurface,
             shape: BoxShape.circle,
-            border: isEnabled ? null : Border.all(color: AppColors.outlineLight),
+            border:
+                isEnabled ? null : Border.all(color: AppColors.outlineLight),
           ),
           child: Icon(
             icon,
@@ -1351,6 +1551,10 @@ class _PaginationButton extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shared helper functions
+// ---------------------------------------------------------------------------
 
 String _formatExamDate(String? dateStr) {
   if (dateStr == null || dateStr.trim().isEmpty) return 'N/A';
@@ -1366,26 +1570,3 @@ String _formatExamDate(String? dateStr) {
   }
 }
 
-DateTime _parseDate(String dateStr) {
-  dateStr = dateStr.trim();
-  if (dateStr.isEmpty) return DateTime.now();
-  final parsed = DateTime.tryParse(dateStr);
-  if (parsed != null) return parsed;
-
-  // Try case-insensitive MMM parsing by normalizing month names
-  try {
-    final parts = dateStr.split(RegExp(r'\s+'));
-    if (parts.length == 3) {
-      final day = parts[0];
-      final month = parts[1];
-      final year = parts[2];
-      if (month.isNotEmpty) {
-        final formattedMonth = month[0].toUpperCase() + month.substring(1).toLowerCase();
-        final normalized = "$day $formattedMonth $year";
-        return DateFormat('d MMM yyyy').parse(normalized);
-      }
-    }
-  } catch (_) {}
-
-  return DateTime.now();
-}
