@@ -17,6 +17,7 @@ class AttendanceTemplatePreferences {
   final bool showClassSection;
   final bool showRemarks;
   final bool coloredStatus;
+  final bool isShortStatus;
   final bool alternateShading;
   final bool showLogo;
   final bool showHeader;
@@ -34,6 +35,7 @@ class AttendanceTemplatePreferences {
     this.showClassSection = true,
     this.showRemarks = false,
     this.coloredStatus = true,
+    this.isShortStatus = true,
     this.alternateShading = true,
     this.showLogo = true,
     this.showHeader = true,
@@ -310,7 +312,7 @@ class AttendanceHtmlGenerator {
         buffer.writeln('<td>${row.rollNo ?? "-"}</td>');
 
       buffer.writeln('<td style="font-weight: 500;">');
-      buffer.writeln('<div class="flex-row whitespace-nowrap">');
+      buffer.writeln('<div class="flex-row">');
       if (preferences.includeStudentPic && row.studentImageUrl != null) {
         buffer.writeln(
           '<img alt="${_escapeHtml(row.studentName)} thumbnail" class="student-thumb" src="${row.studentImageUrl}">',
@@ -350,7 +352,7 @@ class AttendanceHtmlGenerator {
             );
             final statusLabel = _getStatusDisplayLabel(
               status,
-              preferences.coloredStatus ? 'short' : 'full',
+              preferences.isShortStatus ? 'short' : 'full',
             );
             buffer.writeln(
               '<td class="text-center $statusClass" style="font-size: 0.9em; font-weight: bold;">$statusLabel</td>',
@@ -377,7 +379,10 @@ class AttendanceHtmlGenerator {
                 preferences,
                 themePrefix,
               );
-              final statusLabel = _getStatusDisplayLabel(status, 'short');
+              final statusLabel = _getStatusDisplayLabel(
+                status,
+                preferences.isShortStatus ? 'short' : 'full',
+              );
               buffer.writeln(
                 '<td class="text-center $statusClass" style="font-size: 0.9em; font-weight: bold;">$statusLabel</td>',
               );

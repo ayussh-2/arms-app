@@ -126,6 +126,77 @@ class GqlQueries {
     }
   ''';
 
+  static const String getAttendanceReportData = r'''
+    query GetAttendanceReportData(
+      $organisationId: ID!
+      $fromDate: String!
+      $toDate: String!
+      $schoolId: ID
+      $classId: ID
+      $sectionId: ID
+    ) {
+      getAttendanceReportData(
+        organisationId: $organisationId
+        fromDate: $fromDate
+        toDate: $toDate
+        schoolId: $schoolId
+        classId: $classId
+        sectionId: $sectionId
+      ) {
+        students {
+          id
+          name
+          roll_no
+          school_id
+          class_id
+          section_id
+          image_url
+          image_version
+          school {
+            id
+            name
+          }
+          class {
+            id
+            name
+          }
+          section {
+            id
+            name
+          }
+        }
+        attendance {
+          id
+          student_id
+          attendance_date
+          morning_in_status
+          morning_out_status
+          evening_in_status
+          evening_out_status
+          remarks
+        }
+        holidays {
+          id
+          holiday_name
+          from_date
+          to_date
+          applies_to_school_ids
+          applies_to_class_ids
+        }
+        leaves {
+          id
+          student_id
+          from_date
+          to_date
+          leave_type
+          reason
+          approved
+          leave_application_image_url
+        }
+      }
+    }
+  ''';
+
   // ──────────── Leaves ────────────
 
   static const String getLeaves = r'''
