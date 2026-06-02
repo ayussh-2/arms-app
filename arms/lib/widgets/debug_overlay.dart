@@ -118,9 +118,7 @@ class _DebugOverlayState extends State<DebugOverlay> {
                 color: Colors.black.withOpacity(0.5),
                 child: GestureDetector(
                   onTap: () {}, // Prevent closing when tapping inside
-                  child: Center(
-                    child: _buildDebugPanel(),
-                  ),
+                  child: Center(child: _buildDebugPanel()),
                 ),
               ),
             ),
@@ -172,9 +170,9 @@ class _DebugPanelState extends State<DebugPanel> {
     try {
       final url = widget.debugService.apiBaseUrl.value;
       final pingUri = _buildPingUri(url);
-      final response = await http.get(
-        pingUri,
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .get(pingUri)
+          .timeout(const Duration(seconds: 5));
       debugPrint('Ping response: ${response.statusCode}');
       if (mounted) {
         setState(() {
@@ -191,7 +189,8 @@ class _DebugPanelState extends State<DebugPanel> {
 
       if (mounted) {
         setState(() {
-          _pingMessage = '✗ Connection failed: ${e.toString().split(':').last.trim()}';
+          _pingMessage =
+              '✗ Connection failed: ${e.toString().split(':').last.trim()}';
           _isPinging = false;
         });
       }
@@ -220,256 +219,263 @@ class _DebugPanelState extends State<DebugPanel> {
           color: Colors.grey.shade900,
           borderRadius: BorderRadius.circular(12),
         ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.purple.shade800,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.purple.shade800,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Debug Panel',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: widget.onClose,
-                ),
-              ],
-            ),
-          ),
-          // Expanded content
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // API URL Configuration
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'API Base URL',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: widget.urlController,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.grey.shade800,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () {
-                                widget.debugService
-                                    .updateApiBaseUrl(widget.urlController.text);
-                                setState(() {
-                                  _pingMessage = null;
-                                });
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('API URL updated'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: AppColors.onPrimary,
-                              ),
-                              child: const Text('Update'),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: _isPinging ? null : _pingApi,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.successText,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor:
-                                    AppColors.successText.withOpacity(0.6),
-                              ),
-                              child: _isPinging
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.white),
-                                      ),
-                                    )
-                                  : const Text('Ping'),
-                            ),
-                          ],
-                        ),
-                      ],
+                  const Text(
+                    'Debug Panel',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const Divider(color: Colors.grey),
-                  // Logs Controls
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Network Logs',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                widget.debugService.clearLogs();
-                                setState(() {});
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.errorText,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Clear All'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        // Filter chips
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            FilterChip(
-                              label: const Text('All'),
-                              selected: _selectedFilter == null,
-                              onSelected: (selected) {
-                                setState(() {
-                                  _selectedFilter = null;
-                                });
-                              },
-                            ),
-                            ...LogType.values.map(
-                              (type) => FilterChip(
-                                label: Text(_logTypeLabel(type)),
-                                selected: _selectedFilter == type,
-                                onSelected: (selected) {
-                                  setState(() {
-                                    _selectedFilter = selected ? type : null;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_pingMessage != null) ...[
-                          const SizedBox(height: 12),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _pingMessage!.startsWith('✓')
-                                  ? AppColors.successBg
-                                  : AppColors.errorBg,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              _pingMessage!,
-                              style: TextStyle(
-                                color: _pingMessage!.startsWith('✓')
-                                    ? AppColors.successText
-                                    : AppColors.errorText,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: widget.onClose,
                   ),
-                  const Divider(color: Colors.grey),
-                  // Logs list
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: ValueListenableBuilder<List<DebugLog>>(
-                      valueListenable: widget.debugService.logs,
-                      builder: (context, logs, _) {
-                        final filteredLogs = _selectedFilter == null
-                            ? logs
-                            : logs.where((log) => log.type == _selectedFilter).toList();
-                        final groupedLogs = _groupLogs(filteredLogs);
-
-                        if (groupedLogs.isEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 32),
-                            child: Center(
-                              child: Text(
-                                'No logs yet',
-                                style: TextStyle(
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-
-                        return Column(
-                          children: List.generate(
-                            groupedLogs.length,
-                            (index) {
-                              final group = groupedLogs[index];
-                              return _buildLogItem(group);
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
+            // Expanded content
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // API URL Configuration
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'API Base URL',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: widget.urlController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.grey.shade800,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  widget.debugService.updateApiBaseUrl(
+                                    widget.urlController.text,
+                                  );
+                                  setState(() {
+                                    _pingMessage = null;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('API URL updated'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.onPrimary,
+                                ),
+                                child: const Text('Update'),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: _isPinging ? null : _pingApi,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.successText,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: AppColors.successText
+                                      .withOpacity(0.6),
+                                ),
+                                child:
+                                    _isPinging
+                                        ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        )
+                                        : const Text('Ping'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(color: Colors.grey),
+                    // Logs Controls
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Network Logs',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  widget.debugService.clearLogs();
+                                  setState(() {});
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.errorText,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Clear All'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // Filter chips
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              FilterChip(
+                                label: const Text('All'),
+                                selected: _selectedFilter == null,
+                                onSelected: (selected) {
+                                  setState(() {
+                                    _selectedFilter = null;
+                                  });
+                                },
+                              ),
+                              ...LogType.values.map(
+                                (type) => FilterChip(
+                                  label: Text(_logTypeLabel(type)),
+                                  selected: _selectedFilter == type,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      _selectedFilter = selected ? type : null;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_pingMessage != null) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    _pingMessage!.startsWith('✓')
+                                        ? AppColors.successBg
+                                        : AppColors.errorBg,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _pingMessage!,
+                                style: TextStyle(
+                                  color:
+                                      _pingMessage!.startsWith('✓')
+                                          ? AppColors.successText
+                                          : AppColors.errorText,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const Divider(color: Colors.grey),
+                    // Logs list
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: ValueListenableBuilder<List<DebugLog>>(
+                        valueListenable: widget.debugService.logs,
+                        builder: (context, logs, _) {
+                          final filteredLogs =
+                              _selectedFilter == null
+                                  ? logs
+                                  : logs
+                                      .where(
+                                        (log) => log.type == _selectedFilter,
+                                      )
+                                      .toList();
+                          final groupedLogs = _groupLogs(filteredLogs);
+
+                          if (groupedLogs.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 32),
+                              child: Center(
+                                child: Text(
+                                  'No logs yet',
+                                  style: TextStyle(color: Colors.grey.shade500),
+                                ),
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: List.generate(groupedLogs.length, (
+                              index,
+                            ) {
+                              final group = groupedLogs[index];
+                              return _buildLogItem(group);
+                            }),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -539,29 +545,20 @@ class _DebugPanelState extends State<DebugPanel> {
               ),
               Text(
                 _formatTime(request.timestamp),
-                style: TextStyle(
-                  color: Colors.grey.shade300,
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: Colors.grey.shade300, fontSize: 10),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             request.message,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
           if (request.variables != null && request.variables!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
               'Variables: ${_formatData(request.variables)}',
-              style: TextStyle(
-                color: Colors.grey.shade300,
-                fontSize: 11,
-              ),
+              style: TextStyle(color: Colors.grey.shade300, fontSize: 11),
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
@@ -570,19 +567,13 @@ class _DebugPanelState extends State<DebugPanel> {
             const SizedBox(height: 8),
             Text(
               'Response: ${response.statusCode ?? '-'}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 12),
             ),
             if (response.responseData != null) ...[
               const SizedBox(height: 4),
               Text(
                 _formatData(response.responseData),
-                style: TextStyle(
-                  color: Colors.grey.shade200,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: Colors.grey.shade200, fontSize: 11),
                 maxLines: 6,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -592,10 +583,7 @@ class _DebugPanelState extends State<DebugPanel> {
             const SizedBox(height: 8),
             Text(
               'Error: ${error.message}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 11),
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
@@ -605,10 +593,7 @@ class _DebugPanelState extends State<DebugPanel> {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Duration: ${response!.duration!.inMilliseconds}ms',
-                style: TextStyle(
-                  color: Colors.grey.shade300,
-                  fontSize: 10,
-                ),
+                style: TextStyle(color: Colors.grey.shade300, fontSize: 10),
               ),
             ),
         ],

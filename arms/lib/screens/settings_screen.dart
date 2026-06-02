@@ -22,7 +22,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _urlController = TextEditingController(text: _debugService.apiBaseUrl.value);
+    _urlController = TextEditingController(
+      text: _debugService.apiBaseUrl.value,
+    );
   }
 
   @override
@@ -40,7 +42,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final url = _debugService.apiBaseUrl.value;
       final pingUri = _buildPingUri(url);
-      final response = await http.get(pingUri).timeout(const Duration(seconds: 5));
+      final response = await http
+          .get(pingUri)
+          .timeout(const Duration(seconds: 5));
       debugPrint('Ping response: ${response.statusCode}');
       if (mounted) {
         setState(() {
@@ -56,7 +60,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       debugPrint('Ping error: $e');
       if (mounted) {
         setState(() {
-          _pingMessage = '✗ Connection failed: ${e.toString().split(':').last.trim()}';
+          _pingMessage =
+              '✗ Connection failed: ${e.toString().split(':').last.trim()}';
           _isPinging = false;
         });
       }
@@ -78,9 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const ArmsTopAppBar(
-        title: 'Settings',
-      ),
+      appBar: const ArmsTopAppBar(title: 'Settings'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.marginPage,
@@ -118,7 +121,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                val ? 'Developer options enabled' : 'Developer options disabled',
+                                val
+                                    ? 'Developer options enabled'
+                                    : 'Developer options disabled',
                               ),
                               backgroundColor: AppColors.primary,
                               duration: const Duration(seconds: 2),
@@ -126,7 +131,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           );
                         },
                         activeThumbColor: AppColors.primary,
-                        activeTrackColor: AppColors.primary.withValues(alpha: 0.2),
+                        activeTrackColor: AppColors.primary.withValues(
+                          alpha: 0.2,
+                        ),
                         title: Text(
                           'Developer Options',
                           style: AppTextStyles.bodyMedium.copyWith(
@@ -139,7 +146,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Text(
                             'Enable to view backend configurations and test connectivity.',
                             style: AppTextStyles.labelXs.copyWith(
-                              color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                              color: AppColors.onSurfaceVariant.withValues(
+                                alpha: 0.7,
+                              ),
                             ),
                           ),
                         ),
@@ -155,7 +164,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 'GraphQL Server Endpoint',
                                 style: AppTextStyles.labelXsUppercase.copyWith(
                                   fontSize: 10,
-                                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                                  color: AppColors.onSurfaceVariant.withValues(
+                                    alpha: 0.8,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -171,21 +182,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         filled: true,
                                         fillColor: AppColors.cardSurface,
                                         hintText: 'http://...',
-                                        hintStyle: AppTextStyles.bodyMedium.copyWith(
-                                          color: AppColors.textSecondary,
-                                        ),
+                                        hintStyle: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
                                         enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(AppRadius.roundEight),
-                                          borderSide: const BorderSide(color: AppColors.outlineLight),
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadius.roundEight,
+                                          ),
+                                          borderSide: const BorderSide(
+                                            color: AppColors.outlineLight,
+                                          ),
                                         ),
                                         focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(AppRadius.roundEight),
-                                          borderSide: const BorderSide(color: AppColors.primary),
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadius.roundEight,
+                                          ),
+                                          borderSide: const BorderSide(
+                                            color: AppColors.primary,
+                                          ),
                                         ),
-                                        contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 10,
-                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 10,
+                                            ),
                                       ),
                                     ),
                                   ),
@@ -197,51 +218,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 children: [
                                   ElevatedButton.icon(
                                     onPressed: () {
-                                      _debugService.updateApiBaseUrl(_urlController.text);
+                                      _debugService.updateApiBaseUrl(
+                                        _urlController.text,
+                                      );
                                       setState(() {
                                         _pingMessage = null;
                                       });
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('Endpoint updated successfully'),
+                                          content: Text(
+                                            'Endpoint updated successfully',
+                                          ),
                                           backgroundColor: AppColors.primary,
                                           duration: Duration(seconds: 2),
                                         ),
                                       );
                                     },
-                                    icon: const Icon(Icons.save_outlined, size: 16),
+                                    icon: const Icon(
+                                      Icons.save_outlined,
+                                      size: 16,
+                                    ),
                                     label: const Text('Update'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
                                       foregroundColor: AppColors.onPrimary,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(AppRadius.roundEight),
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadius.roundEight,
+                                        ),
                                       ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 10,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   OutlinedButton.icon(
                                     onPressed: _isPinging ? null : _pingApi,
-                                    icon: _isPinging
-                                        ? const SizedBox(
-                                            width: 14,
-                                            height: 14,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                    icon:
+                                        _isPinging
+                                            ? const SizedBox(
+                                              width: 14,
+                                              height: 14,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(AppColors.primary),
+                                              ),
+                                            )
+                                            : const Icon(
+                                              Icons.network_check_outlined,
+                                              size: 16,
                                             ),
-                                          )
-                                        : const Icon(Icons.network_check_outlined, size: 16),
                                     label: const Text('Ping'),
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppColors.primary,
-                                      side: const BorderSide(color: AppColors.primary),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(AppRadius.roundEight),
+                                      side: const BorderSide(
+                                        color: AppColors.primary,
                                       ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadius.roundEight,
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 10,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -255,10 +304,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     vertical: 10,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: _pingMessage!.startsWith('✓')
-                                        ? AppColors.successBg
-                                        : AppColors.errorBg,
-                                    borderRadius: BorderRadius.circular(AppRadius.roundEight),
+                                    color:
+                                        _pingMessage!.startsWith('✓')
+                                            ? AppColors.successBg
+                                            : AppColors.errorBg,
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.roundEight,
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
@@ -267,18 +319,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             ? Icons.check_circle_outline
                                             : Icons.error_outline,
                                         size: 16,
-                                        color: _pingMessage!.startsWith('✓')
-                                            ? AppColors.successText
-                                            : AppColors.errorText,
+                                        color:
+                                            _pingMessage!.startsWith('✓')
+                                                ? AppColors.successText
+                                                : AppColors.errorText,
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           _pingMessage!,
                                           style: AppTextStyles.labelXs.copyWith(
-                                            color: _pingMessage!.startsWith('✓')
-                                                ? AppColors.successText
-                                                : AppColors.errorText,
+                                            color:
+                                                _pingMessage!.startsWith('✓')
+                                                    ? AppColors.successText
+                                                    : AppColors.errorText,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -349,7 +403,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.onSurfaceVariant.withValues(alpha: 0.8), size: 20),
+          Icon(
+            icon,
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+            size: 20,
+          ),
           const SizedBox(width: 16),
           Text(
             title,

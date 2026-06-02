@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
+import '../constants/app_constants.dart';
 
 /// Service to manage debug logs and network monitoring
 class DebugService {
@@ -13,7 +14,7 @@ class DebugService {
 
   final List<DebugLog> _logs = [];
   final ValueNotifier<List<DebugLog>> logs = ValueNotifier([]);
-  final ValueNotifier<String> apiBaseUrl = ValueNotifier('http://192.168.29.188:6582/api/graphql');
+  final ValueNotifier<String> apiBaseUrl = ValueNotifier(AppConstants.defaultApiEndpoint);
   final ValueNotifier<bool> isDebugMode = ValueNotifier(true);
 
   static const int maxLogs = 100;

@@ -44,6 +44,10 @@ dependencies:
     shared_preferences: ^2.5.5
     url_launcher: ^6.3.2
     excel_plus: ^0.0.4
+    pdf: ^3.12.0
+    printing: ^5.14.3
+    webview_flutter: ^4.13.1
+    webview_win_floating: ^3.0.3
 
 dev_dependencies:
     flutter_test:
@@ -100,3 +104,7 @@ flutter:
 
 
 
+
+dependency_overrides:
+  xml: ^7.0.1
+  archive: ^4.0.9

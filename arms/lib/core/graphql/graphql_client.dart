@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import '../constants/app_constants.dart';
 import '../debug/debug_service.dart';
 import '../debug/logging_http_link.dart';
 
 class ArmsGraphQLClient {
   ArmsGraphQLClient._();
 
-  static const String _defaultEndpoint = 'http://192.168.29.188:6582/api/graphql';
+  static const String _defaultEndpoint = AppConstants.defaultApiEndpoint;
 
   static String _normalizeEndpoint(String url) {
     final uri = Uri.parse(url);
