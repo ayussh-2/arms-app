@@ -806,11 +806,24 @@ class _ExportSheetWidgetState extends State<ExportSheetWidget> {
         orgHeaderUrl: AppConstants.orgHeaderUrl,
       );
 
+      String sanitizeName(String? val) {
+        if (val == null) return '';
+        final clean = val.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_').replaceAll(RegExp(r'_+'), '_');
+        return clean.replaceAll(RegExp(r'^_+|_+$'), '');
+      }
+
+      final schoolPart = sanitizeName(_selectedSchoolName);
+      final classPart = sanitizeName(_selectedClassName);
+      final sectionPart = sanitizeName(_selectedSectionName);
+      final fromStr = DateFormat('yyyy-MM-dd').format(_fromDate);
+      final toStr = DateFormat('yyyy-MM-dd').format(_toDate);
+      final pdfName = '${schoolPart}_${classPart}_${sectionPart}_${fromStr}_to_${toStr}';
+
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async {
           return await Printing.convertHtml(format: format, html: generatedHtml);
         },
-        name: 'Attendance_Report',
+        name: pdfName,
       );
 
       setState(() {

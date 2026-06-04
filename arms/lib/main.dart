@@ -14,6 +14,7 @@ import 'screens/exams/exam_view_screen.dart';
 import 'screens/exams/mark_entry_screen.dart';
 import 'screens/exams/exam_create_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/demo_screen.dart';
 
 import 'core/auth/auth_service.dart';
 
@@ -62,6 +63,7 @@ class _ArmsAppState extends State<ArmsApp> {
           '/mark-entry': (_) => const MarkEntryScreen(),
           '/exam-create': (_) => const ExamCreateScreen(),
           '/settings': (_) => const SettingsScreen(),
+          '/demo': (_) => const ExamReportDemoScreen(),
         },
         builder: (context, child) {
           return child!;
