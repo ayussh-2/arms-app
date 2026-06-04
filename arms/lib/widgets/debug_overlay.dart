@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../core/debug/debug_service.dart';
 import '../core/theme/app_colors.dart';
+import '../core/utils/logger.dart';
 
 /// Debug overlay widget that appears in the bottom left corner
 class DebugOverlay extends StatefulWidget {
@@ -173,7 +174,7 @@ class _DebugPanelState extends State<DebugPanel> {
       final response = await http
           .get(pingUri)
           .timeout(const Duration(seconds: 5));
-      debugPrint('Ping response: ${response.statusCode}');
+      armsLog('Ping response: ${response.statusCode}');
       if (mounted) {
         setState(() {
           if (response.statusCode == 200) {
@@ -185,7 +186,7 @@ class _DebugPanelState extends State<DebugPanel> {
         });
       }
     } catch (e) {
-      debugPrint('Ping error: $e');
+      armsLog('Ping error: $e');
 
       if (mounted) {
         setState(() {

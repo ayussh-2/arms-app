@@ -6,6 +6,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/utils/logger.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_input_field.dart';
 import '../../widgets/arms_dropdown_selector.dart';
@@ -104,7 +105,7 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
       if (!mounted) return;
 
       if (result.hasException) {
-        debugPrint('Failed to load exam lookups: ${result.exception.toString()}');
+        armsLog('Failed to load exam lookups: ${result.exception.toString()}');
         setState(() {
           _isLoadingLookups = false;
           _errorMessage = 'Failed to load options from the server.';
@@ -136,7 +137,7 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error loading exam lookups: $e');
+      armsLog('Error loading exam lookups: $e');
       if (mounted) {
         setState(() {
           _isLoadingLookups = false;

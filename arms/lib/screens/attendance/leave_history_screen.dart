@@ -7,6 +7,7 @@ import '../../core/graphql/queries.dart';
 import '../../core/auth/auth_service.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../core/utils/image_url_helper.dart';
+import '../../core/utils/logger.dart';
 
 class LeaveHistoryScreen extends StatefulWidget {
   const LeaveHistoryScreen({super.key});
@@ -44,26 +45,26 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
   }
 
   Future<void> _loadData() async {
-    debugPrint('=== [LeaveHistoryScreen] Starting _loadData ===');
+    armsLog('=== [LeaveHistoryScreen] Starting _loadData ===');
     try {
       final client = GraphQLProvider.of(context).value;
       final orgId = AuthService.currentAdmin?.organization?.id;
-      debugPrint('=== [LeaveHistoryScreen] orgId: $orgId ===');
+      armsLog('=== [LeaveHistoryScreen] orgId: $orgId ===');
       if (orgId == null) {
         throw Exception("Missing organization ID. Please log in again.");
       }
 
-      debugPrint('=== [LeaveHistoryScreen] Querying leaves... ===');
+      armsLog('=== [LeaveHistoryScreen] Querying leaves... ===');
       final leavesRes = await client.query(QueryOptions(
         document: gql(GqlQueries.getLeaves),
         variables: {'organisationId': orgId},
         fetchPolicy: FetchPolicy.networkOnly,
       ));
 
-      debugPrint('=== [LeaveHistoryScreen] leavesRes hasException: ${leavesRes.hasException} ===');
+      armsLog('=== [LeaveHistoryScreen] leavesRes hasException: ${leavesRes.hasException} ===');
 
       if (leavesRes.hasException) {
-        debugPrint('=== [LeaveHistoryScreen] Leaves query exception: ${leavesRes.exception} ===');
+        armsLog('=== [LeaveHistoryScreen] Leaves query exception: ${leavesRes.exception} ===');
         throw leavesRes.exception!;
       }
 
@@ -72,18 +73,18 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
           ? leavesData.map((item) => Map<String, dynamic>.from(item as Map)).toList()
           : <Map<String, dynamic>>[];
 
-      debugPrint('=== [LeaveHistoryScreen] Fetched ${rawLeaves.length} leaves ===');
+      armsLog('=== [LeaveHistoryScreen] Fetched ${rawLeaves.length} leaves ===');
 
       if (mounted) {
         setState(() {
           _leavesList = rawLeaves;
           _isLoading = false;
         });
-        debugPrint('=== [LeaveHistoryScreen] Data successfully loaded and state updated ===');
+        armsLog('=== [LeaveHistoryScreen] Data successfully loaded and state updated ===');
       }
     } catch (e, stack) {
-      debugPrint('=== [LeaveHistoryScreen] Error in _loadData: $e ===');
-      debugPrint(stack.toString());
+      armsLog('=== [LeaveHistoryScreen] Error in _loadData: $e ===');
+      armsLog(stack.toString());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading leave history: $e'), backgroundColor: AppColors.errorText),

@@ -35,7 +35,6 @@ class DebugService {
       message: 'Request: $method to $url',
     );
     _addLog(log);
-    developer.log('🔵 GraphQL Request: $method\nURL: $url\nVariables: $variables');
   }
 
   /// Add a network response log entry
@@ -58,7 +57,6 @@ class DebugService {
       message: 'Response: $method - $statusCode (${duration.inMilliseconds}ms)',
     );
     _addLog(log);
-    developer.log('🟢 GraphQL Response: $statusCode\nDuration: ${duration.inMilliseconds}ms\nData: $responseData');
   }
 
   /// Add an error log entry

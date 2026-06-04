@@ -6,6 +6,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/utils/image_url_helper.dart';
+import '../../core/utils/logger.dart';
 
 class LeaveManagementWidget extends StatefulWidget {
   const LeaveManagementWidget({super.key});
@@ -34,26 +35,26 @@ class _LeaveManagementWidgetState extends State<LeaveManagementWidget> {
   }
 
   Future<void> _loadData() async {
-    debugPrint('=== [LeaveManagementWidget] Starting _loadData ===');
+    armsLog('=== [LeaveManagementWidget] Starting _loadData ===');
     try {
       final client = GraphQLProvider.of(context).value;
       final orgId = AuthService.currentAdmin?.organization?.id;
-      debugPrint('=== [LeaveManagementWidget] orgId: $orgId ===');
+      armsLog('=== [LeaveManagementWidget] orgId: $orgId ===');
       if (orgId == null) {
         throw Exception("Missing organization ID. Please log in again.");
       }
 
-      debugPrint('=== [LeaveManagementWidget] Querying leaves... ===');
+      armsLog('=== [LeaveManagementWidget] Querying leaves... ===');
       final leavesRes = await client.query(QueryOptions(
         document: gql(GqlQueries.getLeaves),
         variables: {'organisationId': orgId},
         fetchPolicy: FetchPolicy.networkOnly,
       ));
 
-      debugPrint('=== [LeaveManagementWidget] leavesRes hasException: ${leavesRes.hasException} ===');
+      armsLog('=== [LeaveManagementWidget] leavesRes hasException: ${leavesRes.hasException} ===');
 
       if (leavesRes.hasException) {
-        debugPrint('=== [LeaveManagementWidget] Leaves query exception: ${leavesRes.exception} ===');
+        armsLog('=== [LeaveManagementWidget] Leaves query exception: ${leavesRes.exception} ===');
         throw leavesRes.exception!;
       }
 
@@ -62,18 +63,18 @@ class _LeaveManagementWidgetState extends State<LeaveManagementWidget> {
           ? leavesData.map((item) => Map<String, dynamic>.from(item as Map)).toList()
           : <Map<String, dynamic>>[];
 
-      debugPrint('=== [LeaveManagementWidget] Fetched ${rawLeaves.length} leaves ===');
+      armsLog('=== [LeaveManagementWidget] Fetched ${rawLeaves.length} leaves ===');
 
       if (mounted) {
         setState(() {
           _leavesList = rawLeaves;
           _isLoading = false;
         });
-        debugPrint('=== [LeaveManagementWidget] Data successfully loaded and state updated ===');
+        armsLog('=== [LeaveManagementWidget] Data successfully loaded and state updated ===');
       }
     } catch (e, stack) {
-      debugPrint('=== [LeaveManagementWidget] Error in _loadData: $e ===');
-      debugPrint(stack.toString());
+      armsLog('=== [LeaveManagementWidget] Error in _loadData: $e ===');
+      armsLog(stack.toString());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading leaves: $e'), backgroundColor: AppColors.errorText),

@@ -91,6 +91,8 @@ class _AttendanceFeedScreenState extends State<AttendanceFeedScreen> {
           'attendanceDate': _date,
           'attendanceSession': _sessionKey,
           'classId': _classId,
+          'schoolId': _schoolId,
+          'sectionId': _sectionId,
         },
         fetchPolicy: FetchPolicy.networkOnly,
       )).timeout(

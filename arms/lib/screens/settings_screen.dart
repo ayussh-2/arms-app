@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../core/debug/debug_service.dart';
+import '../core/utils/logger.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
 import '../core/theme/app_spacing.dart';
@@ -45,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final response = await http
           .get(pingUri)
           .timeout(const Duration(seconds: 5));
-      debugPrint('Ping response: ${response.statusCode}');
+      armsLog('Ping response: ${response.statusCode}');
       if (mounted) {
         setState(() {
           if (response.statusCode == 200) {
@@ -57,7 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Ping error: $e');
+      armsLog('Ping error: $e');
       if (mounted) {
         setState(() {
           _pingMessage =

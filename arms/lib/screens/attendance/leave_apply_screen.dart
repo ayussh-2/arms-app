@@ -12,6 +12,7 @@ import '../../widgets/arms_dropdown_selector.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/services/upload_service.dart';
 import '../../core/utils/image_url_helper.dart';
+import '../../core/utils/logger.dart';
 
 class LeaveApplyScreen extends StatefulWidget {
   const LeaveApplyScreen({super.key});
@@ -253,7 +254,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error searching students: $e');
+      armsLog('Error searching students: $e');
     }
   }
 

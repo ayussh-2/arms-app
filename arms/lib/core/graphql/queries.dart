@@ -84,18 +84,24 @@ class GqlQueries {
       $attendanceDate: String!
       $attendanceSession: String!
       $classId: ID!
+      $schoolId: ID!
+      $sectionId: ID!
     ) {
       getStudentsForAttendance(
         organisationId: $organisationId
         attendanceDate: $attendanceDate
         attendanceSession: $attendanceSession
         classId: $classId
+        schoolId: $schoolId
+        sectionId: $sectionId
       ) {
         student {
           id
           name
           roll_no
           image_url
+          school_id
+          section_id
         }
         status
         attendance {
@@ -391,6 +397,7 @@ class GqlQueries {
           id
           name
           roll_no
+          image_url
         }
         marks {
           id
@@ -433,7 +440,6 @@ class GqlQueries {
       toggleExamDelete(examId: $examId, isDeleted: $isDeleted)
     }
   ''';
-
 
   static const String login = r'''
     query Login($adminId: String!, $password: String!) {

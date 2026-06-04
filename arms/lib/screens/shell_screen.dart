@@ -4,6 +4,7 @@ import '../widgets/arms_bottom_nav_bar.dart';
 import 'dashboard_screen.dart';
 import 'attendance/attendance_config_screen.dart';
 import 'exams/exam_list_screen.dart';
+import 'demo_screen.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
@@ -40,6 +41,7 @@ class ShellScreenState extends State<ShellScreen> {
             ),
             const AttendanceConfigScreen(),
             const ExamListScreen(),
+            const ExamReportDemoScreen(),
           ],
         ),
         bottomNavigationBar: ArmsBottomNavBar(

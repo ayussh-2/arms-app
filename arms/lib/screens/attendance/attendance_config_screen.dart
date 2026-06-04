@@ -11,6 +11,7 @@ import '../../widgets/arms_dropdown_selector.dart';
 import 'leave_management_screen.dart';
 import 'export_sheet_widget.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/utils/logger.dart';
 
 class AttendanceConfigScreen extends StatefulWidget {
   const AttendanceConfigScreen({super.key});
@@ -72,12 +73,12 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
   }
 
   Future<void> _fetchLookups() async {
-    debugPrint('=== [AttendanceConfigScreen] Starting _fetchLookups ===');
+    armsLog('=== [AttendanceConfigScreen] Starting _fetchLookups ===');
     final admin = AuthService.currentAdmin;
-    debugPrint(
+    armsLog(
       '=== [AttendanceConfigScreen] currentAdmin: ${admin?.name}, adminID: ${admin?.adminID} ===',
     );
-    debugPrint(
+    armsLog(
       '=== [AttendanceConfigScreen] organization: ${admin?.organization?.name}, orgId: ${admin?.organization?.id} ===',
     );
     final orgId = admin?.organization?.id;
@@ -96,9 +97,9 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
     });
 
     try {
-      debugPrint('=== [AttendanceConfigScreen] Fetching client... ===');
+      armsLog('=== [AttendanceConfigScreen] Fetching client... ===');
       final client = GraphQLProvider.of(context).value;
-      debugPrint(
+      armsLog(
         '=== [AttendanceConfigScreen] Client fetched, querying with orgId=$orgId ===',
       );
       final result = await client
@@ -117,14 +118,14 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
                       'getLookups query timed out after 10s. Is the backend running?',
                     ),
           );
-      debugPrint(
+      armsLog(
         '=== [AttendanceConfigScreen] Query completed. Has exception? ${result.hasException} ===',
       );
 
       if (!mounted) return;
 
       if (result.hasException) {
-        debugPrint(
+        armsLog(
           '=== [AttendanceConfigScreen] Exception: ${result.exception.toString()} ===',
         );
         setState(() {
@@ -159,7 +160,7 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
         });
       }
     } catch (e) {
-      debugPrint('=== [AttendanceConfigScreen] Catch error: $e ===');
+      armsLog('=== [AttendanceConfigScreen] Catch error: $e ===');
       if (mounted) {
         setState(() {
           _isLoadingLookups = false;
