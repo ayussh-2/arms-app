@@ -1,18 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/theme/app_radius.dart';
 import '../../core/graphql/queries.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_dropdown_selector.dart';
+import '../../widgets/arms_picker_sheet.dart';
+import '../../widgets/arms_snackbar.dart';
+import '../../core/utils/app_date_utils.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/services/upload_service.dart';
-import '../../core/utils/image_url_helper.dart';
-import '../../core/utils/logger.dart';
+import 'widgets/student_search_section.dart';
+import 'widgets/leave_apply_attachment_section.dart';
 
 class LeaveApplyScreen extends StatefulWidget {
   const LeaveApplyScreen({super.key});
@@ -76,7 +79,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
 
   List<Map<String, dynamic>> _filteredStudents = [];
   bool _isSearching = false;
-
   bool _hasLoadedArgs = false;
   Map<String, dynamic>? _editingLeave;
 
@@ -85,38 +87,42 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     super.didChangeDependencies();
     if (!_hasLoadedArgs) {
       _hasLoadedArgs = true;
-      final args = ModalRoute.of(context)?.settings.arguments;
-      if (args is Map<String, dynamic>) {
-        final leave = args['leave'] as Map<String, dynamic>?;
-        final student = args['student'] as Map<String, dynamic>?;
-        if (leave != null) {
-          _editingLeave = leave;
-          _selectedStudent = student;
-          
-          if (leave['from_date'] != null) {
-            try {
-              _fromDate = DateTime.parse(leave['from_date']);
-            } catch (_) {}
-          }
-          if (leave['to_date'] != null) {
-            try {
-              _toDate = DateTime.parse(leave['to_date']);
-            } catch (_) {}
-          }
-          
-          _leaveType = _getUiLeaveType(leave['leave_type'] as String? ?? '');
-          
-          _reasonController.text = leave['reason'] ?? '';
-          _isApproved = leave['approved'] as bool? ?? false;
-          _rejectedReasonController.text = leave['rejected_reason'] ?? '';
-          
-          if (leave['leave_application_image_url'] != null && (leave['leave_application_image_url'] as String).isNotEmpty) {
-            _hasAttachment = true;
-            _attachmentPath = leave['leave_application_image_url'];
-            _attachmentName = 'Attached Image';
-            _isAttachmentPdf = _attachmentPath!.toLowerCase().endsWith('.pdf');
+      try {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (args is Map) {
+          final leave = args['leave'] != null ? Map<String, dynamic>.from(args['leave'] as Map) : null;
+          final student = args['student'] != null ? Map<String, dynamic>.from(args['student'] as Map) : null;
+          if (leave != null) {
+            _editingLeave = leave;
+            _selectedStudent = student;
+
+            if (leave['from_date'] != null) {
+              try {
+                _fromDate = DateTime.parse(leave['from_date']);
+              } catch (_) {}
+            }
+            if (leave['to_date'] != null) {
+              try {
+                _toDate = DateTime.parse(leave['to_date']);
+              } catch (_) {}
+            }
+
+            _leaveType = _getUiLeaveType(leave['leave_type'] as String? ?? '');
+            _reasonController.text = leave['reason'] ?? '';
+            _isApproved = leave['approved'] as bool? ?? false;
+            _rejectedReasonController.text = leave['rejected_reason'] ?? '';
+
+            final imgUrl = leave['leave_application_image_url'] as String?;
+            if (imgUrl != null && imgUrl.isNotEmpty) {
+              _hasAttachment = true;
+              _attachmentPath = imgUrl;
+              _attachmentName = 'Attached Image';
+              _isAttachmentPdf = _attachmentPath!.toLowerCase().endsWith('.pdf');
+            }
           }
         }
+      } catch (e) {
+        debugPrint('Error parsing arguments in LeaveApplyScreen: $e');
       }
     }
   }
@@ -171,15 +177,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     }
   }
 
-  String _formatDate(DateTime d) {
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
-
-  String _formatNiceDate(DateTime d) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
-  }
-
   Future<void> _pickAttachment() async {
     try {
       final result = await FilePicker.pickFiles(
@@ -195,22 +192,12 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
           _isAttachmentPdf = file.extension?.toLowerCase() == 'pdf';
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('File attached: ${file.name}'),
-              backgroundColor: AppColors.successText,
-            ),
-          );
+          ArmsSnackbar.showSuccess(context, 'File attached: ${file.name}');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to select file: $e'),
-            backgroundColor: AppColors.errorText,
-          ),
-        );
+        ArmsSnackbar.showError(context, 'Failed to select file: $e');
       }
     }
   }
@@ -250,11 +237,11 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
       if (result.data != null) {
         final studentsData = result.data!['getPaginatedStudents']?['students'] as List? ?? [];
         setState(() {
-          _filteredStudents = studentsData.cast<Map<String, dynamic>>();
+          _filteredStudents = studentsData.map((item) => Map<String, dynamic>.from(item as Map)).toList();
         });
       }
     } catch (e) {
-      armsLog('Error searching students: $e');
+      // Error is caught silently
     }
   }
 
@@ -273,440 +260,224 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(_editingLeave != null ? 'Edit Leave' : 'Apply Leave', style: AppTextStyles.displayMobile),
-                  const SizedBox(height: AppSpacing.stackLg),
-
-                  // Student Picker / Search
-                  if (_selectedStudent == null) ...[
-                    Text('STUDENT', style: AppTextStyles.labelXsUppercase),
-                    const SizedBox(height: 6),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.cardSurface,
-                        borderRadius: BorderRadius.circular(AppRadius.roundFull),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _onSearchChanged,
-                        style: AppTextStyles.bodyMedium,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.search, color: AppColors.onSurfaceVariant),
-                          hintText: 'Search Student...',
-                          hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        ),
-                      ),
-                    ),
-                    if (_isSearching && _filteredStudents.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        constraints: const BoxConstraints(maxHeight: 200),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                          border: Border.all(color: AppColors.outlineMediumLight),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            )
-                          ],
-                        ),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: _filteredStudents.length,
-                          itemBuilder: (ctx, idx) {
-                            final s = _filteredStudents[idx];
-                            return ListTile(
-                              leading: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: AppColors.surfaceVariant,
-                                backgroundImage: s['image_url'] != null ? NetworkImage(ImageUrlHelper.sanitizeUrl(s['image_url'])!) : null,
-                                child: s['image_url'] == null ? Text(s['name']?[0] ?? 'S') : null,
-                              ),
-                              title: Text(s['name'] ?? '', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500)),
-                              subtitle: Text('Roll No: ${s['roll_no'] ?? ''}', style: AppTextStyles.labelXs),
-                              onTap: () {
-                                setState(() {
-                                  _selectedStudent = s;
-                                  _isSearching = false;
-                                  _searchController.clear();
-                                });
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ] else if (_isSearching && _filteredStudents.isEmpty) ...[
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Text('No students found', style: AppTextStyles.labelXs),
-                      ),
-                    ],
-                  ] else ...[
-                    // Selected Student Card
-                    Text('SELECTED STUDENT', style: AppTextStyles.labelXsUppercase),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardSurface,
-                        borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-                        border: Border.all(color: AppColors.outlineLight),
-                      ),
-                      child: Row(
-                        children: [
-                          Builder(
-                            builder: (context) {
-                              final studentImg = _selectedStudent!['image_url'] as String?;
-                              final hasImg = studentImg != null && studentImg.trim().isNotEmpty;
-                              return CircleAvatar(
-                                radius: 20,
-                                backgroundColor: AppColors.surfaceVariant,
-                                backgroundImage: hasImg
-                                    ? NetworkImage(ImageUrlHelper.sanitizeUrl(studentImg)!)
-                                    : null,
-                                child: !hasImg
-                                    ? Text(_selectedStudent!['name']?[0] ?? 'S')
-                                    : null,
-                              );
-                            }
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(_selectedStudent!['name'] ?? '', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-                                Builder(
-                                  builder: (context) {
-                                    final rollNoVal = _selectedStudent!['roll_no']?.toString();
-                                    final hasRollNo = rollNoVal != null && rollNoVal.trim().isNotEmpty && rollNoVal != 'null';
-                                    final rollNoDisplay = hasRollNo ? 'Roll No: $rollNoVal' : 'Roll No: N/A';
-                                    return Text(rollNoDisplay, style: AppTextStyles.labelXs);
-                                  }
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: AppColors.errorText),
-                            onPressed: () {
-                              setState(() {
-                                _selectedStudent = null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: AppSpacing.stackMd),
-
-                  // Date fields side-by-side
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('FROM DATE', style: AppTextStyles.labelXsUppercase),
-                            const SizedBox(height: 6),
-                            GestureDetector(
-                              onTap: _pickFromDate,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: AppColors.cardSurface,
-                                  borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                                  border: Border.all(color: AppColors.outlineLight),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(_formatNiceDate(_fromDate), style: AppTextStyles.bodyMedium),
-                                    const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('TO DATE', style: AppTextStyles.labelXsUppercase),
-                            const SizedBox(height: 6),
-                            GestureDetector(
-                              onTap: _pickToDate,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: AppColors.cardSurface,
-                                  borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                                  border: Border.all(color: AppColors.outlineLight),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(_formatNiceDate(_toDate), style: AppTextStyles.bodyMedium),
-                                    const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.stackMd),
-
-                  ArmsDropdownSelector(
-                    label: 'LEAVE TYPE',
-                    value: _leaveType,
-                    onTap: () => _showSingleSelectSheet(
-                      title: 'Select Leave Type',
-                      currentValue: _leaveType,
-                      options: _leaveTypes,
-                      onSelected: (val) {
-                        setState(() => _leaveType = val);
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.stackMd),
-
-                  // Reason text field
-                  Text('REASON', style: AppTextStyles.labelXsUppercase),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _reasonController,
-                    maxLines: 3,
-                    style: AppTextStyles.bodyMedium,
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return 'Please enter a reason for the leave';
-                      }
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Enter details here...',
-                      hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                      fillColor: AppColors.cardSurface,
-                      filled: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                        borderSide: const BorderSide(color: AppColors.outlineLight),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                        borderSide: const BorderSide(color: AppColors.outlineLight),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                        borderSide: const BorderSide(color: AppColors.primary),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.stackMd),
-
-                  // Approval Controls Card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardSurface,
-                      borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-                      border: Border.all(color: AppColors.outlineLight),
-                    ),
+              const SizedBox(height: AppSpacing.stackLg),
+              StudentSearchSection(
+                selectedStudent: _selectedStudent,
+                searchController: _searchController,
+                onSearchChanged: _onSearchChanged,
+                filteredStudents: _filteredStudents,
+                isSearching: _isSearching,
+                onStudentSelected: (s) {
+                  setState(() {
+                    _selectedStudent = s;
+                    _isSearching = false;
+                    _searchController.clear();
+                  });
+                },
+                onStudentCleared: () {
+                  setState(() {
+                    _selectedStudent = null;
+                  });
+                },
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              Row(
+                children: [
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Approved', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-                            Switch(
-                              value: _isApproved,
-                              activeColor: AppColors.onPrimary,
-                              activeTrackColor: AppColors.primary,
-                              inactiveThumbColor: AppColors.outlineMedium,
-                              inactiveTrackColor: AppColors.surfaceVariant,
-                              onChanged: (val) {
-                                setState(() {
-                                  _isApproved = val;
-                                  if (val) {
-                                    _rejectedReasonController.clear();
-                                  }
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Rejected Reason (forces Approved to OFF)',
-                          style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
-                        ),
+                        Text('FROM DATE', style: AppTextStyles.labelXsUppercase),
                         const SizedBox(height: 6),
-                        TextField(
-                          controller: _rejectedReasonController,
-                          onChanged: (val) {
-                            if (val.trim().isNotEmpty && _isApproved) {
-                              setState(() => _isApproved = false);
-                            }
-                          },
-                          style: AppTextStyles.bodyMedium,
-                          decoration: InputDecoration(
-                            hintText: 'If rejected, specify why...',
-                            hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                            fillColor: AppColors.background,
-                            filled: true,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.roundEight),
-                              borderSide: BorderSide.none,
+                        GestureDetector(
+                          onTap: _pickFromDate,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardSurface,
+                              borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
+                              border: Border.all(color: AppColors.outlineLight),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(AppDateUtils.formatToDMY(_fromDate), style: AppTextStyles.bodyMedium),
+                                const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.stackMd),
-
-                  // Attachment Section
-                  Text('ATTACHMENT', style: AppTextStyles.labelXsUppercase),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      // Upload button
-                      GestureDetector(
-                        onTap: _pickAttachment,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: AppColors.cardSurface,
-                            borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                            border: Border.all(
-                              color: AppColors.outlineLight,
-                              width: 1,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('TO DATE', style: AppTextStyles.labelXsUppercase),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: _pickToDate,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardSurface,
+                              borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
+                              border: Border.all(color: AppColors.outlineLight),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(AppDateUtils.formatToDMY(_toDate), style: AppTextStyles.bodyMedium),
+                                const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
+                              ],
                             ),
                           ),
-                          child: const Center(
-                            child: Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary),
-                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-
-                      // Image or PDF attachment preview if active
-                      if (_hasAttachment)
-                        Stack(
-                          children: [
-                            GestureDetector(
-                              onTap: _pickAttachment,
-                              child: Container(
-                                width: 80,
-                                height: 80,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.cardSurface,
-                                    borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                                    border: Border.all(color: AppColors.outlineLight),
-                                  ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: _isAttachmentPdf
-                                      ? const Center(
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.picture_as_pdf, color: AppColors.errorText, size: 36),
-                                              SizedBox(height: 4),
-                                              Text(
-                                                'PDF',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: AppColors.errorText,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      : (_attachmentPath != null
-                                          ? (_attachmentPath!.startsWith('http')
-                                              ? Image.network(
-                                                  ImageUrlHelper.sanitizeUrl(_attachmentPath!)!,
-                                                  fit: BoxFit.cover,
-                                                  width: 80,
-                                                  height: 80,
-                                                )
-                                              : Image.file(
-                                                  File(_attachmentPath!),
-                                                  fit: BoxFit.cover,
-                                                  width: 80,
-                                                  height: 80,
-                                                ))
-                                          : const Center(
-                                              child: Icon(Icons.file_present, color: AppColors.primary),
-                                            )),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _hasAttachment = false;
-                                    _attachmentPath = null;
-                                    _attachmentName = null;
-                                    _isAttachmentPdf = false;
-                                  });
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(Icons.delete, color: AppColors.errorText, size: 14),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.stackLg),
-
-                  // Actions (Apply / Cancel)
-                  Mutation(
-                    options: MutationOptions(
-                      document: gql(GqlQueries.deleteLeave),
+                      ],
                     ),
-                    builder: (RunMutation runDelete, QueryResult? deleteResult) {
-                      return Mutation(
-                        options: MutationOptions(
-                          document: gql(GqlQueries.createLeave),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              ArmsDropdownSelector(
+                label: 'LEAVE TYPE',
+                value: _leaveType,
+                onTap: () => ArmsPickerSheet.show<String>(
+                  context: context,
+                  title: 'Select Leave Type',
+                  items: _leaveTypes,
+                  itemLabel: (val) => val,
+                  selectedItem: _leaveType,
+                  onItemSelected: (val) {
+                    setState(() => _leaveType = val);
+                  },
+                ),
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              Text('REASON', style: AppTextStyles.labelXsUppercase),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _reasonController,
+                maxLines: 3,
+                style: AppTextStyles.bodyMedium,
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Please enter a reason for the leave';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Enter details here...',
+                  hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
+                  fillColor: AppColors.cardSurface,
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
+                    borderSide: const BorderSide(color: AppColors.outlineLight),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
+                    borderSide: const BorderSide(color: AppColors.outlineLight),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.cardSurface,
+                  borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
+                  border: Border.all(color: AppColors.outlineLight),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Approved', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                        Switch(
+                          value: _isApproved,
+                          activeColor: AppColors.onPrimary,
+                          activeTrackColor: AppColors.primary,
+                          inactiveThumbColor: AppColors.outlineMedium,
+                          inactiveTrackColor: AppColors.surfaceVariant,
+                          onChanged: (val) {
+                            setState(() {
+                              _isApproved = val;
+                              if (val) {
+                                _rejectedReasonController.clear();
+                              }
+                            });
+                          },
                         ),
-                        builder: (RunMutation runCreate, QueryResult? createResult) {
-                          final isLoading = _isSaving || 
-                              (createResult?.isLoading ?? false) || 
-                              (deleteResult?.isLoading ?? false);
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Rejected Reason (forces Approved to OFF)',
+                      style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _rejectedReasonController,
+                      onChanged: (val) {
+                        if (val.trim().isNotEmpty && _isApproved) {
+                          setState(() => _isApproved = false);
+                        }
+                      },
+                      style: AppTextStyles.bodyMedium,
+                      decoration: InputDecoration(
+                        hintText: 'If rejected, specify why...',
+                        hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
+                        fillColor: AppColors.background,
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.roundEight),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              LeaveApplyAttachmentSection(
+                hasAttachment: _hasAttachment,
+                attachmentPath: _attachmentPath,
+                isAttachmentPdf: _isAttachmentPdf,
+                onPickAttachment: _pickAttachment,
+                onRemoveAttachment: () {
+                  setState(() {
+                    _hasAttachment = false;
+                    _attachmentPath = null;
+                    _attachmentName = null;
+                    _isAttachmentPdf = false;
+                  });
+                },
+              ),
+              const SizedBox(height: AppSpacing.stackLg),
+              Mutation(
+                options: MutationOptions(
+                  document: gql(GqlQueries.deleteLeave),
+                ),
+                builder: (RunMutation runDelete, QueryResult? deleteResult) {
+                  return Mutation(
+                    options: MutationOptions(
+                      document: gql(GqlQueries.createLeave),
+                    ),
+                    builder: (RunMutation runCreate, QueryResult? createResult) {
+                      final isLoading = _isSaving || 
+                          (createResult?.isLoading ?? false) || 
+                          (deleteResult?.isLoading ?? false);
 
                       return Column(
                         children: [
@@ -718,12 +489,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                   ? null
                                   : () async {
                                       if (_selectedStudent == null) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Please search and select a student first'),
-                                            backgroundColor: AppColors.errorText,
-                                          ),
-                                        );
+                                        ArmsSnackbar.showError(context, 'Please search and select a student first');
                                         return;
                                       }
                                       if (_formKey.currentState!.validate()) {
@@ -770,9 +536,9 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                             'input': {
                                               if (_editingLeave != null) 'id': _editingLeave!['id'],
                                               'organisation_id': AuthService.currentAdmin?.organization?.id,
-                                              'student_id': _selectedStudent!['id'],
-                                              'from_date': _formatDate(_fromDate),
-                                              'to_date': _formatDate(_toDate),
+                                              'student_id': _selectedStudent?['id'],
+                                              'from_date': AppDateUtils.formatToYMD(_fromDate),
+                                              'to_date': AppDateUtils.formatToYMD(_toDate),
                                               'leave_type': leaveTypeMap[_leaveType] ?? 'other',
                                               'reason': _reasonController.text.trim(),
                                               'approved': _isApproved,
@@ -789,22 +555,12 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                           }
 
                                           if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text(_editingLeave != null ? 'Leave updated successfully' : 'Leave applied successfully'),
-                                                backgroundColor: AppColors.successText,
-                                              ),
-                                            );
+                                            ArmsSnackbar.showSuccess(context, _editingLeave != null ? 'Leave updated successfully' : 'Leave applied successfully');
                                             Navigator.pop(context, true);
                                           }
                                         } catch (e) {
                                           if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('Error: $e'),
-                                                backgroundColor: AppColors.errorText,
-                                              ),
-                                            );
+                                            ArmsSnackbar.showError(context, 'Error: $e');
                                           }
                                         } finally {
                                           if (mounted) setState(() => _isSaving = false);
@@ -873,22 +629,12 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                             }
 
                                             if (mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Leave application deleted successfully'),
-                                                  backgroundColor: AppColors.successText,
-                                                ),
-                                              );
+                                              ArmsSnackbar.showSuccess(context, 'Leave application deleted successfully');
                                               Navigator.pop(context, true);
                                             }
                                           } catch (e) {
                                             if (mounted) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(
-                                                  content: Text('Error deleting: $e'),
-                                                  backgroundColor: AppColors.errorText,
-                                                ),
-                                              );
+                                              ArmsSnackbar.showError(context, 'Error deleting: $e');
                                             }
                                           } finally {
                                             if (mounted) setState(() => _isSaving = false);
@@ -921,11 +667,11 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                   );
                 },
               ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
+              const SizedBox(height: 32),
+            ],
           ),
+        ),
+      ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 12.0),
         child: FloatingActionButton(
@@ -939,71 +685,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
           child: const Icon(Icons.history),
         ),
       ),
-    );
-  }
-
-  void _showSingleSelectSheet({
-    required String title,
-    required String currentValue,
-    required List<String> options,
-    required ValueChanged<String> onSelected,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 48,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: AppColors.outlineMediumLight,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(title, style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: options.length,
-                    itemBuilder: (context, index) {
-                      final opt = options[index];
-                      final isSelected = opt == currentValue;
-                      return ListTile(
-                        title: Text(
-                          opt,
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isSelected ? AppColors.primary : AppColors.textMain,
-                          ),
-                        ),
-                        trailing: isSelected ? const Icon(Icons.check, color: AppColors.primary) : null,
-                        onTap: () {
-                          onSelected(opt);
-                          Navigator.pop(ctx);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

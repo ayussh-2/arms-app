@@ -108,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
+
                   Text(
                     'ARMS',
                     style: AppTextStyles.displayLarge.copyWith(
@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: AppSpacing.stackLg),
 
-                  // User ID field
+
                   _buildLabel('User ID'),
                   const SizedBox(height: AppSpacing.stackSm),
                   ArmsInputField(
@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: AppSpacing.stackMd),
 
-                  // Password field
+
                   _buildLabel('Password'),
                   const SizedBox(height: AppSpacing.stackSm),
                   ArmsInputField(
@@ -156,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  // Error message
+
                   if (_errorMessage != null) ...[
                     const SizedBox(height: AppSpacing.stackMd),
                     Container(
@@ -180,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: AppSpacing.stackLg),
 
-                  // Sign In button
+
                   SizedBox(
                     width: double.infinity,
                     height: 52,

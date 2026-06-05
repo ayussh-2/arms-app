@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../debug/debug_service.dart';
-import '../utils/logger.dart';
 
 class UploadService {
   UploadService._();
@@ -33,8 +32,6 @@ class UploadService {
       // Clean path and combine
       final cleanPath = apiUrlPath.startsWith('/') ? apiUrlPath : '/$apiUrlPath';
       final uploadUrl = Uri.parse('$hostUrl$cleanPath');
-
-      armsLog('🚀 [UploadService] Starting upload to: $uploadUrl');
 
       // 2. Build multipart request
       final request = http.MultipartRequest('POST', uploadUrl);
@@ -71,8 +68,6 @@ class UploadService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      armsLog('📥 [UploadService] Response Status: ${response.statusCode}');
-
       if (response.statusCode != 200) {
         throw Exception('Upload failed with status code ${response.statusCode}: ${response.body}');
       }
@@ -90,10 +85,8 @@ class UploadService {
         throw Exception('Response does not contain a file URL. Response body: ${response.body}');
       }
 
-      armsLog('✅ [UploadService] Successfully uploaded. URL: $fileUrl');
       return fileUrl as String;
     } catch (e) {
-      armsLog('❌ [UploadService] Error: $e');
       rethrow;
     }
   }

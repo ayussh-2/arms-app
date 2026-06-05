@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 
@@ -74,7 +73,6 @@ class DebugService {
       stackTrace: stackTrace,
     );
     _addLog(log);
-    developer.log('🔴 Error: $error\nURL: $url\nStackTrace: $stackTrace', error: error, stackTrace: stackTrace);
   }
 
   /// Add a general log entry
@@ -89,7 +87,6 @@ class DebugService {
       message: message,
     );
     _addLog(log);
-    developer.log('ℹ️ $message');
   }
 
   /// Internal method to add log (disabled to prevent network log capturing)
@@ -109,7 +106,6 @@ class DebugService {
   /// Update API base URL
   void updateApiBaseUrl(String newUrl) {
     apiBaseUrl.value = newUrl;
-    developer.log('🔗 API Base URL changed to: $newUrl');
   }
 }
 
