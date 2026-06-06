@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../debug/debug_service.dart';
 
@@ -45,16 +44,8 @@ class UploadService {
         request.fields.addAll(extraFields);
       }
 
-      // 3. Infer file details and content type
+      // 3. Infer file details
       final fileExtension = file.path.split('.').last.toLowerCase();
-      String contentType = 'application/octet-stream';
-      if (fileExtension == 'jpg' || fileExtension == 'jpeg') {
-        contentType = 'image/jpeg';
-      } else if (fileExtension == 'png') {
-        contentType = 'image/png';
-      } else if (fileExtension == 'pdf') {
-        contentType = 'application/pdf';
-      }
 
       // Add the file
       final multipartFile = await http.MultipartFile.fromPath(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
 import '../core/theme/app_spacing.dart';
+import '../core/theme/app_radius.dart';
 
 /// Pill-shaped dropdown selector matching the attendance-configuration design.
 /// Displays a label, current value, and a trailing chevron icon.
@@ -48,7 +49,7 @@ class ArmsDropdownSelector extends StatelessWidget {
               color: AppColors.cardSurface,
               borderRadius: BorderRadius.circular(AppRadius.roundFull),
               border: Border.all(
-                color: AppColors.outline.withOpacity(0.15),
+                color: AppColors.outline.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),

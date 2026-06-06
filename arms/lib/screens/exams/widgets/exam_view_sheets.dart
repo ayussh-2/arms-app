@@ -50,8 +50,10 @@ void showDownloadResultsSheet({
                     ),
                     Radio<String>(
                       value: val,
+                      // ignore: deprecated_member_use
                       groupValue: selection,
                       activeColor: AppColors.primary,
+                      // ignore: deprecated_member_use
                       onChanged: (v) {
                         if (v != null) {
                           setModalState(() => selection = v);

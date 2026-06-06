@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../core/theme/app_spacing.dart';
 import '../../core/utils/excel_marks_parser.dart';
 import 'widgets/excel_upload_card.dart';
 import 'widgets/excel_preview_panel.dart';
@@ -42,7 +41,6 @@ class _ExcelMarksUploadModalState extends State<ExcelMarksUploadModal> {
   };
 
   // File selection state
-  File? _selectedFile;
   String? _selectedFileName;
   Uint8List? _selectedFileBytes;
 
@@ -127,9 +125,6 @@ class _ExcelMarksUploadModalState extends State<ExcelMarksUploadModal> {
       setState(() {
         _selectedFileName = fileRef.name;
         _selectedFileBytes = fileBytes;
-        if (fileRef.path != null) {
-          _selectedFile = File(fileRef.path!);
-        }
         _excelPreview = null;
       });
     } catch (e) {

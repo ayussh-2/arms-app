@@ -6,10 +6,6 @@ import 'package:pdf/pdf.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../widgets/arms_snackbar.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/attendance_html_generator.dart';
 import '../../../core/services/attendance_report_service.dart';
@@ -136,6 +132,7 @@ class AttendanceExportHandler {
 
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async =>
+          // ignore: deprecated_member_use
           await Printing.convertHtml(format: format, html: generatedHtml),
       name: pdfName,
     );

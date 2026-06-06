@@ -9,7 +9,6 @@ import '../../core/auth/auth_service.dart';
 import '../../core/services/exam_lookup_cache.dart';
 import '../../widgets/arms_input_field.dart';
 import '../../widgets/arms_snackbar.dart';
-import 'widgets/exam_card.dart';
 import 'widgets/exam_filters_panel.dart';
 import 'widgets/exam_list_table.dart';
 import 'widgets/exam_list_helpers.dart';
@@ -317,15 +316,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
     }
   }
 
-  void _showFilterOptions(String label, String? currentValue, List<String> options, ValueChanged<String?> onSelected) {
-    showFilterOptions(
-      context: context,
-      label: label,
-      currentValue: currentValue,
-      options: options,
-      onSelected: onSelected,
-    );
-  }
+
 
   void _showDownloadReportDrawer(Map<String, dynamic> exam) {
     showDownloadReportDrawer(context: context, exam: exam);
@@ -354,8 +345,6 @@ class _ExamListScreenState extends State<ExamListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasAnyFilter = _selectedSeries != null || _selectedSubject != null || _selectedSchool != null || _selectedClass != null || _selectedSection != null;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: _activeSubTab == 0

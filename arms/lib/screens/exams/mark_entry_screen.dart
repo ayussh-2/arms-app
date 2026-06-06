@@ -334,28 +334,6 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     });
   }
 
-  bool _areAllMarksEntered() {
-    if (_currentEditingStudentId == null) return false;
-    final isAbsent = _absentMap[_currentEditingStudentId] ?? false;
-    if (isAbsent) return true;
-    for (final subject in _subjects) {
-      final subjectId = subject['id'] as String? ?? '';
-      final marksText = _marksData[_currentEditingStudentId]?[subjectId] ?? '';
-      if (marksText.isEmpty) return false;
-    }
-    return true;
-  }
-
-  void _handleMarkEntryCompletion() {
-    if (_currentEditingStudentId == null) return;
-    if (_areAllMarksEntered()) {
-      setState(() {
-        _currentEditingStudentId = null;
-        _isSearchFocused = true;
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) => _focusSearchField());
-    }
-  }
 
   void _handleActionButtonPressed(BuildContext context) {
     final keyboardOpen = _isKeyboardOpen(context);
@@ -381,12 +359,16 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       return;
     }
     if (_currentMarkFieldIndex < focusNodes.length - 1) {
-      _currentMarkFieldIndex += 1;
+      setState(() {
+        _currentMarkFieldIndex += 1;
+      });
       focusNodes[_currentMarkFieldIndex].requestFocus();
       return;
     }
-    _currentEditingStudentId = null;
-    _currentMarkFieldIndex = 0;
+    setState(() {
+      _currentEditingStudentId = null;
+      _currentMarkFieldIndex = 0;
+    });
     _focusSearchField();
   }
 
@@ -536,7 +518,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
         });
       });
 
-      if (!mounted) return;
+      if (!context.mounted) return;
       ArmsSnackbar.showSuccess(context, 'Marks imported from Excel successfully!');
     }
   }
@@ -623,6 +605,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                         focusNode: _searchFocusNode,
                         hintText: 'Search students by name or roll number...',
                         prefixIcon: Icons.search,
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) => _navigateToMarkFields(),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -640,10 +624,10 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                       currentEditingStudentId: _currentEditingStudentId,
                       onMarkChanged: (studentId, subId, val) {
                         _marksData.putIfAbsent(studentId, () => {})[subId] = val;
-                        _handleMarkEntryCompletion();
                       },
                       onAbsentToggle: _toggleAbsent,
                       onStatusCycle: _cycleStatus,
+                      onNext: _focusNextMarkField,
                     ),
                     if (_filteredStudents.length > effectivePageSize)
                       Padding(

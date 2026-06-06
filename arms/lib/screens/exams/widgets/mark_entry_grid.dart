@@ -16,6 +16,7 @@ class MarkEntryGrid extends StatelessWidget {
   final void Function(String studentId, String subjectId, String val) onMarkChanged;
   final void Function(String studentId) onAbsentToggle;
   final void Function(String studentId) onStatusCycle;
+  final VoidCallback? onNext;
 
   const MarkEntryGrid({
     super.key,
@@ -33,6 +34,7 @@ class MarkEntryGrid extends StatelessWidget {
     required this.onMarkChanged,
     required this.onAbsentToggle,
     required this.onStatusCycle,
+    this.onNext,
   });
 
   @override
@@ -66,6 +68,7 @@ class MarkEntryGrid extends StatelessWidget {
             onAbsentToggled: () => onAbsentToggle(studentId),
             onStatusChanged: () => onStatusCycle(studentId),
             onMarkChanged: (subId, val) => onMarkChanged(studentId, subId, val),
+            onNext: onNext,
           ),
         );
       },

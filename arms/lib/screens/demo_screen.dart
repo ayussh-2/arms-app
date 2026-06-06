@@ -140,6 +140,7 @@ class _ExamReportDemoScreenState extends State<ExamReportDemoScreen> {
        await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async {
           final targetFormat = _prefs.orientation == 'landscape' ? format.landscape : format;
+          // ignore: deprecated_member_use
           return await Printing.convertHtml(format: targetFormat, html: htmlContent);
         },
         name: title,
@@ -272,7 +273,7 @@ class _ExamReportDemoScreenState extends State<ExamReportDemoScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,7 +310,7 @@ class _ExamReportDemoScreenState extends State<ExamReportDemoScreen> {
           ),
           Switch(
             value: val,
-            activeColor: Colors.blueAccent,
+            activeThumbColor: Colors.blueAccent,
             onChanged: onChanged,
           ),
         ],

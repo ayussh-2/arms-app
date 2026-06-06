@@ -38,7 +38,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   bool _isSaving = false;
   bool _hasAttachment = false;
   String? _attachmentPath;
-  String? _attachmentName;
   bool _isAttachmentPdf = false;
 
   static const Map<String, String> leaveTypeMap = {
@@ -116,7 +115,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
             if (imgUrl != null && imgUrl.isNotEmpty) {
               _hasAttachment = true;
               _attachmentPath = imgUrl;
-              _attachmentName = 'Attached Image';
               _isAttachmentPdf = _attachmentPath!.toLowerCase().endsWith('.pdf');
             }
           }
@@ -188,7 +186,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
         setState(() {
           _hasAttachment = true;
           _attachmentPath = file.path;
-          _attachmentName = file.name;
           _isAttachmentPdf = file.extension?.toLowerCase() == 'pdf';
         });
         if (mounted) {
@@ -405,7 +402,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                         Text('Approved', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
                         Switch(
                           value: _isApproved,
-                          activeColor: AppColors.onPrimary,
+                          activeThumbColor: AppColors.onPrimary,
                           activeTrackColor: AppColors.primary,
                           inactiveThumbColor: AppColors.outlineMedium,
                           inactiveTrackColor: AppColors.surfaceVariant,
@@ -459,7 +456,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                   setState(() {
                     _hasAttachment = false;
                     _attachmentPath = null;
-                    _attachmentName = null;
                     _isAttachmentPdf = false;
                   });
                 },
@@ -504,13 +500,13 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                             final sectionName = _selectedStudent?['section']?['name']?.toString() ?? 'section';
                                             
                                             final timestamp = DateTime.now().millisecondsSinceEpoch;
-                                            final sanitize = (String value) {
+                                            String sanitize(String value) {
                                               return value
                                                   .trim()
                                                   .toLowerCase()
                                                   .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
                                                   .replaceAll(RegExp(r'^_+|_+$'), '');
-                                            };
+                                            }
 
                                             final filenameBase = [
                                               timestamp,
@@ -554,12 +550,12 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                             throw createRes!.exception!;
                                           }
 
-                                          if (mounted) {
+                                          if (context.mounted) {
                                             ArmsSnackbar.showSuccess(context, _editingLeave != null ? 'Leave updated successfully' : 'Leave applied successfully');
                                             Navigator.pop(context, true);
                                           }
                                         } catch (e) {
-                                          if (mounted) {
+                                          if (context.mounted) {
                                             ArmsSnackbar.showError(context, 'Error: $e');
                                           }
                                         } finally {
@@ -628,12 +624,12 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                               throw res!.exception!;
                                             }
 
-                                            if (mounted) {
+                                            if (context.mounted) {
                                               ArmsSnackbar.showSuccess(context, 'Leave application deleted successfully');
                                               Navigator.pop(context, true);
                                             }
                                           } catch (e) {
-                                            if (mounted) {
+                                            if (context.mounted) {
                                               ArmsSnackbar.showError(context, 'Error deleting: $e');
                                             }
                                           } finally {
@@ -672,19 +668,27 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
           ),
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 12.0),
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/leave-history');
-          },
-          backgroundColor: AppColors.cardSurface,
-          foregroundColor: AppColors.onSurfaceVariant,
-          elevation: 2,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.history),
-        ),
-      ),
+      floatingActionButton: _selectedStudent == null
+          ? null
+          : Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: FloatingActionButton(
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/leave-history',
+                    arguments: {
+                      'student': _selectedStudent,
+                    },
+                  );
+                },
+                backgroundColor: AppColors.cardSurface,
+                foregroundColor: AppColors.onSurfaceVariant,
+                elevation: 2,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.history),
+              ),
+            ),
     );
   }
 }

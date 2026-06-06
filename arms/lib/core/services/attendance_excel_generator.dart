@@ -28,18 +28,6 @@ class AttendanceExcelGenerator {
     final int datesStartIndex = columns.length;
     final headerStyle = CellStyle(bold: true, horizontalAlign: HorizontalAlign.Center);
 
-    final getStatusLabel = (AttendanceStatus? status, bool short) {
-      if (status == null) return short ? "-" : "UNMARKED";
-      if (short) {
-        switch (status) {
-          case AttendanceStatus.present: return "P";
-          case AttendanceStatus.leave: return "L";
-          case AttendanceStatus.na: return "N";
-          case AttendanceStatus.absent: return "A";
-        }
-      }
-      return status.name.toUpperCase();
-    };
 
     for (int c = 0; c < datesStartIndex; c++) {
       final cStart = CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 0);

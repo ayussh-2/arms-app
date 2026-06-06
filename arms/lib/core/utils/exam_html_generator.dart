@@ -314,12 +314,15 @@ class ExamHtmlGenerator {
         preferences.isMultiExam ? "Combined Exam Series" : "Subject Assessment";
     buffer.writeln('<th colspan="${subjects.length}">$examLabel</th>');
 
-    if (preferences.showGrandTotal)
+    if (preferences.showGrandTotal) {
       buffer.writeln('<th rowspan="3">${withMax("Total", grandMax)}</th>');
-    if (preferences.showOverallPercentage)
+    }
+    if (preferences.showOverallPercentage) {
       buffer.writeln('<th rowspan="3">%</th>');
-    if (preferences.showOverallRank)
+    }
+    if (preferences.showOverallRank) {
       buffer.writeln('<th rowspan="3">Rank</th>');
+    }
     buffer.writeln('</tr>');
 
     // Date Header
@@ -365,12 +368,13 @@ class ExamHtmlGenerator {
         final pct = (mark / sub.maxMarks) * 100;
 
         String bgColor = 'transparent';
-        if (pct >= 80)
+        if (pct >= 80) {
           bgColor = isLight ? '#d1fae5' : 'rgba(16, 185, 129, 0.2)';
-        else if (pct >= 40)
+        } else if (pct >= 40) {
           bgColor = isLight ? '#fef08a' : 'rgba(245, 158, 11, 0.2)';
-        else
+        } else {
           bgColor = isLight ? '#fecaca' : 'rgba(244, 63, 94, 0.2)';
+        }
 
         buffer.writeln(
           '<td style="background-color: $bgColor; font-weight: 500;">${mark.toStringAsFixed(0)}</td>',
@@ -378,8 +382,9 @@ class ExamHtmlGenerator {
       }
 
       // Summary Columns
-      if (preferences.showGrandTotal)
+      if (preferences.showGrandTotal) {
         buffer.writeln('<td>${row.total.toStringAsFixed(0)}</td>');
+      }
       if (preferences.showOverallPercentage) {
         final colorClass = row.isFail ? 'fail' : 'pass';
         buffer.writeln(

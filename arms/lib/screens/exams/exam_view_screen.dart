@@ -8,13 +8,11 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/services/exam_lookup_cache.dart';
-import '../../core/services/exam_pdf_generator.dart';
-import '../../core/utils/exam_html_generator.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_input_field.dart';
 import '../../widgets/arms_snackbar.dart';
 import 'widgets/exam_view_widgets.dart';
-import 'widgets/exam_view_sheets.dart';
+import 'widgets/exam_list_sheets.dart';
 
 class ExamViewScreen extends StatefulWidget {
   const ExamViewScreen({super.key});
@@ -208,34 +206,9 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
   }
 
   void _showDownloadSheet() {
-    showDownloadResultsSheet(
+    showDownloadReportDrawer(
       context: context,
-      initialSelection: downloadSelection,
-      initialFormat: downloadFormat,
-      onConfirm: (selection, format) async {
-        setState(() {
-          downloadSelection = selection;
-          downloadFormat = format;
-        });
-        if (format == 'PDF Format') {
-          await ExamPdfGenerator.handleGeneratePdf(
-            context: context,
-            exam: _exam!,
-            prefs: ExamReportPreferences(
-              isMultiExam: false,
-              includeStudentPic: false,
-              showMaxMarks: true,
-              showGrandTotal: true,
-              showOverallPercentage: true,
-              showOverallRank: true,
-              orientation: 'portrait',
-            ),
-            bottomSheetContext: context,
-          );
-        } else {
-          ArmsSnackbar.showSuccess(context, 'Exporting $selection as Excel Sheet...');
-        }
-      },
+      exam: _exam!,
     );
   }
 
@@ -411,13 +384,13 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
                 try {
                   final uri = Uri.parse(url);
                   final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  if (!success && context.mounted) {
+                  if (!mounted) return;
+                  if (!success) {
                     ArmsSnackbar.showWarning(context, 'Could not launch URL: $url');
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ArmsSnackbar.showWarning(context, 'Error launching URL: $e');
-                  }
+                  if (!mounted) return;
+                  ArmsSnackbar.showWarning(context, 'Error launching URL: $e');
                 }
               } else {
                 ArmsSnackbar.showWarning(context, 'Attendance PDF not uploaded');
@@ -434,13 +407,13 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
                 try {
                   final uri = Uri.parse(url);
                   final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  if (!success && context.mounted) {
+                  if (!mounted) return;
+                  if (!success) {
                     ArmsSnackbar.showWarning(context, 'Could not launch URL: $url');
                   }
                 } catch (e) {
-                  if (context.mounted) {
-                    ArmsSnackbar.showWarning(context, 'Error launching URL: $e');
-                  }
+                  if (!mounted) return;
+                  ArmsSnackbar.showWarning(context, 'Error launching URL: $e');
                 }
               } else {
                 ArmsSnackbar.showWarning(context, 'Question Paper PDF not uploaded');
@@ -450,7 +423,7 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
           const SizedBox(width: 8),
           ActionChipWidget(
             icon: Icons.download_outlined,
-            label: 'Results',
+            label: 'Download PDF',
             onTap: _showDownloadSheet,
           ),
           const SizedBox(width: 8),

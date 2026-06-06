@@ -70,7 +70,7 @@ class ExportOptionsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-        border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+        border: Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +107,7 @@ class ExportOptionsCard extends StatelessWidget {
           ),
           Switch.adaptive(
             value: val,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
             onChanged: onChanged,
           ),
         ],

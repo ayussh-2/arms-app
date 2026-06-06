@@ -195,6 +195,7 @@ class ExamPdfGenerator {
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async {
           final pdfFormat = prefs.orientation == 'landscape' ? format.landscape : format.portrait;
+          // ignore: deprecated_member_use
           return await Printing.convertHtml(
             format: pdfFormat,
             html: htmlContent,

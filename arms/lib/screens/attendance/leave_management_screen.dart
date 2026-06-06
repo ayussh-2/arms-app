@@ -121,7 +121,7 @@ class _LeaveManagementWidgetState extends State<LeaveManagementWidget> {
                     color: isSelected ? AppColors.primary : AppColors.cardSurface,
                     borderRadius: BorderRadius.circular(AppRadius.roundFull),
                     border: Border.all(
-                      color: isSelected ? Colors.transparent : AppColors.outline.withOpacity(0.3),
+                      color: isSelected ? Colors.transparent : AppColors.outline.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),

@@ -74,14 +74,14 @@ class LeaveCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardSurface,
           borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-          border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+          border: Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: AppColors.primary.withOpacity(0.1),
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               backgroundImage: (student?['image_url'] != null &&
                       (student!['image_url'] as String).isNotEmpty &&
                       ImageUrlHelper.sanitizeUrl(student!['image_url'] as String) != null)

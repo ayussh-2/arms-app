@@ -25,10 +25,23 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
 
   List<Map<String, dynamic>> _leavesList = [];
   bool _isLoading = true;
+  Map<String, dynamic>? _passedStudent;
+  bool _hasLoadedArgs = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (!_hasLoadedArgs) {
+      _hasLoadedArgs = true;
+      try {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (args is Map) {
+          _passedStudent = args['student'] != null ? Map<String, dynamic>.from(args['student'] as Map) : null;
+        }
+      } catch (e) {
+        debugPrint('Error parsing arguments in LeaveHistoryScreen: $e');
+      }
+    }
     if (_isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -99,6 +112,11 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
 
     List<Map<String, dynamic>> filteredLeaves = _leavesList.where((leave) {
       final student = leave['student'] as Map<String, dynamic>?;
+      if (_passedStudent != null) {
+        if (student == null || student['id']?.toString() != _passedStudent!['id']?.toString()) {
+          return false;
+        }
+      }
       final studentName = (student?['name'] as String? ?? '').toLowerCase();
       final reason = (leave['reason'] as String? ?? '').toLowerCase();
       final type = (leave['leave_type'] as String? ?? '').toLowerCase();
@@ -144,6 +162,16 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Past Leaves', style: AppTextStyles.displayMobile),
+                if (_passedStudent != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'For ${_passedStudent!['name']}',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Container(
                   decoration: BoxDecoration(
@@ -194,7 +222,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
                       color: isSelected ? AppColors.primary : AppColors.cardSurface,
                       borderRadius: BorderRadius.circular(AppRadius.roundFull),
                       border: Border.all(
-                        color: isSelected ? Colors.transparent : AppColors.outline.withOpacity(0.3),
+                        color: isSelected ? Colors.transparent : AppColors.outline.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -215,33 +243,51 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
           const SizedBox(height: AppSpacing.stackLg),
 
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
-              children: [
-                Text('RECENT RECORDS', style: AppTextStyles.labelXsUppercase),
-                const SizedBox(height: 12),
-                if (filteredLeaves.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 48),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          const Icon(Icons.history_toggle_off, size: 64, color: AppColors.outline),
-                          const SizedBox(height: 16),
-                          Text('No past records found', style: AppTextStyles.headerSmall),
-                          const SizedBox(height: 8),
-                          Text('Try adjusting your search query or filter chip.', style: AppTextStyles.labelXs),
-                        ],
+            child: filteredLeaves.isEmpty
+                ? ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
+                    children: [
+                      Text('RECENT RECORDS', style: AppTextStyles.labelXsUppercase),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 48),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              const Icon(Icons.history_toggle_off, size: 64, color: AppColors.outline),
+                              const SizedBox(height: 16),
+                              Text('No past records found', style: AppTextStyles.headerSmall),
+                              const SizedBox(height: 8),
+                              Text('Try adjusting your search query or filter chip.', style: AppTextStyles.labelXs),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   )
-                else
-                  ...filteredLeaves.map((leave) => LeaveHistoryCard(
-                        leave: leave,
-                        student: leave['student'] as Map<String, dynamic>?,
-                      )),
-              ],
-            ),
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage),
+                    itemCount: filteredLeaves.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('RECENT RECORDS', style: AppTextStyles.labelXsUppercase),
+                            const SizedBox(height: 12),
+                          ],
+                        );
+                      }
+                      final leave = filteredLeaves[index - 1];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: LeaveHistoryCard(
+                          leave: leave,
+                          student: leave['student'] as Map<String, dynamic>?,
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

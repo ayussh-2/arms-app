@@ -16,6 +16,7 @@ class StudentMarkCard extends StatelessWidget {
   final VoidCallback onAbsentToggled;
   final VoidCallback onStatusChanged;
   final void Function(String subjectId, String val) onMarkChanged;
+  final VoidCallback? onNext;
 
   const StudentMarkCard({
     super.key,
@@ -31,6 +32,7 @@ class StudentMarkCard extends StatelessWidget {
     required this.onAbsentToggled,
     required this.onStatusChanged,
     required this.onMarkChanged,
+    this.onNext,
   });
 
   Color _statusColor(String s) {
@@ -175,6 +177,8 @@ class StudentMarkCard extends StatelessWidget {
                                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                     textAlign: TextAlign.center,
                                     style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700),
+                                    textInputAction: TextInputAction.next,
+                                    onFieldSubmitted: (_) => onNext?.call(),
                                     decoration: InputDecoration(
                                       hintText: '00',
                                       hintStyle: AppTextStyles.headerSmall.copyWith(color: AppColors.outline.withValues(alpha: 0.5)),

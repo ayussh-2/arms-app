@@ -70,7 +70,7 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
     super.dispose();
   }
 
-  Future<void> _confirmDelete(BuildContext context, String leaveId) async {
+  Future<void> _confirmDelete(String leaveId) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -172,7 +172,7 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.outline.withOpacity(0.5),
+                    color: AppColors.outline.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -185,7 +185,7 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                   Text('Review Leave Application', style: AppTextStyles.headerSmall),
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: AppColors.errorText),
-                    onPressed: () => _confirmDelete(context, widget.leave['id']),
+                    onPressed: () => _confirmDelete(widget.leave['id']),
                   ),
                 ],
               ),
@@ -196,7 +196,7 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                 decoration: BoxDecoration(
                   color: AppColors.cardSurface,
                   borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                  border: Border.all(color: AppColors.outline.withOpacity(0.15)),
+                  border: Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
                 ),
                 child: Row(
                   children: [
@@ -280,7 +280,7 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                   Text('Approved', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
                   Switch(
                     value: _isApproved,
-                    activeColor: AppColors.onPrimary,
+                    activeThumbColor: AppColors.onPrimary,
                     activeTrackColor: AppColors.primary,
                     inactiveThumbColor: AppColors.outlineMedium,
                     inactiveTrackColor: AppColors.surfaceVariant,
@@ -370,7 +370,7 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                             if (widget.onUpdated != null) {
                               widget.onUpdated!();
                             }
-                            if (mounted) {
+                            if (context.mounted) {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -380,7 +380,7 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                               );
                             }
                           } catch (e) {
-                            if (mounted) {
+                            if (context.mounted) {
                               setState(() => _isSaving = false);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(

@@ -1,22 +1,13 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart' hide ThemeMode;
-import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:printing/printing.dart';
-import 'package:pdf/pdf.dart';
 import 'package:intl/intl.dart';
-import 'package:file_picker/file_picker.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
-import '../../core/graphql/queries.dart';
 import '../../widgets/arms_dropdown_selector.dart';
 import '../../widgets/arms_snackbar.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/utils/attendance_html_generator.dart';
 import '../../core/auth/auth_service.dart';
-import '../../core/services/attendance_report_service.dart';
-import '../../core/services/attendance_excel_generator.dart';
 import 'widgets/export_options_card.dart';
 import 'widgets/export_handlers.dart';
 

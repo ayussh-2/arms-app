@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/exam_html_generator.dart';
 import '../../../core/services/exam_pdf_generator.dart';
+import '../../../core/services/exam_excel_generator.dart';
 import 'exam_list_helpers.dart';
 
 void showFilterOptions({
@@ -49,8 +50,10 @@ void showFilterOptions({
                       return RadioListTile<String?>(
                         title: Text('All ${label.toLowerCase()}', style: AppTextStyles.bodyMedium),
                         value: null,
+                        // ignore: deprecated_member_use
                         groupValue: currentValue,
                         activeColor: AppColors.primary,
+                        // ignore: deprecated_member_use
                         onChanged: (val) {
                           onSelected(val);
                           Navigator.pop(ctx);
@@ -61,7 +64,9 @@ void showFilterOptions({
                     return RadioListTile<String?>(
                       title: Text(option, style: AppTextStyles.bodyMedium),
                       value: option,
+                      // ignore: deprecated_member_use
                       groupValue: currentValue,
+                      // ignore: deprecated_member_use
                       onChanged: (val) {
                         onSelected(val);
                         Navigator.pop(ctx);
@@ -91,7 +96,8 @@ void showDownloadReportDrawer({
     showOverallRank: true,
     orientation: 'portrait',
   );
-  bool isGenerating = false;
+  bool isPdfGenerating = false;
+  bool isExcelGenerating = false;
 
   showModalBottomSheet(
     context: context,
@@ -101,6 +107,7 @@ void showDownloadReportDrawer({
     builder: (ctx) {
       return StatefulBuilder(
         builder: (BuildContext context, StateSetter setModalState) {
+          final isGenerating = isPdfGenerating || isExcelGenerating;
           return SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -134,39 +141,80 @@ void showDownloadReportDrawer({
                     _buildDrawerToggleRow(setModalState, 'Overall Percentage', prefs.showOverallPercentage, (v) => prefs = prefs.copyWith(showOverallPercentage: v), isGenerating),
                     _buildDrawerToggleRow(setModalState, 'Overall Rank', prefs.showOverallRank, (v) => prefs = prefs.copyWith(showOverallRank: v), isGenerating),
                     const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: isGenerating
-                            ? null
-                            : () async {
-                                setModalState(() => isGenerating = true);
-                                await ExamPdfGenerator.handleGeneratePdf(
-                                  context: context,
-                                  exam: exam,
-                                  prefs: prefs,
-                                  bottomSheetContext: ctx,
-                                );
-                                if (ctx.mounted) {
-                                  setModalState(() => isGenerating = false);
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: isGenerating
-                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.picture_as_pdf, color: Colors.white),
-                                  SizedBox(width: 8),
-                                  Text('Generate PDF', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                                ],
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: isGenerating
+                                  ? null
+                                  : () async {
+                                      setModalState(() => isPdfGenerating = true);
+                                      await ExamPdfGenerator.handleGeneratePdf(
+                                        context: context,
+                                        exam: exam,
+                                        prefs: prefs,
+                                        bottomSheetContext: ctx,
+                                      );
+                                      if (ctx.mounted) {
+                                        setModalState(() => isPdfGenerating = false);
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                      ),
+                              child: isPdfGenerating
+                                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.picture_as_pdf, color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Text('PDF', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: isGenerating
+                                  ? null
+                                  : () async {
+                                      setModalState(() => isExcelGenerating = true);
+                                      await ExamExcelGenerator.handleGenerateExcel(
+                                        context: context,
+                                        exam: exam,
+                                        prefs: prefs,
+                                        bottomSheetContext: ctx,
+                                      );
+                                      if (ctx.mounted) {
+                                        setModalState(() => isExcelGenerating = false);
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.successText,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: isExcelGenerating
+                                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.table_chart, color: Colors.white),
+                                        SizedBox(width: 8),
+                                        Text('Excel', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -257,7 +305,7 @@ void showActionSheet({
               const SizedBox(height: 8),
               SheetButton(
                 icon: Icons.download_outlined,
-                label: 'Download PDF',
+                label: 'Download Report',
                 onTap: onDownloadPdf,
               ),
               const SizedBox(height: 16),
