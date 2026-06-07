@@ -1,9 +1,0 @@
-app crashes when clicked on new leave under leave management
-in exam list screen when click on a exam and then clicked on exam report 
-    the topic Always default to Atomic structure, chemincal bonding should be - if no topic provided
-    when viewed a new exam i see uuids instead of actual values of class school
-    need to improve the ux of edit exam details
-    if i click on attendance/question paper pdf i see a error instead a warnign should appear of attendance pdf not uploaded
-    fix the download button for now just shows the static 
-in mark entry screen when i type a single digit of mark it then jumps to my search box automatically it should not happen until i click next
-int new exam create screen i need to click on the checkboxes instead i should be able to selct the whole div clicking on the div would also select the checkboxes
