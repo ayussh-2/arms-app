@@ -14,5 +14,6 @@ class AppConstants {
   }
 
   // API Configuration
-  static const String defaultApiEndpoint = 'http://192.168.29.188:6582/api/graphql';
+  static const String defaultApiEndpoint = 'https://arms.pariksit.com/api/graphql';
+  // static const String defaultApiEndpoint = 'http://192.168.29.188:6582/api/graphql';
 }

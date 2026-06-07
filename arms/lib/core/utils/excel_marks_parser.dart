@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:excel/excel.dart'; // Updated import
+import 'package:excel/excel.dart';
 
 class ExcelMarksParser {
   static String normalizeRollNo(String? raw) {
@@ -20,7 +20,6 @@ class ExcelMarksParser {
     return null;
   }
 
-  // NEW HELPER: Safely extracts string values from Excel 4.x CellValue objects
   static String _getCellValue(Data? cell) {
     if (cell == null || cell.value == null) return '';
     final val = cell.value;
@@ -33,8 +32,7 @@ class ExcelMarksParser {
     return val.toString();
   }
 
-  /// Parses the uploaded Excel bytes, applies mapping validation, and returns a Map containing preview details.
-  /// Throws Exception on validation errors.
+  
   static Map<String, dynamic> parseExcelMarks({
     required Uint8List fileBytes,
     required Map<String, String> columnMapping,

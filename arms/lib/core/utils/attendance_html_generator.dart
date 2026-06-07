@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 // --- Data Models ---
 enum AttendanceSession { morningIn, morningOut, eveningIn, eveningOut }
 
@@ -241,15 +239,18 @@ class AttendanceHtmlGenerator {
 
     buffer.writeln('<tr class="th-$themePrefix">');
     buffer.writeln('<th rowspan="$rowSpanCount">Sl. No.</th>');
-    if (preferences.showRollNo)
+    if (preferences.showRollNo) {
       buffer.writeln('<th rowspan="$rowSpanCount">Roll No.</th>');
+    }
     buffer.writeln(
       '<th rowspan="$rowSpanCount" style="width: 20%;">Student</th>',
     ); // Give student column bit more space
-    if (preferences.showSchool)
+    if (preferences.showSchool) {
       buffer.writeln('<th rowspan="$rowSpanCount">School</th>');
-    if (preferences.showClassSection)
+    }
+    if (preferences.showClassSection) {
       buffer.writeln('<th rowspan="$rowSpanCount">Std</th>');
+    }
     buffer.writeln(
       '<th class="whitespace-nowrap" rowspan="$rowSpanCount">Summary</th>',
     );
@@ -308,8 +309,9 @@ class AttendanceHtmlGenerator {
       buffer.writeln('<tr class="$rowClass">');
 
       buffer.writeln('<td>${i + 1}</td>');
-      if (preferences.showRollNo)
+      if (preferences.showRollNo) {
         buffer.writeln('<td>${row.rollNo ?? "-"}</td>');
+      }
 
       buffer.writeln('<td style="font-weight: 500;">');
       buffer.writeln('<div class="flex-row">');
@@ -320,8 +322,9 @@ class AttendanceHtmlGenerator {
       }
       buffer.writeln('<span>${_escapeHtml(row.studentName)}</span></div></td>');
 
-      if (preferences.showSchool)
+      if (preferences.showSchool) {
         buffer.writeln('<td>${_escapeHtml(row.schoolName)}</td>');
+      }
       if (preferences.showClassSection) {
         final secStr =
             row.sectionName.isNotEmpty ? ' - ${row.sectionName}' : '';
@@ -507,7 +510,6 @@ class AttendanceHtmlGenerator {
       case AttendanceStatus.leave:
         return "status-absent-$themePrefix";
       case null:
-      default:
         return "status-na-$themePrefix";
     }
   }

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../core/debug/debug_service.dart';
 import '../core/theme/app_colors.dart';
-import '../core/utils/logger.dart';
 
 /// Debug overlay widget that appears in the bottom left corner
 class DebugOverlay extends StatefulWidget {
@@ -63,7 +62,7 @@ class _DebugOverlayState extends State<DebugOverlay> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -116,7 +115,7 @@ class _DebugOverlayState extends State<DebugOverlay> {
                 });
               },
               child: Container(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 child: GestureDetector(
                   onTap: () {}, // Prevent closing when tapping inside
                   child: Center(child: _buildDebugPanel()),
@@ -174,7 +173,6 @@ class _DebugPanelState extends State<DebugPanel> {
       final response = await http
           .get(pingUri)
           .timeout(const Duration(seconds: 5));
-      armsLog('Ping response: ${response.statusCode}');
       if (mounted) {
         setState(() {
           if (response.statusCode == 200) {
@@ -186,8 +184,6 @@ class _DebugPanelState extends State<DebugPanel> {
         });
       }
     } catch (e) {
-      armsLog('Ping error: $e');
-
       if (mounted) {
         setState(() {
           _pingMessage =
@@ -319,7 +315,7 @@ class _DebugPanelState extends State<DebugPanel> {
                                   backgroundColor: AppColors.successText,
                                   foregroundColor: Colors.white,
                                   disabledBackgroundColor: AppColors.successText
-                                      .withOpacity(0.6),
+                                      .withValues(alpha: 0.6),
                                 ),
                                 child:
                                     _isPinging
@@ -653,7 +649,7 @@ class _DebugPanelState extends State<DebugPanel> {
 }
 
 class _LogGroup {
-  _LogGroup({required this.request, this.response, this.error});
+  _LogGroup({required this.request});
 
   DebugLog request;
   DebugLog? response;

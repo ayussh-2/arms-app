@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'core/theme/app_theme.dart';
@@ -72,4 +71,3 @@ class _ArmsAppState extends State<ArmsApp> {
     );
   }
 }
-

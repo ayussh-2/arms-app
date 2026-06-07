@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'package:gql_http_link/gql_http_link.dart';
-import 'package:graphql/client.dart';
+import 'package:graphql_flutter/graphql_flutter.dart';
 import 'debug_service.dart';
 
 /// Custom HTTP Link with built-in logging for network requests and responses
@@ -8,9 +7,9 @@ class LoggingHttpLink extends HttpLink {
   final DebugService debugService;
 
   LoggingHttpLink(
-    String uri, {
+    super.uri, {
     required this.debugService,
-  }) : super(uri);
+  });
 
   @override
   Stream<Response> request(
