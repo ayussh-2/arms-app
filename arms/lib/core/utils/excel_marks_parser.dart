@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:excel_plus/excel_plus.dart';
+import 'package:excel/excel.dart';
 
 class ExcelMarksParser {
   static String normalizeRollNo(String? raw) {
@@ -20,8 +20,19 @@ class ExcelMarksParser {
     return null;
   }
 
-  /// Parses the uploaded Excel bytes, applies mapping validation, and returns a Map containing preview details.
-  /// Throws Exception on validation errors.
+  static String _getCellValue(Data? cell) {
+    if (cell == null || cell.value == null) return '';
+    final val = cell.value;
+    
+    if (val is TextCellValue) return val.value.toString();
+    if (val is IntCellValue) return val.value.toString();
+    if (val is DoubleCellValue) return val.value.toString();
+    if (val is BoolCellValue) return val.value.toString();
+    
+    return val.toString();
+  }
+
+  
   static Map<String, dynamic> parseExcelMarks({
     required Uint8List fileBytes,
     required Map<String, String> columnMapping,
@@ -79,8 +90,8 @@ class ExcelMarksParser {
       throw Exception('Column C header must be Roll No');
     }
 
-    final colCValue =
-        headerRow[2]?.value?.toString().trim().toLowerCase() ?? '';
+    // UPDATED: Using _getCellValue
+    final colCValue = _getCellValue(headerRow[2]).trim().toLowerCase();
     if (!colCValue.contains('roll no') && !colCValue.contains('rollno')) {
       throw Exception('Column C header must be Roll No');
     }
@@ -94,7 +105,7 @@ class ExcelMarksParser {
         if (headerRow.length <= colIdx ||
             headerRow[colIdx] == null ||
             headerRow[colIdx]!.value == null ||
-            headerRow[colIdx]!.value.toString().trim().isEmpty) {
+            _getCellValue(headerRow[colIdx]).trim().isEmpty) { // UPDATED
           throw Exception('Expected score headers in column $colLetter');
         }
       }
@@ -114,13 +125,15 @@ class ExcelMarksParser {
       final row = sheet.rows[rowIndex];
       if (row.length <= 2) continue; // Skip empty rows
 
-      final rollNoRaw = row[2]?.value?.toString();
-      if (rollNoRaw == null || rollNoRaw.trim().isEmpty) continue;
+      // UPDATED: Using _getCellValue
+      final rollNoRaw = _getCellValue(row[2]);
+      if (rollNoRaw.trim().isEmpty) continue;
 
       final rollNo = normalizeRollNo(rollNoRaw);
       parsedRollNos.add(rollNo);
-      final nameInExcel =
-          row.length > 1 ? (row[1]?.value?.toString() ?? '') : '';
+      
+      // UPDATED: Using _getCellValue
+      final nameInExcel = row.length > 1 ? _getCellValue(row[1]) : '';
 
       // Match student
       final student = students.firstWhere(
@@ -152,8 +165,9 @@ class ExcelMarksParser {
         final colIdx = colIndices[colLetter]!;
         if (row.length <= colIdx) continue;
 
-        final cellVal = row[colIdx]?.value?.toString().trim();
-        if (cellVal == null || cellVal.isEmpty) continue;
+        // UPDATED: Using _getCellValue
+        final cellVal = _getCellValue(row[colIdx]).trim();
+        if (cellVal.isEmpty) continue;
 
         final numericVal = double.tryParse(cellVal);
         if (numericVal == null || !numericVal.isFinite) {

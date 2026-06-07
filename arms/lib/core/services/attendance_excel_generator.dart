@@ -1,4 +1,4 @@
-import 'package:excel_plus/excel_plus.dart' hide Border;
+import 'package:excel/excel.dart' hide Border;
 import '../utils/attendance_html_generator.dart';
 import 'attendance_report_service.dart';
 

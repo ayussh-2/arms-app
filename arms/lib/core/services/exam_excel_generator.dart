@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:excel_plus/excel_plus.dart' hide Border;
+import 'package:excel/excel.dart' hide Border;
 import 'package:file_picker/file_picker.dart';
 import '../graphql/queries.dart';
 import '../auth/auth_service.dart';

@@ -6,6 +6,7 @@ import '../core/theme/app_spacing.dart';
 import '../core/graphql/queries.dart';
 import '../core/auth/auth_service.dart';
 import '../widgets/arms_input_field.dart';
+import '../widgets/arms_top_app_bar.dart';
 
 /// Queries the admins list from the backend for authentication.
 class LoginScreen extends StatefulWidget {
@@ -99,6 +100,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: ArmsTopAppBar(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: AppColors.textSecondary),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
