@@ -1,14 +1,44 @@
 flags=--android-skip-build-dependency-validation
+
+APP_DIR=arms
+
+# Update these from your phone
+PAIR_IP=192.168.29.66:39423
+CONNECT_IP=192.168.29.66:40513
+
 dev:
-	cd arms && flutter run ${flags}
+	cd $(APP_DIR) && flutter run $(flags)
+
 build:
-	cd arms && flutter build apk --release -v
+	cd $(APP_DIR) && flutter build apk --release
 
 install:
-	cd arms/build/app/outputs/flutter-apk && adb install app-release.apk
+	adb install $(APP_DIR)/build/app/outputs/flutter-apk/app-release.apk
 
 clean:
-	cd arms && flutter clean
+	cd $(APP_DIR) && flutter clean
 
 update:
-	cd arms && flutter pub get
+	cd $(APP_DIR) && flutter pub get
+
+pair:
+	adb pair $(PAIR_IP)
+
+connect:
+	adb connect $(CONNECT_IP)
+
+devices:
+	adb devices
+	flutter devices
+
+wireless: connect devices
+
+disconnect:
+	adb disconnect
+
+logs:
+	adb logcat
+
+restart-adb:
+	adb kill-server
+	adb start-server

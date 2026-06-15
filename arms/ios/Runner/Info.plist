@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>ARMS needs camera access to capture student profile pictures.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ARMS needs gallery access to upload student profile pictures.</string>
 </dict>
 </plist>
