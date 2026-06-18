@@ -23,24 +23,41 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history and tags
+          fetch-depth: 0
 
       - name: Bump Version
         id: extract_version
         run: |
           # Read current version
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-          VERSION_NAME="${VERSION%+*}"
-          BUILD_NUMBER="${VERSION#*+}"
           
-          # Increment build number
-          NEW_BUILD=$((BUILD_NUMBER + 1))
+          # Separate version name and build number
+          if [[ "$VERSION" == *"+"* ]]; then
+            VERSION_NAME="${VERSION%+*}"
+            BUILD_NUMBER="${VERSION#*+}"
+          else
+            VERSION_NAME="$VERSION"
+            BUILD_NUMBER=""
+          fi
           
-          # Increment patch version
-          MAJOR=$(echo $VERSION_NAME | cut -d. -f1)
-          MINOR=$(echo $VERSION_NAME | cut -d. -f2)
-          PATCH=$(echo $VERSION_NAME | cut -d. -f3)
+          # Parse components using IFS
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
+          
+          # Ensure numbers are valid, default to defaults if empty
+          MAJOR=${MAJOR:-1}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
+          
+          # Increment patch
           NEW_PATCH=$((PATCH + 1))
+          
+          # Handle build number: ensure it's an integer, or default to 1
+          if [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            NEW_BUILD=$((BUILD_NUMBER + 1))
+          else
+            NEW_BUILD=1
+          fi
+          
           NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH+$NEW_BUILD"
           NEW_TAG="v$MAJOR.$MINOR.$NEW_PATCH"
           
@@ -92,7 +109,7 @@ jobs:
         if: steps.check_tag.outputs.exists == 'false'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.x' # Matches your local Flutter SDK version
+          flutter-version: '3.44.x'
           channel: 'stable'
           cache: true
 
