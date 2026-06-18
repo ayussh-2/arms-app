@@ -303,11 +303,9 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
       });
 
       // Clear the network image cache for the updated URLs so Flutter fetches the new files
-      if (uploadedImageUrl != null) {
-        final fullUrl = ImageUrlHelper.sanitizeUrl(uploadedImageUrl);
-        if (fullUrl != null) {
-          NetworkImage(fullUrl).evict();
-        }
+      final fullUrl = ImageUrlHelper.sanitizeUrl(uploadedImageUrl);
+      if (fullUrl != null) {
+        NetworkImage(fullUrl).evict();
       }
       if (uploadedThumbnailUrl != null) {
         final thumbUrl = ImageUrlHelper.sanitizeUrl(uploadedThumbnailUrl);
@@ -342,7 +340,7 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
           await thumbnailJpegFile.delete();
         }
       } catch (cleanupError) {
-        print('Error cleaning up temp image files: $cleanupError');
+        debugPrint('Error cleaning up temp image files: $cleanupError');
       }
     }
   }

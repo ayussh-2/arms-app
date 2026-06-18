@@ -5,6 +5,7 @@ import 'dashboard_screen.dart';
 import 'attendance/attendance_config_screen.dart';
 import 'exams/exam_list_screen.dart';
 import 'student_photo_screen.dart';
+import '../core/services/ota_update_service.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
@@ -15,6 +16,14 @@ class ShellScreen extends StatefulWidget {
 
 class ShellScreenState extends State<ShellScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      OtaUpdateService.checkForUpdates(context);
+    });
+  }
 
   void switchTab(int index) {
     setState(() => _currentIndex = index);
