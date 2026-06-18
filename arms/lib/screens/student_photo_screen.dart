@@ -14,6 +14,8 @@ import '../widgets/arms_snackbar.dart';
 import '../widgets/arms_top_app_bar.dart';
 import 'student_photo/widgets/student_photo_capture_panel.dart';
 import 'student_photo/widgets/student_photo_search_panel.dart';
+import 'student_photo/student_camera_screen.dart';
+import 'student_photo/student_crop_screen.dart';
 
 class StudentPhotoScreen extends StatefulWidget {
   const StudentPhotoScreen({super.key, this.showBackButton = true});
@@ -107,21 +109,40 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
 
   Future<void> _capturePhoto(ImageSource source) async {
     try {
-      final XFile? file = await _imagePicker.pickImage(
-        source: source,
-        imageQuality: 85,
-        maxWidth: 800,
-        maxHeight: 800,
-      );
+      if (source == ImageSource.camera) {
+        final File? croppedFile = await Navigator.push<File>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const StudentCameraScreen(),
+          ),
+        );
+        if (croppedFile != null && mounted) {
+          setState(() {
+            _pickedImage = croppedFile;
+          });
+        }
+      } else {
+        final XFile? file = await _imagePicker.pickImage(
+          source: ImageSource.gallery,
+        );
 
-      if (file != null) {
-        setState(() {
-          _pickedImage = File(file.path);
-        });
+        if (file != null && mounted) {
+          final File? croppedFile = await Navigator.push<File>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StudentCropScreen(imageFile: File(file.path)),
+            ),
+          );
+          if (croppedFile != null && mounted) {
+            setState(() {
+              _pickedImage = croppedFile;
+            });
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
-        ArmsSnackbar.showError(context, 'Failed to pick image: $e');
+        ArmsSnackbar.showError(context, 'Failed to process photo: $e');
       }
     }
   }

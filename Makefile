@@ -2,9 +2,8 @@ flags=--android-skip-build-dependency-validation
 
 APP_DIR=arms
 
-# Update these from your phone
-PAIR_IP=192.168.29.66:39423
-CONNECT_IP=192.168.29.66:40513
+PAIR_IP=192.168.29.66:39149
+CONNECT_IP=192.168.29.66:37321
 
 dev:
 	cd $(APP_DIR) && flutter run $(flags)
