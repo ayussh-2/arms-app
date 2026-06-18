@@ -13,12 +13,20 @@ class StudentPhotoSearchPanel extends StatefulWidget {
     required this.isLoading,
     required this.searchResults,
     required this.onStudentSelected,
+    required this.onLoadMore,
+    required this.isLoadingMore,
+    required this.hasMore,
+    required this.initialQuery,
   });
 
   final ValueChanged<String> onSearch;
   final bool isLoading;
   final List<Map<String, dynamic>> searchResults;
   final ValueChanged<Map<String, dynamic>> onStudentSelected;
+  final VoidCallback onLoadMore;
+  final bool isLoadingMore;
+  final bool hasMore;
+  final String initialQuery;
 
   @override
   State<StudentPhotoSearchPanel> createState() => _StudentPhotoSearchPanelState();
@@ -26,13 +34,36 @@ class StudentPhotoSearchPanel extends StatefulWidget {
 
 class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
 
   @override
+  void initState() {
+    super.initState();
+    _controller.text = widget.initialQuery;
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     _debounce?.cancel();
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      widget.onLoadMore();
+    }
   }
 
   void _onChanged(String val) {
@@ -158,6 +189,8 @@ class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
       );
     }
 
+    final isSearchingFiltered = _controller.text.trim().isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -171,7 +204,9 @@ class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Text(
-            'Search Results (${widget.searchResults.length})',
+            isSearchingFiltered
+                ? 'Search Results (${widget.searchResults.length})'
+                : 'All Students',
             style: AppTextStyles.labelXsUppercase.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -180,9 +215,27 @@ class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
         const SizedBox(height: 8),
         Expanded(
           child: ListView.separated(
-            itemCount: widget.searchResults.length,
+            controller: _scrollController,
+            itemCount: widget.searchResults.length + (widget.hasMore ? 1 : 0),
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
+              if (index == widget.searchResults.length) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: widget.isLoadingMore
+                          ? const CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
+                );
+              }
               final student = widget.searchResults[index];
               return _buildStudentTile(student);
             },
@@ -192,12 +245,8 @@ class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
     );
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
-    final isQueryEmpty = _controller.text.trim().isEmpty;
-
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.marginPage,
@@ -206,10 +255,10 @@ class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Field - Fixed at index 0 to preserve focus and keyboard state
+          // Search Field
           TextField(
             key: const ValueKey('search_text_field'),
-            autofocus: true,
+            focusNode: _focusNode,
             controller: _controller,
             style: AppTextStyles.bodyMedium,
             textInputAction: TextInputAction.search,
@@ -244,9 +293,7 @@ class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
 
           // Search content area (Welcome Guide or Search Results)
           Expanded(
-            child: !isQueryEmpty
-                ? _buildResultsSection()
-                : const SizedBox.shrink(),
+            child: _buildResultsSection(),
           ),
         ],
       ),

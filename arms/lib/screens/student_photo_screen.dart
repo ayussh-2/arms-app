@@ -35,25 +35,41 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
   bool _isUploading = false;
   List<Map<String, dynamic>> _searchResults = [];
 
-  Future<void> _searchStudents(String query) async {
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  String _currentQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStudents(isRefresh: true);
+    });
+  }
+
+  Future<void> _loadStudents({bool isRefresh = false}) async {
+    if (isRefresh) {
+      setState(() {
+        _currentPage = 1;
+        _hasMore = true;
+        _searchResults = [];
+        _isSearching = true;
+      });
+    } else {
+      if (!_hasMore || _isLoadingMore || _isSearching) return;
+      setState(() {
+        _isLoadingMore = true;
+      });
+    }
+
     final orgId = AuthService.currentAdmin?.organization?.id;
     if (orgId == null) {
-      ArmsSnackbar.showError(context, 'Organization session not found. Please log in again.');
+      if (mounted) {
+        ArmsSnackbar.showError(context, 'Organization session not found. Please log in again.');
+      }
       return;
     }
-
-    final trimmedQuery = query.trim();
-    if (trimmedQuery.isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-    });
 
     try {
       final client = GraphQLProvider.of(context).value;
@@ -62,15 +78,15 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
           document: gql(GqlQueries.getPaginatedStudents),
           variables: {
             'organisationId': orgId,
-            'searchQuery': trimmedQuery,
-            'page': 1,
-            'limit': 20,
+            'searchQuery': _currentQuery.trim(),
+            'page': _currentPage,
+            'limit': 10,
           },
           fetchPolicy: FetchPolicy.networkOnly,
         ),
       ).timeout(
         const Duration(seconds: 10),
-        onTimeout: () => throw TimeoutException('Search request timed out after 10s.'),
+        onTimeout: () => throw TimeoutException('Request timed out after 10s.'),
       );
 
       if (!mounted) return;
@@ -78,26 +94,46 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
       if (result.hasException) {
         setState(() {
           _isSearching = false;
+          _isLoadingMore = false;
         });
-        ArmsSnackbar.showError(context, 'Search failed: ${result.exception.toString()}');
+        ArmsSnackbar.showError(context, 'Failed to load students: ${result.exception.toString()}');
         return;
       }
 
       final studentList = result.data?['getPaginatedStudents']?['students'] as List? ?? [];
+      final newStudents = List<Map<String, dynamic>>.from(
+        studentList.map((s) => Map<String, dynamic>.from(s as Map)),
+      );
+
       setState(() {
-        _searchResults = List<Map<String, dynamic>>.from(
-          studentList.map((s) => Map<String, dynamic>.from(s as Map)),
-        );
-        _isSearching = false;
+        if (isRefresh) {
+          _searchResults = newStudents;
+          _isSearching = false;
+        } else {
+          _searchResults.addAll(newStudents);
+          _isLoadingMore = false;
+        }
+        
+        if (newStudents.length < 10) {
+          _hasMore = false;
+        } else {
+          _currentPage++;
+        }
       });
     } catch (e) {
       if (mounted) {
         setState(() {
           _isSearching = false;
+          _isLoadingMore = false;
         });
-        ArmsSnackbar.showError(context, 'Error searching student: $e');
+        ArmsSnackbar.showError(context, 'Error loading students: $e');
       }
     }
+  }
+
+  Future<void> _searchStudents(String query) async {
+    _currentQuery = query;
+    await _loadStudents(isRefresh: true);
   }
 
   void _onStudentSelected(Map<String, dynamic> student) {
@@ -256,7 +292,10 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
         _pickedImage = null;
         _searchResults = [];
         _isUploading = false;
+        _currentQuery = '';
       });
+
+      _loadStudents(isRefresh: true);
 
       ArmsSnackbar.showSuccess(context, 'Student photo updated successfully!');
     } catch (e) {
@@ -299,7 +338,9 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
           _selectedStudent = null;
           _pickedImage = null;
           _searchResults = [];
+          _currentQuery = '';
         });
+        _loadStudents(isRefresh: true);
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -324,7 +365,9 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
                     _selectedStudent = null;
                     _pickedImage = null;
                     _searchResults = [];
+                    _currentQuery = '';
                   });
+                  _loadStudents(isRefresh: true);
                 },
                 onCapturePhoto: _capturePhoto,
                 onUploadAndAssignPhoto: _uploadAndAssignPhoto,
@@ -339,6 +382,9 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
                 isLoading: _isSearching,
                 searchResults: _searchResults,
                 onStudentSelected: _onStudentSelected,
+                onLoadMore: () => _loadStudents(isRefresh: false),
+                isLoadingMore: _isLoadingMore,
+                hasMore: _hasMore,
               ),
       ),
     );
