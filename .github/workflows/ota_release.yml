@@ -25,13 +25,39 @@ jobs:
         with:
           fetch-depth: 0 # Fetch all history and tags
 
-      - name: Extract Version
+      - name: Bump Version
         id: extract_version
         run: |
+          # Read current version
           VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-          TAG_VERSION="v${VERSION%+*}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$TAG_VERSION" >> $GITHUB_OUTPUT
+          VERSION_NAME="${VERSION%+*}"
+          BUILD_NUMBER="${VERSION#*+}"
+          
+          # Increment build number
+          NEW_BUILD=$((BUILD_NUMBER + 1))
+          
+          # Increment patch version
+          MAJOR=$(echo $VERSION_NAME | cut -d. -f1)
+          MINOR=$(echo $VERSION_NAME | cut -d. -f2)
+          PATCH=$(echo $VERSION_NAME | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH+$NEW_BUILD"
+          NEW_TAG="v$MAJOR.$MINOR.$NEW_PATCH"
+          
+          # Write back to pubspec.yaml
+          sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Commit Version Bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml
+          git commit -m "chore: bump version to ${{ steps.extract_version.outputs.version }} [skip ci]"
+          git push origin main
         shell: bash
 
       - name: Check if Tag Exists
