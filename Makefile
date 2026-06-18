@@ -6,17 +6,16 @@ KEYSTORE_NAME=keys/arms-release.jks
 KEY_ALIAS=arms-key
 
 PAIR_IP=192.168.29.66:39149
-CONNECT_IP=192.168.29.66:37725
+CONNECT_IP=192.168.29.66:45951
 
 dev:
 	cd $(APP_DIR) && flutter run $(flags)
 
 build:
-	cd $(APP_DIR) && flutter build apk --release
+	cd $(APP_DIR) && flutter build apk --release --split-per-abi
 
 install:
-	adb install $(APP_DIR)/build/app/outputs/flutter-apk/app-release.apk
-
+	adb install $(APP_DIR)/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 clean:
 	cd $(APP_DIR) && flutter clean
 
