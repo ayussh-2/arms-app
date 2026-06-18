@@ -16,6 +16,7 @@ import 'student_photo/widgets/student_photo_capture_panel.dart';
 import 'student_photo/widgets/student_photo_search_panel.dart';
 import 'student_photo/student_camera_screen.dart';
 import 'package:image_cropper/image_cropper.dart';
+import '../core/utils/image_url_helper.dart';
 
 class StudentPhotoScreen extends StatefulWidget {
   const StudentPhotoScreen({super.key, this.showBackButton = true});
@@ -288,14 +289,32 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
       if (!mounted) return;
 
       setState(() {
+        // Update the student's image URL locally in the list in-place
+        final rNo = student['roll_no'];
+        for (var s in _searchResults) {
+          if (s['roll_no'] == rNo) {
+            s['image_url'] = uploadedImageUrl;
+            break;
+          }
+        }
         _selectedStudent = null;
         _pickedImage = null;
-        _searchResults = [];
         _isUploading = false;
-        _currentQuery = '';
       });
 
-      _loadStudents(isRefresh: true);
+      // Clear the network image cache for the updated URLs so Flutter fetches the new files
+      if (uploadedImageUrl != null) {
+        final fullUrl = ImageUrlHelper.sanitizeUrl(uploadedImageUrl);
+        if (fullUrl != null) {
+          NetworkImage(fullUrl).evict();
+        }
+      }
+      if (uploadedThumbnailUrl != null) {
+        final thumbUrl = ImageUrlHelper.sanitizeUrl(uploadedThumbnailUrl);
+        if (thumbUrl != null) {
+          NetworkImage(thumbUrl).evict();
+        }
+      }
 
       ArmsSnackbar.showSuccess(context, 'Student photo updated successfully!');
     } catch (e) {
@@ -337,10 +356,7 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
         setState(() {
           _selectedStudent = null;
           _pickedImage = null;
-          _searchResults = [];
-          _currentQuery = '';
         });
-        _loadStudents(isRefresh: true);
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
@@ -364,10 +380,7 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
                   setState(() {
                     _selectedStudent = null;
                     _pickedImage = null;
-                    _searchResults = [];
-                    _currentQuery = '';
                   });
-                  _loadStudents(isRefresh: true);
                 },
                 onCapturePhoto: _capturePhoto,
                 onUploadAndAssignPhoto: _uploadAndAssignPhoto,
@@ -385,6 +398,7 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
                 onLoadMore: () => _loadStudents(isRefresh: false),
                 isLoadingMore: _isLoadingMore,
                 hasMore: _hasMore,
+                initialQuery: _currentQuery,
               ),
       ),
     );
