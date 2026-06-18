@@ -46,6 +46,8 @@ dependencies:
   path_provider: ^2.1.5
   camera: ^0.12.0+1
   image_cropper: ^12.2.1
+  package_info_plus: ^9.0.1
+  ota_update: ^7.1.0
 
 dev_dependencies:
   flutter_test:

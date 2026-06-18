@@ -1,0 +1,100 @@
+name: Build & Publish OTA Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'arms/pubspec.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Release Android APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: arms
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history and tags
+
+      - name: Extract Version
+        id: extract_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          TAG_VERSION="v${VERSION%+*}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG_VERSION" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Check if Tag Exists
+        id: check_tag
+        run: |
+          TAG="${{ steps.extract_version.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag $TAG already exists."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Tag $TAG does not exist. Proceeding with build and release."
+          fi
+        shell: bash
+
+      - name: Create Git Tag
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.extract_version.outputs.tag }}
+          git push origin ${{ steps.extract_version.outputs.tag }}
+
+      - name: Set up Java
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.x' # Matches your local Flutter SDK version
+          channel: 'stable'
+          cache: true
+
+      - name: Get Dependencies
+        if: steps.check_tag.outputs.exists == 'false'
+        run: flutter pub get
+
+      - name: Build Release APK
+        if: steps.check_tag.outputs.exists == 'false'
+        run: flutter build apk --release --split-per-abi
+
+      - name: Rename APK for Release
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk build/app/outputs/flutter-apk/arms-armeabi-v7a.apk
+          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk build/app/outputs/flutter-apk/arms-arm64-v8a.apk
+          mv build/app/outputs/flutter-apk/app-x86_64-release.apk build/app/outputs/flutter-apk/arms-x86_64.apk
+
+      - name: Create GitHub Release & Upload Assets
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.extract_version.outputs.tag }}
+          name: Release ${{ steps.extract_version.outputs.tag }}
+          files: |
+            arms/build/app/outputs/flutter-apk/arms-armeabi-v7a.apk
+            arms/build/app/outputs/flutter-apk/arms-arm64-v8a.apk
+            arms/build/app/outputs/flutter-apk/arms-x86_64.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

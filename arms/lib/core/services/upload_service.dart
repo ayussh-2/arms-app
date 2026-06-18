@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../debug/debug_service.dart';
 
@@ -184,10 +185,10 @@ class UploadService {
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
-        print('Cleanup of orphaned uploads failed: ${response.statusCode} - ${response.body}');
+        debugPrint('Cleanup of orphaned uploads failed: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('Error cleaning up orphaned uploads: $e');
+      debugPrint('Error cleaning up orphaned uploads: $e');
     }
   }
 
