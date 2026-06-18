@@ -62,10 +62,15 @@ class _StudentCameraScreenState extends State<StudentCameraScreen> with WidgetsB
         return;
       }
       
-      // Default to the front-facing camera for portraits if available, otherwise back/first.
+      // Default to the BACK camera first, fallback to front.
       _selectedCameraIndex = _cameras.indexWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.front,
+        (camera) => camera.lensDirection == CameraLensDirection.back,
       );
+      if (_selectedCameraIndex == -1) {
+        _selectedCameraIndex = _cameras.indexWhere(
+          (camera) => camera.lensDirection == CameraLensDirection.front,
+        );
+      }
       if (_selectedCameraIndex == -1) {
         _selectedCameraIndex = 0;
       }
@@ -163,8 +168,10 @@ class _StudentCameraScreenState extends State<StudentCameraScreen> with WidgetsB
 
       // 2. Decode the raw photo in memory
       final bytes = await file.readAsBytes();
-      final image = img.decodeImage(bytes);
-      if (image == null) throw Exception('Failed to decode captured image.');
+      final rawImage = img.decodeImage(bytes);
+      if (rawImage == null) throw Exception('Failed to decode captured image.');
+
+      final image = img.bakeOrientation(rawImage);
 
       // 3. Center crop to 1:1 square
       final int width = image.width;
@@ -241,55 +248,84 @@ class _StudentCameraScreenState extends State<StudentCameraScreen> with WidgetsB
           ? const Center(
               child: CircularProgressIndicator(color: Colors.white),
             )
-          : Stack(
-              children: [
-                Column(
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final double widthLimit = constraints.maxWidth;
+                final double heightLimit = constraints.maxHeight;
+
+                // rawRatio of the camera is width / height in landscape (usually 4/3 or 16/9, i.e. > 1.0)
+                final double cameraRatio = _controller!.value.aspectRatio;
+                // For portrait rendering, the aspect ratio of the widget should be inverted (i.e. < 1.0)
+                final double previewRatio = 1 / cameraRatio;
+
+                // Scale the preview size so it fills the available screen space without squishing
+                double previewWidth = widthLimit;
+                double previewHeight = widthLimit / previewRatio;
+
+                if (previewHeight < heightLimit) {
+                  previewHeight = heightLimit;
+                  previewWidth = heightLimit * previewRatio;
+                }
+
+                final double leftOffset = (widthLimit - previewWidth) / 2;
+                final double topOffset = (heightLimit - previewHeight) / 2;
+
+                return Stack(
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                      child: Text(
-                        'Align student\'s face in the center of the grid',
-                        textAlign: TextAlign.center,
+                    // 1. Center cropped full-screen/full-body camera feed
+                    Positioned(
+                      left: leftOffset,
+                      top: topOffset,
+                      width: previewWidth,
+                      height: previewHeight,
+                      child: CameraPreview(_controller!),
+                    ),
+
+                    // 2. Dark overlay with transparent center cutout hole
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: CustomPaint(
+                          painter: HolePainter(holeSize: viewportSize),
+                        ),
                       ),
                     ),
-                    Expanded(
-                      child: Center(
+
+                    // 3. Grid overlay inside the active crop viewport
+                    Center(
+                      child: IgnorePointer(
                         child: Container(
                           width: viewportSize,
                           height: viewportSize,
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.white, width: 2),
                           ),
-                          child: Stack(
-                            children: [
-                              // 1:1 Camera Preview
-                              ClipRect(
-                                child: SizedOverflowBox(
-                                  size: Size(viewportSize, viewportSize),
-                                  alignment: Alignment.center,
-                                  child: SizedBox(
-                                    width: viewportSize,
-                                    height: viewportSize / _controller!.value.aspectRatio,
-                                    child: CameraPreview(_controller!),
-                                  ),
-                                ),
-                              ),
-                              // 3x3 Grid Overlay
-                              IgnorePointer(
-                                child: CustomPaint(
-                                  size: Size(viewportSize, viewportSize),
-                                  painter: GridPainter(),
-                                ),
-                              ),
-                            ],
+                          child: CustomPaint(
+                            size: Size(viewportSize, viewportSize),
+                            painter: GridPainter(),
                           ),
                         ),
                       ),
                     ),
-                    // Bottom Controls Panel
-                    Container(
-                      padding: const EdgeInsets.only(bottom: 48, top: 24),
+
+                    // 4. Instructional Text Overlay at top
+                    const Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 20,
+                      child: IgnorePointer(
+                        child: Text(
+                          'Align student\'s face in the center of the grid',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                      ),
+                    ),
+
+                    // 5. Shutter and control buttons overlay at bottom
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 48,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -330,14 +366,14 @@ class _StudentCameraScreenState extends State<StudentCameraScreen> with WidgetsB
                               ),
                             ),
                           ),
-                          // Placeholder to balance the layout
+                          // Balanced UI placeholder
                           const SizedBox(width: 48),
                         ],
                       ),
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
     );
   }
@@ -361,4 +397,31 @@ class GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class HolePainter extends CustomPainter {
+  HolePainter({required this.holeSize});
+  final double holeSize;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double left = (size.width - holeSize) / 2;
+    final double top = (size.height - holeSize) / 2;
+
+    // Draw dark transparent overlay with cutout using PathFillType.evenOdd
+    final Path path = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addRect(Rect.fromLTWH(left, top, holeSize, holeSize));
+
+    path.fillType = PathFillType.evenOdd;
+
+    final paint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.7)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant HolePainter oldDelegate) => oldDelegate.holeSize != holeSize;
 }

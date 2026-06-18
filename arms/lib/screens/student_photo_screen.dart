@@ -15,7 +15,7 @@ import '../widgets/arms_top_app_bar.dart';
 import 'student_photo/widgets/student_photo_capture_panel.dart';
 import 'student_photo/widgets/student_photo_search_panel.dart';
 import 'student_photo/student_camera_screen.dart';
-import 'student_photo/student_crop_screen.dart';
+import 'package:image_cropper/image_cropper.dart';
 
 class StudentPhotoScreen extends StatefulWidget {
   const StudentPhotoScreen({super.key, this.showBackButton = true});
@@ -127,15 +127,33 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
         );
 
         if (file != null && mounted) {
-          final File? croppedFile = await Navigator.push<File>(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StudentCropScreen(imageFile: File(file.path)),
-            ),
+          final croppedFile = await ImageCropper().cropImage(
+            sourcePath: file.path,
+            aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+            uiSettings: [
+              AndroidUiSettings(
+                toolbarTitle: 'Crop Student Photo',
+                toolbarColor: AppColors.primary,
+                toolbarWidgetColor: Colors.white,
+                initAspectRatio: CropAspectRatioPreset.square,
+                lockAspectRatio: true,
+                aspectRatioPresets: [
+                  CropAspectRatioPreset.square,
+                ],
+              ),
+              IOSUiSettings(
+                title: 'Crop Student Photo',
+                aspectRatioLockEnabled: true,
+                resetAspectRatioEnabled: false,
+                aspectRatioPresets: [
+                  CropAspectRatioPreset.square,
+                ],
+              ),
+            ],
           );
           if (croppedFile != null && mounted) {
             setState(() {
-              _pickedImage = croppedFile;
+              _pickedImage = File(croppedFile.path);
             });
           }
         }
