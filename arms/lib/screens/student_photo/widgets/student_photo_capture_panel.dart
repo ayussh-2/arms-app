@@ -129,7 +129,7 @@ class StudentPhotoCapturePanel extends StatelessWidget {
                 ] else ...[
                   // Current photo
                   Text(
-                    hasCurrentImg ? 'CURRENT PROFILE PHOTO' : 'NO PROFILE PHOTO ASSIGNED',
+                    hasCurrentImg ? 'CURRENT PHOTO' : 'NO PROFILE PHOTO ASSIGNED',
                     style: AppTextStyles.labelXsUppercase,
                   ),
                   const SizedBox(height: 8),
