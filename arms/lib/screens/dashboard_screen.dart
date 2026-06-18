@@ -12,10 +12,12 @@ class DashboardScreen extends StatelessWidget {
     super.key,
     this.onNavigateToAttendance,
     this.onNavigateToExams,
+    this.onNavigateToPhotos,
   });
 
   final VoidCallback? onNavigateToAttendance;
   final VoidCallback? onNavigateToExams;
+  final VoidCallback? onNavigateToPhotos;
 
   Future<void> _showLogoutDialog(BuildContext context) async {
     return showDialog(
@@ -119,25 +121,96 @@ class DashboardScreen extends StatelessWidget {
             ],
             const SizedBox(height: AppSpacing.stackLg),
 
-            // Feature cards
-            ArmsDashboardButton(
-              title: 'Attendance',
-              description:
-                  'Mark today\'s attendance, manage student leaves, or compile monthly report sheets.',
-              icon: Icons.calendar_today,
-              iconBgColor: AppColors.accent,
-              onTap: () => onNavigateToAttendance?.call(),
-            ),
-            const SizedBox(height: AppSpacing.stackMd),
-            ArmsDashboardButton(
-              title: 'Exams',
-              description:
-                  'Conduct examinations, feed grades, and generate marks sheets.',
-              icon: Icons.assignment,
-              iconBgColor: AppColors.accent,
-              onTap: () => onNavigateToExams?.call(),
+            // Feature cards in a 2x2 Grid
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.15,
+              children: [
+                ArmsGridDashboardButton(
+                  title: 'Attendance',
+                  icon: Icons.calendar_today,
+                  iconColor: AppColors.accent,
+                  onTap: () => onNavigateToAttendance?.call(),
+                ),
+                ArmsGridDashboardButton(
+                  title: 'Exams',
+                  icon: Icons.assignment_outlined,
+                  iconColor: AppColors.accent,
+                  onTap: () => onNavigateToExams?.call(),
+                ),
+                ArmsGridDashboardButton(
+                  title: 'Photos',
+                  icon: Icons.photo_camera_front_outlined,
+                  iconColor: AppColors.accent,
+                  onTap: () => onNavigateToPhotos?.call(),
+                ),
+              ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ArmsGridDashboardButton extends StatelessWidget {
+  const ArmsGridDashboardButton({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.outline.withValues(alpha: 0.1),
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 24,
+                ),
+              ),
+              Text(
+                title,
+                style: AppTextStyles.headerSmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
