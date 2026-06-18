@@ -186,7 +186,7 @@ class StudentPhotoCapturePanel extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: () => onCapturePhoto(ImageSource.camera),
                         icon: const Icon(Icons.camera_alt_rounded),
-                        label: const Text('Take Photo'),
+                        label: const Text('Capture'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
@@ -204,7 +204,7 @@ class StudentPhotoCapturePanel extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: () => onCapturePhoto(ImageSource.gallery),
                         icon: const Icon(Icons.photo_library_rounded),
-                        label: const Text('From Gallery'),
+                        label: const Text('Gallery'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary),
@@ -244,7 +244,7 @@ class StudentPhotoCapturePanel extends StatelessWidget {
                       child: TextButton.icon(
                         onPressed: () => onCapturePhoto(ImageSource.camera),
                         icon: const Icon(Icons.replay_rounded),
-                        label: const Text('Retake Photo'),
+                        label: const Text('Recapture'),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.primary,
                         ),
