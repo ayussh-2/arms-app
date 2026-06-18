@@ -16,18 +16,12 @@ Thumbs.db
 /arms/android/local.properties
 /arms/ios/Flutter/ephemeral/
 
-# Node / backend
-/backend/node_modules/
-/backend/.env
-/backend/.env.*
-/backend/npm-debug.log
-/backend/yarn-error.log
-/backend/arms.db
-/backend/arms.db-journal
 
 # Misc
 *.log
 
 
-backend/
 temp/
+
+
+keys/

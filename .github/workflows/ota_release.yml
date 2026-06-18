@@ -73,9 +73,19 @@ jobs:
         if: steps.check_tag.outputs.exists == 'false'
         run: flutter pub get
 
+      - name: Decode Keystore
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/arms-release.jks
+
       - name: Build Release APK
         if: steps.check_tag.outputs.exists == 'false'
         run: flutter build apk --release --split-per-abi
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PATH: android/app/arms-release.jks
 
       - name: Rename APK for Release
         if: steps.check_tag.outputs.exists == 'false'
