@@ -149,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'GraphQL Server Endpoint',
+                                'Server Endpoint',
                                 style: AppTextStyles.labelXsUppercase.copyWith(
                                   fontSize: 10,
                                   color: AppColors.onSurfaceVariant.withValues(
