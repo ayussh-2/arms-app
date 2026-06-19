@@ -6,7 +6,7 @@ KEYSTORE_NAME=keys/arms-release.jks
 KEY_ALIAS=arms-key
 
 PAIR_IP=192.168.29.66:39149
-CONNECT_IP=192.168.29.66:45951
+CONNECT_IP=192.168.29.66:35045
 
 dev:
 	cd $(APP_DIR) && flutter run $(flags)
