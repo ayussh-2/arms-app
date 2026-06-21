@@ -50,6 +50,9 @@ class GqlQueries {
       $limit: Int
       $searchQuery: String
       $classId: ID
+      $schoolId: ID
+      $sectionId: ID
+      $havingPhoto: Boolean
     ) {
       getPaginatedStudents(
         organisationId: $organisationId
@@ -57,6 +60,9 @@ class GqlQueries {
         limit: $limit
         searchQuery: $searchQuery
         classId: $classId
+        schoolId: $schoolId
+        sectionId: $sectionId
+        havingPhoto: $havingPhoto
       ) {
         students {
           id

@@ -49,9 +49,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         setState(() {
           if (response.statusCode == 200) {
-            _pingMessage = '✓ API is responding (${response.statusCode})';
+            _pingMessage = 'OK Pong!';
           } else {
-            _pingMessage = '✗ API responded with ${response.statusCode}';
+            _pingMessage = 'Error API responded with ${response.statusCode}';
           }
           _isPinging = false;
         });
@@ -60,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         setState(() {
           _pingMessage =
-              '✗ Connection failed: ${e.toString().split(':').last.trim()}';
+              'Error Connection failed: ${e.toString().split(':').last.trim()}';
           _isPinging = false;
         });
       }
@@ -293,7 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color:
-                                        _pingMessage!.startsWith('✓')
+                                        _pingMessage!.startsWith('OK')
                                             ? AppColors.successBg
                                             : AppColors.errorBg,
                                     borderRadius: BorderRadius.circular(
@@ -303,12 +303,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   child: Row(
                                     children: [
                                       Icon(
-                                        _pingMessage!.startsWith('✓')
+                                        _pingMessage!.startsWith('OK')
                                             ? Icons.check_circle_outline
                                             : Icons.error_outline,
                                         size: 16,
                                         color:
-                                            _pingMessage!.startsWith('✓')
+                                            _pingMessage!.startsWith('OK')
                                                 ? AppColors.successText
                                                 : AppColors.errorText,
                                       ),
@@ -318,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           _pingMessage!,
                                           style: AppTextStyles.labelXs.copyWith(
                                             color:
-                                                _pingMessage!.startsWith('✓')
+                                                _pingMessage!.startsWith('OK')
                                                     ? AppColors.successText
                                                     : AppColors.errorText,
                                             fontWeight: FontWeight.w600,
