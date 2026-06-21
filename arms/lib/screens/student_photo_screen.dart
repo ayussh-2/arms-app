@@ -12,6 +12,7 @@ import '../core/services/upload_service.dart';
 import '../core/theme/app_colors.dart';
 import '../widgets/arms_snackbar.dart';
 import '../widgets/arms_top_app_bar.dart';
+import '../widgets/arms_picker_sheet.dart';
 import 'student_photo/widgets/student_photo_capture_panel.dart';
 import 'student_photo/widgets/student_photo_search_panel.dart';
 import 'student_photo/student_camera_screen.dart';
@@ -24,10 +25,10 @@ class StudentPhotoScreen extends StatefulWidget {
   final bool showBackButton;
 
   @override
-  State<StudentPhotoScreen> createState() => _StudentPhotoScreenState();
+  State<StudentPhotoScreen> createState() => StudentPhotoScreenState();
 }
 
-class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
+class StudentPhotoScreenState extends State<StudentPhotoScreen> {
   final ImagePicker _imagePicker = ImagePicker();
 
   bool _isSearching = false;
@@ -41,12 +42,202 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
   bool _isLoadingMore = false;
   String _currentQuery = '';
 
+  List<dynamic> _schools = [];
+  List<dynamic> _classes = [];
+  List<dynamic> _sections = [];
+  bool _hasLookupsFetched = false;
+
+  String? _selectedSchoolId;
+  String? _selectedSchoolName;
+  String? _selectedClassId;
+  String? _selectedClassName;
+  String? _selectedSectionId;
+  String? _selectedSectionName;
+  bool? _havingPhoto;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadStudents(isRefresh: true);
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLookupsFetched) {
+      _hasLookupsFetched = true;
+      _fetchLookups();
+    }
+  }
+
+  Future<void> _fetchLookups() async {
+    final admin = AuthService.currentAdmin;
+    final orgId = admin?.organization?.id;
+    if (orgId == null || orgId.isEmpty) {
+      if (mounted) {
+        ArmsSnackbar.showError(context, 'No organization associated with this account.');
+      }
+      return;
+    }
+
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getLookups),
+          variables: {'organisationId': orgId},
+          fetchPolicy: FetchPolicy.networkOnly,
+        ),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw TimeoutException('getLookups query timed out.'),
+      );
+
+      if (!mounted) return;
+
+      if (result.hasException) {
+        final errorMsg = 'Failed to load lookups: ${result.exception.toString()}';
+        debugPrint(errorMsg);
+        ArmsSnackbar.showError(context, errorMsg);
+        return;
+      }
+
+      final lookups = result.data?['getLookups'];
+      if (lookups == null) {
+        const errorMsg = 'No lookup data returned.';
+        ArmsSnackbar.showError(context, errorMsg);
+        return;
+      }
+
+      setState(() {
+        _schools = List.from(lookups['schools'] ?? []);
+        _classes = List.from(lookups['classes'] ?? []);
+        _sections = List.from(lookups['sections'] ?? []);
+      });
+    } catch (e) {
+      if (mounted) {
+        final errorMsg = 'Error fetching lookups: $e';
+        debugPrint(errorMsg);
+        ArmsSnackbar.showError(context, errorMsg);
+      }
+    }
+  }
+
+  void _showLookupPicker({
+    required String title,
+    required List<dynamic> items,
+    required String errorMsg,
+    required void Function(dynamic) onSelected,
+  }) {
+    if (items.isEmpty) {
+      ArmsSnackbar.showError(context, errorMsg);
+      return;
+    }
+    ArmsPickerSheet.show<dynamic>(
+      context: context,
+      title: title,
+      items: items,
+      itemLabel: (item) => item['name']?.toString() ?? '',
+      onItemSelected: onSelected,
+    );
+  }
+
+  void _onShowSchoolPicker() {
+    _showLookupPicker(
+      title: 'Select School',
+      items: _schools,
+      errorMsg: 'No schools found.',
+      onSelected: (item) {
+        setState(() {
+          _selectedSchoolId = item['id'];
+          _selectedSchoolName = item['name'];
+        });
+        _loadStudents(isRefresh: true);
+      },
+    );
+  }
+
+  void _onShowClassPicker() {
+    _showLookupPicker(
+      title: 'Select Class',
+      items: _classes,
+      errorMsg: 'No classes found.',
+      onSelected: (item) {
+        setState(() {
+          _selectedClassId = item['id'];
+          _selectedClassName = item['name'];
+        });
+        _loadStudents(isRefresh: true);
+      },
+    );
+  }
+
+  void _onShowSectionPicker() {
+    _showLookupPicker(
+      title: 'Select Section',
+      items: _sections,
+      errorMsg: 'No sections found.',
+      onSelected: (item) {
+        setState(() {
+          _selectedSectionId = item['id'];
+          _selectedSectionName = item['name'];
+        });
+        _loadStudents(isRefresh: true);
+      },
+    );
+  }
+
+  void _onHavingPhotoChanged(bool? value) {
+    setState(() {
+      _havingPhoto = value;
+    });
+    _loadStudents(isRefresh: true);
+  }
+
+  void _clearSchool() {
+    setState(() {
+      _selectedSchoolId = null;
+      _selectedSchoolName = null;
+    });
+    _loadStudents(isRefresh: true);
+  }
+
+  void _clearClass() {
+    setState(() {
+      _selectedClassId = null;
+      _selectedClassName = null;
+    });
+    _loadStudents(isRefresh: true);
+  }
+
+  void _clearSection() {
+    setState(() {
+      _selectedSectionId = null;
+      _selectedSectionName = null;
+    });
+    _loadStudents(isRefresh: true);
+  }
+
+  void _clearHavingPhoto() {
+    setState(() {
+      _havingPhoto = null;
+    });
+    _loadStudents(isRefresh: true);
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _selectedSchoolId = null;
+      _selectedSchoolName = null;
+      _selectedClassId = null;
+      _selectedClassName = null;
+      _selectedSectionId = null;
+      _selectedSectionName = null;
+      _havingPhoto = null;
+    });
+    _loadStudents(isRefresh: true);
   }
 
   Future<void> _loadStudents({bool isRefresh = false}) async {
@@ -82,6 +273,10 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
             'searchQuery': _currentQuery.trim(),
             'page': _currentPage,
             'limit': 10,
+            'classId': _selectedClassId,
+            'schoolId': _selectedSchoolId,
+            'sectionId': _selectedSectionId,
+            'havingPhoto': _havingPhoto,
           },
           fetchPolicy: FetchPolicy.networkOnly,
         ),
@@ -345,60 +540,100 @@ class _StudentPhotoScreenState extends State<StudentPhotoScreen> {
     }
   }
 
+  bool handleBack() {
+    if (_selectedStudent != null) {
+      setState(() {
+        _selectedStudent = null;
+        _pickedImage = null;
+      });
+      return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: _selectedStudent == null,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        setState(() {
-          _selectedStudent = null;
-          _pickedImage = null;
-        });
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: ArmsTopAppBar(
-          title: "Upload Student Photo",
-          leading: widget.showBackButton
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back, color: AppColors.textMain),
-                  onPressed: () {
+    final scaffold = Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: ArmsTopAppBar(
+        title: "Upload Student Photo",
+        leading: (widget.showBackButton || _selectedStudent != null)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: AppColors.textMain),
+                onPressed: () {
+                  if (_selectedStudent != null) {
+                    setState(() {
+                      _selectedStudent = null;
+                      _pickedImage = null;
+                    });
+                  } else {
                     Navigator.maybePop(context);
-                  },
-                )
-              : null,
-        ),
-        body: _selectedStudent != null
-            ? StudentPhotoCapturePanel(
-                selectedStudent: _selectedStudent!,
-                pickedImage: _pickedImage,
-                isUploading: _isUploading,
-                onBackPressed: () {
-                  setState(() {
-                    _selectedStudent = null;
-                    _pickedImage = null;
-                  });
-                },
-                onCapturePhoto: _capturePhoto,
-                onUploadAndAssignPhoto: _uploadAndAssignPhoto,
-                onDiscardPickedImage: () {
-                  setState(() {
-                    _pickedImage = null;
-                  });
+                  }
                 },
               )
-            : StudentPhotoSearchPanel(
-                onSearch: _searchStudents,
-                isLoading: _isSearching,
-                searchResults: _searchResults,
-                onStudentSelected: _onStudentSelected,
-                onLoadMore: () => _loadStudents(isRefresh: false),
-                isLoadingMore: _isLoadingMore,
-                hasMore: _hasMore,
-                initialQuery: _currentQuery,
-              ),
+            : null,
       ),
+      body: _selectedStudent != null
+          ? StudentPhotoCapturePanel(
+              selectedStudent: _selectedStudent!,
+              pickedImage: _pickedImage,
+              isUploading: _isUploading,
+              onBackPressed: () {
+                setState(() {
+                  _selectedStudent = null;
+                  _pickedImage = null;
+                });
+              },
+              onCapturePhoto: _capturePhoto,
+              onUploadAndAssignPhoto: _uploadAndAssignPhoto,
+              onDiscardPickedImage: () {
+                setState(() {
+                  _pickedImage = null;
+                });
+              },
+            )
+          : StudentPhotoSearchPanel(
+              onSearch: _searchStudents,
+              isLoading: _isSearching,
+              searchResults: _searchResults,
+              onStudentSelected: _onStudentSelected,
+              onLoadMore: () => _loadStudents(isRefresh: false),
+              isLoadingMore: _isLoadingMore,
+              hasMore: _hasMore,
+              initialQuery: _currentQuery,
+              schools: _schools,
+              classes: _classes,
+              sections: _sections,
+              selectedSchoolName: _selectedSchoolName,
+              selectedClassName: _selectedClassName,
+              selectedSectionName: _selectedSectionName,
+              havingPhoto: _havingPhoto,
+              onShowSchoolPicker: _onShowSchoolPicker,
+              onShowClassPicker: _onShowClassPicker,
+              onShowSectionPicker: _onShowSectionPicker,
+              onHavingPhotoChanged: _onHavingPhotoChanged,
+              onClearFilters: _clearFilters,
+              onClearSchool: _clearSchool,
+              onClearClass: _clearClass,
+              onClearSection: _clearSection,
+              onClearHavingPhoto: _clearHavingPhoto,
+            ),
     );
+
+    if (widget.showBackButton) {
+      return PopScope(
+        canPop: _selectedStudent == null,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          setState(() {
+            _selectedStudent = null;
+            _pickedImage = null;
+          });
+        },
+        child: scaffold,
+      );
+    }
+
+    return scaffold;
   }
 }

@@ -16,6 +16,7 @@ class ShellScreen extends StatefulWidget {
 
 class ShellScreenState extends State<ShellScreen> {
   int _currentIndex = 0;
+  final GlobalKey<StudentPhotoScreenState> _studentPhotoKey = GlobalKey<StudentPhotoScreenState>();
 
   @override
   void initState() {
@@ -34,6 +35,10 @@ class ShellScreenState extends State<ShellScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
+        if (_currentIndex == 3) {
+          final handled = _studentPhotoKey.currentState?.handleBack() ?? false;
+          if (handled) return;
+        }
         if (_currentIndex > 0) {
           switchTab(0);
         } else {
@@ -51,7 +56,10 @@ class ShellScreenState extends State<ShellScreen> {
             ),
             const AttendanceConfigScreen(),
             const ExamListScreen(),
-            const StudentPhotoScreen(showBackButton: false),
+            StudentPhotoScreen(
+              key: _studentPhotoKey,
+              showBackButton: false,
+            ),
           ],
         ),
         bottomNavigationBar: ArmsBottomNavBar(

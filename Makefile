@@ -4,15 +4,27 @@ APP_DIR=arms
 KEY_TOOL_DIR=D:/Softwares/Android/jbr/bin/keytool.exe
 KEYSTORE_NAME=keys/arms-release.jks
 KEY_ALIAS=arms-key
+BACKEND_DIR=D:/Projects/Personal/ARMS
 
 PAIR_IP=192.168.29.66:39149
-CONNECT_IP=192.168.29.66:35045
+CONNECT_IP=192.168.29.66:34005
+
+DEV_URL=http://192.168.29.188:6582/api/graphql
+PROD_URL=https://arms.pariksit.com/api/graphql
+
 
 dev:
-	cd $(APP_DIR) && flutter run $(flags)
+	cd $(APP_DIR) && flutter run --dart-define=BASE_API_URL=$(DEV_URL) $(flags)
+
+dev-prod:
+	cd $(APP_DIR) && flutter run --dart-define=BASE_API_URL=$(PROD_URL) $(flags)
+
+
+dev-server:
+	cd ${BACKEND_DIR} && bun dev
 
 build:
-	cd $(APP_DIR) && flutter build apk --release --split-per-abi
+	cd $(APP_DIR) && flutter build apk --release --split-per-abi --dart-define=BASE_API_URL=$(API_URL)
 
 install:
 	adb install $(APP_DIR)/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
