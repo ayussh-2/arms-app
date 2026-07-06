@@ -1,7 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:pdf/pdf.dart';
+import '../../core/utils/image_url_helper.dart';
+import '../../core/utils/image_compress_utils.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
@@ -38,7 +43,9 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   bool _isSaving = false;
   bool _hasAttachment = false;
   String? _attachmentPath;
+  String? _previewImagePath;
   bool _isAttachmentPdf = false;
+  bool _isProcessingAttachment = false;
 
   static const Map<String, String> leaveTypeMap = {
     'FEVER': 'fever',
@@ -115,7 +122,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
             if (imgUrl != null && imgUrl.isNotEmpty) {
               _hasAttachment = true;
               _attachmentPath = imgUrl;
-              _isAttachmentPdf = _attachmentPath!.toLowerCase().endsWith('.pdf');
+              _isAttachmentPdf = _checkIfPdf(imgUrl);
             }
           }
         }
@@ -175,27 +182,245 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     }
   }
 
-  Future<void> _pickAttachment() async {
+  Future<void> _showAttachmentSourceSelector() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.outline,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Attach Photo', style: AppTextStyles.headerSmall),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildSourceOption(
+                  icon: Icons.camera_alt_outlined,
+                  label: 'Camera',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                _buildSourceOption(
+                  icon: Icons.photo_library_outlined,
+                  label: 'Gallery',
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSourceOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: AppColors.cardSurface,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.outlineLight),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: AppTextStyles.labelXs.copyWith(color: AppColors.textMain)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    setState(() {
+      _isProcessingAttachment = true;
+    });
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
-      );
-      if (result != null && result.files.single.path != null) {
-        final file = result.files.single;
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(source: source);
+      
+      if (pickedFile != null) {
+        final File file = File(pickedFile.path);
+        // Process the image: compress if exceeds 500KB
+        final File compressedFile = await ImageCompressUtils.compressImageUnderSize(file);
+        
         setState(() {
           _hasAttachment = true;
-          _attachmentPath = file.path;
-          _isAttachmentPdf = file.extension?.toLowerCase() == 'pdf';
+          _attachmentPath = compressedFile.path;
+          _previewImagePath = compressedFile.path; // Show the compressed image itself in the preview
+          _isAttachmentPdf = false;
         });
+        
         if (mounted) {
-          ArmsSnackbar.showSuccess(context, 'File attached: ${file.name}');
+          ArmsSnackbar.showSuccess(context, 'Photo processed and compressed.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ArmsSnackbar.showError(context, 'Failed to select file: $e');
+        ArmsSnackbar.showError(context, 'Failed to process photo: $e');
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingAttachment = false;
+        });
+      }
+    }
+  }
+
+  bool _checkIfPdf(String path) {
+    try {
+      final uri = Uri.parse(path);
+      return uri.path.toLowerCase().endsWith('.pdf');
+    } catch (_) {
+      return path.toLowerCase().contains('.pdf');
+    }
+  }
+
+  Future<void> _openAttachment() async {
+    if (_attachmentPath == null) return;
+    
+    final isPdf = _isAttachmentPdf;
+    final path = _attachmentPath!;
+    
+    if (isPdf) {
+      try {
+        if (path.startsWith('http')) {
+          final uri = Uri.parse(path);
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          final file = File(path);
+          final exists = await file.exists();
+          if (!mounted) return;
+          if (exists) {
+            await Printing.layoutPdf(
+              onLayout: (PdfPageFormat format) async => file.readAsBytes(),
+              name: 'Leave Attachment',
+            );
+          } else {
+            ArmsSnackbar.showError(context, 'PDF file not found locally.');
+          }
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ArmsSnackbar.showError(context, 'Could not open PDF: $e');
+      }
+    } else {
+      // It's an image. Show full screen/zoomable image preview dialog!
+      showDialog(
+        context: context,
+        builder: (ctx) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(12),
+          child: Stack(
+            alignment: Alignment.topRight,
+            children: [
+              InteractiveViewer(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: path.startsWith('http')
+                      ? Image.network(
+                          ImageUrlHelper.sanitizeUrl(path) ?? path,
+                          fit: BoxFit.contain,
+                        )
+                      : Image.file(
+                          File(path),
+                          fit: BoxFit.contain,
+                        ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmRemoveAttachment() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
+          side: const BorderSide(color: AppColors.outlineLight),
+        ),
+        title: Text(
+          'Remove Attachment', 
+          style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)
+        ),
+        content: Text(
+          'Are you sure you want to remove this attachment?', 
+          style: AppTextStyles.bodyMedium
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel', 
+              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant)
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorText,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.roundEight)
+              ),
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() {
+        _hasAttachment = false;
+        _attachmentPath = null;
+        _previewImagePath = null;
+        _isAttachmentPdf = false;
+      });
     }
   }
 
@@ -450,15 +675,12 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
               LeaveApplyAttachmentSection(
                 hasAttachment: _hasAttachment,
                 attachmentPath: _attachmentPath,
+                previewImagePath: _previewImagePath,
                 isAttachmentPdf: _isAttachmentPdf,
-                onPickAttachment: _pickAttachment,
-                onRemoveAttachment: () {
-                  setState(() {
-                    _hasAttachment = false;
-                    _attachmentPath = null;
-                    _isAttachmentPdf = false;
-                  });
-                },
+                isProcessing: _isProcessingAttachment,
+                onPickAttachment: _showAttachmentSourceSelector,
+                onRemoveAttachment: _confirmRemoveAttachment,
+                onTapAttachment: _openAttachment,
               ),
               const SizedBox(height: AppSpacing.stackLg),
               Mutation(
