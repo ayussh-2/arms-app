@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
@@ -132,6 +134,30 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     _rejectedReasonController.dispose();
     _filteredStudents.clear();
     super.dispose();
+  }
+
+  Future<File> _processImageToJpeg(File sourceFile, {int? maxWidth, int? maxHeight, int quality = 85, required String suffix}) async {
+    final bytes = await sourceFile.readAsBytes();
+    final image = img.decodeImage(bytes);
+    if (image == null) {
+      throw Exception('Failed to decode image.');
+    }
+
+    img.Image resizedImage = image;
+    if (maxWidth != null || maxHeight != null) {
+      resizedImage = img.copyResize(
+        image,
+        width: maxWidth,
+        height: maxHeight,
+      );
+    }
+
+    final jpegBytes = img.encodeJpg(resizedImage, quality: quality);
+
+    final tempDir = await getTemporaryDirectory();
+    final tempFile = File('${tempDir.path}/temp_${suffix}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+    await tempFile.writeAsBytes(jpegBytes);
+    return tempFile;
   }
 
   Future<void> _pickFromDate() async {
@@ -494,6 +520,29 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                           String? leaveAttachmentUrl = _attachmentPath;
                                           
                                           if (_hasAttachment && _attachmentPath != null && !_attachmentPath!.startsWith('http')) {
+                                            final isImage = !_isAttachmentPdf && 
+                                                (_attachmentPath!.toLowerCase().endsWith('.jpg') || 
+                                                 _attachmentPath!.toLowerCase().endsWith('.jpeg') || 
+                                                 _attachmentPath!.toLowerCase().endsWith('.png'));
+
+                                            File fileToUpload = File(_attachmentPath!);
+                                            File? compressedImageFile;
+
+                                            if (isImage) {
+                                              try {
+                                                compressedImageFile = await _processImageToJpeg(
+                                                  fileToUpload,
+                                                  maxWidth: 800,
+                                                  maxHeight: 800,
+                                                  quality: 85,
+                                                  suffix: 'leave_attachment',
+                                                );
+                                                fileToUpload = compressedImageFile;
+                                              } catch (compressError) {
+                                                debugPrint('Error compressing attachment image: $compressError');
+                                              }
+                                            }
+
                                             final rollNo = _selectedStudent?['roll_no']?.toString() ?? 'unknown';
                                             final schoolName = _selectedStudent?['school']?['name']?.toString() ?? 'school';
                                             final className = _selectedStudent?['class']?['name']?.toString() ?? 'class';
@@ -522,10 +571,18 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                               apiUrlPath: '/api/leave-applications',
                                               organisationFolder: orgFolder,
                                               filenameBase: filenameBase,
-                                              file: File(_attachmentPath!),
+                                              file: fileToUpload,
                                             );
                                             
                                             leaveAttachmentUrl = uploadedUrl;
+
+                                            if (compressedImageFile != null && await compressedImageFile.exists()) {
+                                              try {
+                                                await compressedImageFile.delete();
+                                              } catch (cleanupError) {
+                                                debugPrint('Error cleaning up temp compressed file: $cleanupError');
+                                              }
+                                            }
                                           }
 
                                           final createRes = await runCreate({
