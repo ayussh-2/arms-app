@@ -14,7 +14,7 @@ import '../../widgets/arms_snackbar.dart';
 import 'widgets/mark_entry_grid.dart';
 import 'widgets/exam_config_header_panel.dart';
 import 'widgets/exam_reference_docs_section.dart';
-import 'excel_upload_modal.dart';
+import 'excel_upload_screen.dart';
 
 /// Mark entry screen matching mark-entry.html.
 /// Shows student cards with subject-wise mark inputs, absent toggle, reference documents,
@@ -483,19 +483,20 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     }
   }
 
-  Future<void> _openExcelUploadModal(BuildContext context) async {
+  Future<void> _openExcelUploadScreen(BuildContext context) async {
     if (_exam == null) return;
 
-    final Map<String, Map<String, String>>? importedMarks = await showDialog<Map<String, Map<String, String>>>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => ExcelMarksUploadModal(
-        exam: _exam!,
-        subjects: _subjects,
-        students: _students,
-        schoolsLookup: _schoolsLookup,
-        classesLookup: _classesLookup,
-        sectionsLookup: _sectionsLookup,
+    final Map<String, Map<String, String>>? importedMarks = await Navigator.push<Map<String, Map<String, String>>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExcelMarksUploadScreen(
+          exam: _exam!,
+          subjects: _subjects,
+          students: _students,
+          schoolsLookup: _schoolsLookup,
+          classesLookup: _classesLookup,
+          sectionsLookup: _sectionsLookup,
+        ),
       ),
     );
 
@@ -579,7 +580,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                           ),
                         ),
                         OutlinedButton.icon(
-                          onPressed: () => _openExcelUploadModal(context),
+                          onPressed: () => _openExcelUploadScreen(context),
                           icon: const Icon(Icons.upload_file, size: 16, color: AppColors.primary),
                           label: Text(
                             'UPLOAD EXCEL',

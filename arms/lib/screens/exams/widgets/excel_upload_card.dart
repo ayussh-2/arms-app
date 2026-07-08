@@ -16,10 +16,12 @@ class ExcelUploadCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
-      child: Padding(
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 2,
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,6 +43,7 @@ class ExcelUploadCard extends StatelessWidget {
               Text('Selected: $selectedFileName', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.successText)),
             ],
           ],
+        ),
         ),
       ),
     );

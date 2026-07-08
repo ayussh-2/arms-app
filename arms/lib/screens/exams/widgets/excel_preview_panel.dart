@@ -101,7 +101,6 @@ class _ExcelPreviewPanelState extends State<ExcelPreviewPanel> {
                   ),
                   if (_showMissingRows) ...[
                     const SizedBox(height: 8),
-                    const Divider(),
                     const SizedBox(height: 4),
                     ListView.builder(
                       shrinkWrap: true,
@@ -176,7 +175,7 @@ class _ExcelPreviewPanelState extends State<ExcelPreviewPanel> {
                   ),
                   if (_showExtraRows) ...[
                     const SizedBox(height: 8),
-                    const Divider(),
+                    
                     const SizedBox(height: 4),
                     ListView.builder(
                       shrinkWrap: true,
@@ -192,7 +191,9 @@ class _ExcelPreviewPanelState extends State<ExcelPreviewPanel> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  r['name'] ?? 'Unknown Name',
+                                  (r['name'] != null && r['name'].toString().trim().isNotEmpty)
+                                      ? r['name'].toString()
+                                      : 'Unknown Name',
                                   style: AppTextStyles.bodyMedium.copyWith(fontSize: 12, color: AppColors.errorText),
                                 ),
                               ),
