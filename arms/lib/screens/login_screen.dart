@@ -7,6 +7,7 @@ import '../core/graphql/queries.dart';
 import '../core/auth/auth_service.dart';
 import '../widgets/arms_input_field.dart';
 import '../widgets/arms_top_app_bar.dart';
+import '../widgets/arms_button.dart';
 
 /// Queries the admins list from the backend for authentication.
 class LoginScreen extends StatefulWidget {
@@ -190,41 +191,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: AppSpacing.stackLg),
 
 
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleSignIn,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.onPrimary,
-                        disabledBackgroundColor: AppColors.primary.withValues(
-                          alpha: 0.6,
-                        ),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(9999),
-                        ),
-                      ),
-                      child:
-                          _isLoading
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.onPrimary,
-                                  ),
-                                ),
-                              )
-                              : Text(
-                                'Sign In',
-                                style: AppTextStyles.headerSmall.copyWith(
-                                  color: AppColors.onPrimary,
-                                ),
-                              ),
-                    ),
+                  ArmsButton(
+                    label: 'Sign In',
+                    onPressed: _handleSignIn,
+                    variant: ArmsButtonVariant.primary,
+                    size: ArmsButtonSize.large,
+                    isLoading: _isLoading,
+                    fullWidth: true,
                   ),
                 ],
               ),

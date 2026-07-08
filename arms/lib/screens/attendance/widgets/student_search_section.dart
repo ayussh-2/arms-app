@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/utils/image_url_helper.dart';
+import '../../../widgets/arms_search_field.dart';
 
 class StudentSearchSection extends StatelessWidget {
   final Map<String, dynamic>? selectedStudent;
@@ -32,23 +33,12 @@ class StudentSearchSection extends StatelessWidget {
         children: [
           Text('STUDENT', style: AppTextStyles.labelXsUppercase),
           const SizedBox(height: 6),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(AppRadius.roundFull),
-            ),
-            child: TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
-              style: AppTextStyles.bodyMedium,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search, color: AppColors.onSurfaceVariant),
-                hintText: 'Search Student...',
-                hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              ),
-            ),
+          ArmsSearchField(
+            controller: searchController,
+            onChanged: onSearchChanged,
+            hintText: 'Search Student...',
+            fillColor: AppColors.cardSurface,
+            hasBorder: false,
           ),
           if (isSearching && filteredStudents.isNotEmpty) ...[
             const SizedBox(height: 8),

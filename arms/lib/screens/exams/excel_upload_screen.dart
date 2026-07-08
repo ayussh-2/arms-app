@@ -7,6 +7,8 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/excel_marks_parser.dart';
 import 'widgets/excel_upload_card.dart';
 import 'excel_preview_screen.dart';
+import '../../widgets/arms_button.dart';
+import '../../widgets/arms_dropdown_button.dart';
 
 /// Screen for uploading Excel marks and configuring column mapping.
 class ExcelMarksUploadScreen extends StatefulWidget {
@@ -277,46 +279,19 @@ class _ExcelMarksUploadScreenState extends State<ExcelMarksUploadScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
+                  ArmsButton(
+                    label: 'Cancel',
                     onPressed: () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen ? 24 : 16,
-                        vertical: isLargeScreen ? 14 : 10,
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    variant: ArmsButtonVariant.secondary,
+                    size: isLargeScreen ? ArmsButtonSize.large : ArmsButtonSize.medium,
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: (_selectedFileBytes == null || _isParsing) ? null : _parseExcelMarks,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.onPrimary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen ? 24 : 16,
-                        vertical: isLargeScreen ? 14 : 10,
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _isParsing
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text(
-                            'Parse & Preview',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                  ArmsButton(
+                    label: 'Parse & Preview',
+                    onPressed: _selectedFileBytes == null ? null : _parseExcelMarks,
+                    isLoading: _isParsing,
+                    variant: ArmsButtonVariant.primary,
+                    size: isLargeScreen ? ArmsButtonSize.large : ArmsButtonSize.medium,
                   ),
                 ],
               ),
@@ -406,32 +381,22 @@ class _ExcelMarksUploadScreenState extends State<ExcelMarksUploadScreen> {
           style: AppTextStyles.labelXsUppercase.copyWith(fontSize: 10, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.outline.withValues(alpha: 0.5)),
-            color: Colors.white,
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: widget.subjects.any((s) => s['id'] == mappedSubjectId) ? mappedSubjectId : '',
-              isExpanded: true,
-              onChanged: (newValue) => setState(() => _columnMapping[columnLetter] = newValue ?? ''),
-              items: [
-                const DropdownMenuItem<String>(
-                  value: '',
-                  child: Text('Disabled / Ignore Column', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                ),
-                ...widget.subjects.map((sub) {
-                  return DropdownMenuItem<String>(
-                    value: sub['id'] as String,
-                    child: Text(sub['name'] as String? ?? 'Subject', style: const TextStyle(fontSize: 13, color: AppColors.textMain)),
-                  );
-                }),
-              ],
+        ArmsDropdownButton<String>(
+          value: widget.subjects.any((s) => s['id'] == mappedSubjectId) ? mappedSubjectId : '',
+          isExpanded: true,
+          onChanged: (newValue) => setState(() => _columnMapping[columnLetter] = newValue ?? ''),
+          items: [
+            const DropdownMenuItem<String>(
+              value: '',
+              child: Text('Disabled / Ignore Column', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
             ),
-          ),
+            ...widget.subjects.map((sub) {
+              return DropdownMenuItem<String>(
+                value: sub['id'] as String,
+                child: Text(sub['name'] as String? ?? 'Subject', style: const TextStyle(fontSize: 13, color: AppColors.textMain)),
+              );
+            }),
+          ],
         ),
       ],
     );

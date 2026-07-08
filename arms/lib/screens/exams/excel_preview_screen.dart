@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import 'widgets/excel_preview_panel.dart';
+import '../../widgets/arms_button.dart';
 
 /// Screen for reviewing imported marks preview and validation details.
 /// Shows required vs derived stats, missing/extra students, and data table.
@@ -89,44 +90,19 @@ class ExcelPreviewScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
+                  ArmsButton(
+                    label: 'Back',
                     onPressed: () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen ? 24 : 16,
-                        vertical: isLargeScreen ? 14 : 10,
-                      ),
-                    ),
-                    child: Text(
-                      'Back',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    variant: ArmsButtonVariant.secondary,
+                    size: isLargeScreen ? ArmsButtonSize.large : ArmsButtonSize.medium,
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
+                  ArmsButton(
+                    label: 'Confirm Import',
                     onPressed: () => _confirmExcelImport(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.successText,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen ? 24 : 16,
-                        vertical: isLargeScreen ? 14 : 10,
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'Confirm Import',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    variant: ArmsButtonVariant.primary,
+                    backgroundColor: AppColors.successText,
+                    size: isLargeScreen ? ArmsButtonSize.large : ArmsButtonSize.medium,
                   ),
                 ],
               ),
