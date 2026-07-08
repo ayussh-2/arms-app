@@ -478,4 +478,51 @@ class GqlQueries {
       }
     }
   ''';
+
+  static const String getStudentDetails = r'''
+    query GetStudentDetails($id: ID!, $organisationId: ID!) {
+      getStudentDetails(id: $id, organisationId: $organisationId) {
+        id
+        name
+        father_name
+        mother_name
+        dob
+        email
+        password
+        phone1
+        phone2
+        category
+        address
+        gender
+        age
+        fl_batch_id
+        organisation_id
+        school_id
+        class_id
+        section_id
+        roll_no
+        image_url
+        image_version
+      }
+    }
+  ''';
+
+  static const String getAlumni = r'''
+    query GetAlumni {
+      getAlumni {
+        id
+        name
+        code
+      }
+    }
+  ''';
+
+  static const String updateStudentDetails = r'''
+    mutation UpdateStudentDetails($id: ID!, $organisationId: ID!, $input: UpdateStudentInput!) {
+      updateStudentDetails(id: $id, organisationId: $organisationId, input: $input) {
+        id
+        name
+      }
+    }
+  ''';
 }

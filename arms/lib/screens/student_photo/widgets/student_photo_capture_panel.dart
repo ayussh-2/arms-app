@@ -16,6 +16,7 @@ class StudentPhotoCapturePanel extends StatelessWidget {
     required this.onCapturePhoto,
     required this.onUploadAndAssignPhoto,
     required this.onDiscardPickedImage,
+    required this.onEditDetails,
   });
 
   final Map<String, dynamic> selectedStudent;
@@ -26,6 +27,7 @@ class StudentPhotoCapturePanel extends StatelessWidget {
   final ValueChanged<ImageSource> onCapturePhoto;
   final VoidCallback onUploadAndAssignPhoto;
   final VoidCallback onDiscardPickedImage;
+  final VoidCallback onEditDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -62,33 +64,48 @@ class StudentPhotoCapturePanel extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.1),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  name,
-                  style: AppTextStyles.headerSmall.copyWith(fontSize: 20, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: AppTextStyles.headerSmall.copyWith(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceVariant,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Roll: $rollNo',
+                              style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '$className - $sectionName',
+                            style: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'Roll: $rollNo',
-                        style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$className - $sectionName',
-                      style: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                    ),
-                  ],
+                IconButton(
+                  icon: const Icon(
+                    Icons.edit_note_rounded,
+                    color: AppColors.primary,
+                    size: 28,
+                  ),
+                  onPressed: onEditDetails,
+                  tooltip: 'Edit Student Details',
                 ),
               ],
             ),

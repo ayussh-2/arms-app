@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -140,6 +143,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     _filteredStudents.clear();
     super.dispose();
   }
+
 
   Future<void> _pickFromDate() async {
     final picked = await showDatePicker(
@@ -716,6 +720,25 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                           String? leaveAttachmentUrl = _attachmentPath;
                                           
                                           if (_hasAttachment && _attachmentPath != null && !_attachmentPath!.startsWith('http')) {
+                                            final isImage = !_isAttachmentPdf && 
+                                                (_attachmentPath!.toLowerCase().endsWith('.jpg') || 
+                                                 _attachmentPath!.toLowerCase().endsWith('.jpeg') || 
+                                                 _attachmentPath!.toLowerCase().endsWith('.png'));
+
+                                            File fileToUpload = File(_attachmentPath!);
+                                            File? compressedImageFile;
+
+                                            if (isImage) {
+                                              try {
+                                                compressedImageFile = await ImageCompressUtils.compressImageUnderSize(
+                                                  fileToUpload,
+                                                );
+                                                fileToUpload = compressedImageFile;
+                                              } catch (compressError) {
+                                                debugPrint('Error compressing attachment image: $compressError');
+                                              }
+                                            }
+
                                             final rollNo = _selectedStudent?['roll_no']?.toString() ?? 'unknown';
                                             final schoolName = _selectedStudent?['school']?['name']?.toString() ?? 'school';
                                             final className = _selectedStudent?['class']?['name']?.toString() ?? 'class';
@@ -744,10 +767,18 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                               apiUrlPath: '/api/leave-applications',
                                               organisationFolder: orgFolder,
                                               filenameBase: filenameBase,
-                                              file: File(_attachmentPath!),
+                                              file: fileToUpload,
                                             );
                                             
                                             leaveAttachmentUrl = uploadedUrl;
+
+                                            if (compressedImageFile != null && await compressedImageFile.exists()) {
+                                              try {
+                                                await compressedImageFile.delete();
+                                              } catch (cleanupError) {
+                                                debugPrint('Error cleaning up temp compressed file: $cleanupError');
+                                              }
+                                            }
                                           }
 
                                           final createRes = await runCreate({
