@@ -9,6 +9,7 @@ import '../../../core/utils/image_url_helper.dart';
 import '../../../core/graphql/queries.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../widgets/arms_snackbar.dart';
+import '../../../widgets/components/arms_date_field.dart';
 
 class StudentPhotoCapturePanel extends StatefulWidget {
   const StudentPhotoCapturePanel({
@@ -537,20 +538,12 @@ class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
   }
 
   Widget _buildDobField() {
-    return InkWell(
-      onTap: _isEditable ? () => _selectDate(context) : null,
-      child: IgnorePointer(
-        child: TextField(
-          controller: _dobController,
-          enabled: _isEditable,
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: _isEditable ? AppColors.textMain : AppColors.textSecondary,
-          ),
-          decoration: _getInputDecoration(hintText: 'dd mm yyyy').copyWith(
-            suffixIcon: const Icon(Icons.calendar_month_rounded, color: AppColors.textSecondary),
-          ),
-        ),
-      ),
+    return ArmsDateField(
+      controller: _dobController,
+      hintText: 'dd mm yyyy',
+      onTap: _isEditable ? () => _selectDate(context) : () {},
+      fillColor: _isEditable ? AppColors.cardSurface : AppColors.cardSurface.withValues(alpha: 0.5),
+      hasBorder: true,
     );
   }
 

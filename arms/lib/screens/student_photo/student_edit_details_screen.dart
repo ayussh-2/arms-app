@@ -6,6 +6,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/graphql/queries.dart';
 import '../../../widgets/arms_snackbar.dart';
 import '../../../widgets/arms_top_app_bar.dart';
+import '../../../widgets/components/arms_date_field.dart';
 
 class StudentEditDetailsScreen extends StatefulWidget {
   final String studentId;
@@ -423,17 +424,12 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
   }
 
   Widget _buildDobField() {
-    return InkWell(
+    return ArmsDateField(
+      controller: _dobController,
+      hintText: 'yyyy-mm-dd',
       onTap: () => _selectDate(context),
-      child: IgnorePointer(
-        child: TextField(
-          controller: _dobController,
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMain),
-          decoration: _getInputDecoration(hintText: 'yyyy-mm-dd').copyWith(
-            suffixIcon: const Icon(Icons.calendar_month_rounded, color: AppColors.textSecondary),
-          ),
-        ),
-      ),
+      fillColor: AppColors.cardSurface,
+      hasBorder: true,
     );
   }
 

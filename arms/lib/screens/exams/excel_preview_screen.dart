@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import 'widgets/excel_preview_panel.dart';
-import '../../widgets/arms_button.dart';
+import '../../widgets/components/arms_button.dart';
 
 /// Screen for reviewing imported marks preview and validation details.
 /// Shows required vs derived stats, missing/extra students, and data table.

@@ -7,8 +7,9 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/excel_marks_parser.dart';
 import 'widgets/excel_upload_card.dart';
 import 'excel_preview_screen.dart';
-import '../../widgets/arms_button.dart';
-import '../../widgets/arms_dropdown_button.dart';
+import '../../widgets/components/arms_button.dart';
+import '../../widgets/components/arms_dropdown_button.dart';
+import '../../widgets/components/arms_confirm_dialog.dart';
 
 /// Screen for uploading Excel marks and configuring column mapping.
 class ExcelMarksUploadScreen extends StatefulWidget {
@@ -190,26 +191,12 @@ class _ExcelMarksUploadScreenState extends State<ExcelMarksUploadScreen> {
   }
 
   void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.background,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.error_outline, color: AppColors.errorText, size: 28),
-            const SizedBox(width: 12),
-            Text('Validation Error', style: AppTextStyles.headerSmall.copyWith(color: AppColors.errorText)),
-          ],
-        ),
-        content: Text(message, style: AppTextStyles.bodyMedium),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('OK', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+    ArmsConfirmDialog.show(
+      context,
+      title: 'Validation Error',
+      message: message,
+      confirmLabel: 'OK',
+      showCancel: false,
     );
   }
 

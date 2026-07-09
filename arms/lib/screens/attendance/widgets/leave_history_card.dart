@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
-import '../../../core/utils/image_url_helper.dart';
+import '../../../widgets/components/arms_avatar.dart';
+import '../../../widgets/components/arms_status_badge.dart';
 
 int _calculateDays(String fromStr, String? toStr) {
   try {
@@ -63,18 +64,18 @@ class LeaveHistoryCard extends StatelessWidget {
     final days = _calculateDays(fromDate, toDate);
     final daysDisplay = '$days ${days == 1 ? "Day" : "Days"}';
 
-    String statusText = 'Pending';
-    Color statusBg = AppColors.surfaceVariant;
-    Color statusTextColor = AppColors.onSurfaceVariant;
+    final String statusText;
+    final ArmsStatusType statusType;
 
     if (approved) {
       statusText = 'Approved';
-      statusBg = AppColors.successBg;
-      statusTextColor = AppColors.successText;
+      statusType = ArmsStatusType.success;
     } else if (rejectedReason != null && rejectedReason.isNotEmpty) {
       statusText = 'Rejected';
-      statusBg = AppColors.errorBg;
-      statusTextColor = AppColors.errorText;
+      statusType = ArmsStatusType.error;
+    } else {
+      statusText = 'Pending';
+      statusType = ArmsStatusType.neutral;
     }
 
     return Container(
@@ -91,25 +92,10 @@ class LeaveHistoryCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
+              ArmsAvatar(
+                imageUrl: student?['image_url'] as String?,
+                name: studentName,
                 radius: 20,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                backgroundImage: (student?['image_url'] != null &&
-                        (student!['image_url'] as String).isNotEmpty &&
-                        ImageUrlHelper.sanitizeUrl(student!['image_url'] as String) != null)
-                    ? NetworkImage(ImageUrlHelper.sanitizeUrl(student!['image_url'] as String)!)
-                    : null,
-                child: (student?['image_url'] == null ||
-                        (student!['image_url'] as String).isEmpty ||
-                        ImageUrlHelper.sanitizeUrl(student!['image_url'] as String) == null)
-                    ? Text(
-                        (studentName.isNotEmpty ? studentName[0] : '?').toUpperCase(),
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : null,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -141,20 +127,9 @@ class LeaveHistoryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(AppRadius.roundFull),
-                ),
-                child: Text(
-                  statusText,
-                  style: AppTextStyles.labelXsUppercase.copyWith(
-                    color: statusTextColor,
-                    fontSize: 10,
-                    letterSpacing: 0.8,
-                  ),
-                ),
+              ArmsStatusBadge(
+                label: statusText,
+                type: statusType,
               ),
             ],
           ),

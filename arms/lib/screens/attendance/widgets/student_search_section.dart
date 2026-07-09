@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_radius.dart';
-import '../../../core/utils/image_url_helper.dart';
-import '../../../widgets/arms_search_field.dart';
+import '../../../widgets/components/arms_search_field.dart';
+import '../../../widgets/components/arms_avatar.dart';
 
 class StudentSearchSection extends StatelessWidget {
   final Map<String, dynamic>? selectedStudent;
@@ -62,16 +62,12 @@ class StudentSearchSection extends StatelessWidget {
                 itemBuilder: (ctx, idx) {
                   final s = filteredStudents[idx];
                   final name = s['name'] as String? ?? '';
-                  final avatarText = name.isNotEmpty ? name[0] : 'S';
                   final imgUrl = s['image_url'] as String?;
                   return ListTile(
-                    leading: CircleAvatar(
+                    leading: ArmsAvatar(
+                      imageUrl: imgUrl,
+                      name: name,
                       radius: 16,
-                      backgroundColor: AppColors.surfaceVariant,
-                      backgroundImage: (imgUrl != null && ImageUrlHelper.sanitizeUrl(imgUrl) != null)
-                          ? NetworkImage(ImageUrlHelper.sanitizeUrl(imgUrl)!)
-                          : null,
-                      child: (imgUrl == null || ImageUrlHelper.sanitizeUrl(imgUrl) == null) ? Text(avatarText) : null,
                     ),
                     title: Text(name, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w500)),
                     subtitle: Text('Roll No: ${s['roll_no'] ?? ''}', style: AppTextStyles.labelXs),
@@ -91,9 +87,7 @@ class StudentSearchSection extends StatelessWidget {
       );
     } else {
       final studentImg = selectedStudent?['image_url'] as String?;
-      final hasImg = studentImg != null && studentImg.trim().isNotEmpty;
       final name = selectedStudent?['name'] as String? ?? '';
-      final avatarText = name.isNotEmpty ? name[0] : 'S';
       final rollNoVal = selectedStudent?['roll_no']?.toString();
       final hasRollNo = rollNoVal != null && rollNoVal.trim().isNotEmpty && rollNoVal != 'null';
       final rollNoDisplay = hasRollNo ? 'Roll No: $rollNoVal' : 'Roll No: N/A';
@@ -112,13 +106,10 @@ class StudentSearchSection extends StatelessWidget {
             ),
             child: Row(
               children: [
-                CircleAvatar(
+                ArmsAvatar(
+                  imageUrl: studentImg,
+                  name: name,
                   radius: 20,
-                  backgroundColor: AppColors.surfaceVariant,
-                  backgroundImage: (hasImg && ImageUrlHelper.sanitizeUrl(studentImg) != null)
-                      ? NetworkImage(ImageUrlHelper.sanitizeUrl(studentImg)!)
-                      : null,
-                  child: (!hasImg || ImageUrlHelper.sanitizeUrl(studentImg) == null) ? Text(avatarText) : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

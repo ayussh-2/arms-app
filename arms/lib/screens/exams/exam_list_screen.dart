@@ -7,7 +7,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/services/exam_lookup_cache.dart';
-import '../../widgets/arms_input_field.dart';
+import '../../widgets/components/arms_input_field.dart';
 import '../../widgets/arms_snackbar.dart';
 import 'widgets/exam_filters_panel.dart';
 import 'widgets/exam_list_table.dart';

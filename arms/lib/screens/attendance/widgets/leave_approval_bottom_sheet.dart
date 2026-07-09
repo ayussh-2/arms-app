@@ -7,8 +7,10 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/graphql/queries.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/utils/image_url_helper.dart';
-import '../../../widgets/arms_button.dart';
-import '../../../widgets/arms_textarea_field.dart';
+import '../../../widgets/components/arms_button.dart';
+import '../../../widgets/components/arms_textarea_field.dart';
+import '../../../widgets/components/arms_avatar.dart';
+import '../../../widgets/components/arms_confirm_dialog.dart';
 
 String _formatNiceDate(String dateStr) {
   try {
@@ -73,23 +75,13 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
   }
 
   Future<void> _confirmDelete(String leaveId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Leave Application'),
-        content: const Text('Are you sure you want to delete this leave application? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.errorText),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await ArmsConfirmDialog.show(
+      context,
+      title: 'Delete Leave Application',
+      message: 'Are you sure you want to delete this leave application? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
     );
 
     if (confirmed == true) {
@@ -202,16 +194,10 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
+                    ArmsAvatar(
+                      imageUrl: studentAvatar,
+                      name: studentName,
                       radius: 20,
-                      backgroundColor: AppColors.surfaceVariant,
-                      backgroundImage: studentAvatar != null ? NetworkImage(studentAvatar) : null,
-                      child: studentAvatar == null
-                          ? Text(
-                              studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S',
-                              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-                            )
-                          : null,
                     ),
                     const SizedBox(width: 12),
                     Expanded(

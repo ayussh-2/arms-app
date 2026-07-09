@@ -7,7 +7,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/image_url_helper.dart';
 import '../../../widgets/arms_dropdown_selector.dart';
 import '../../../widgets/arms_picker_sheet.dart';
-import '../../../widgets/arms_search_field.dart';
+import '../../../widgets/components/arms_search_field.dart';
 
 class StudentPhotoSearchPanel extends StatefulWidget {
   const StudentPhotoSearchPanel({

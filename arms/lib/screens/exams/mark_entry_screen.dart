@@ -9,7 +9,7 @@ import '../../core/graphql/queries.dart';
 import '../../core/auth/auth_service.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_sticky_footer.dart';
-import '../../widgets/arms_input_field.dart';
+import '../../widgets/components/arms_input_field.dart';
 import '../../widgets/arms_snackbar.dart';
 import 'widgets/mark_entry_grid.dart';
 import 'widgets/exam_config_header_panel.dart';

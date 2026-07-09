@@ -13,11 +13,12 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/graphql/queries.dart';
 import '../../widgets/arms_top_app_bar.dart';
-import '../../widgets/arms_button.dart';
-import '../../widgets/arms_textarea_field.dart';
+import '../../widgets/components/arms_button.dart';
+import '../../widgets/components/arms_textarea_field.dart';
 import '../../widgets/arms_dropdown_selector.dart';
 import '../../widgets/arms_picker_sheet.dart';
 import '../../widgets/arms_snackbar.dart';
+import '../../widgets/components/arms_confirm_dialog.dart';
 import '../../core/utils/app_date_utils.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/services/upload_service.dart';
@@ -377,38 +378,13 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   }
 
   Future<void> _confirmRemoveAttachment() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-          side: const BorderSide(color: AppColors.outlineLight),
-        ),
-        title: Text(
-          'Remove Attachment', 
-          style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)
-        ),
-        content: Text(
-          'Are you sure you want to remove this attachment?', 
-          style: AppTextStyles.bodyMedium
-        ),
-        actions: [
-          ArmsButton(
-            label: 'Cancel',
-            onPressed: () => Navigator.pop(ctx, false),
-            variant: ArmsButtonVariant.text,
-            size: ArmsButtonSize.small,
-          ),
-          ArmsButton(
-            label: 'Remove',
-            onPressed: () => Navigator.pop(ctx, true),
-            variant: ArmsButtonVariant.primary,
-            backgroundColor: AppColors.errorText,
-            size: ArmsButtonSize.small,
-          ),
-        ],
-      ),
+    final confirm = await ArmsConfirmDialog.show(
+      context,
+      title: 'Remove Attachment',
+      message: 'Are you sure you want to remove this attachment?',
+      confirmLabel: 'Remove',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
     );
 
     if (confirm == true) {
@@ -468,8 +444,9 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const ArmsTopAppBar(
+      appBar: ArmsTopAppBar(
         showBackButton: true,
+        title: _editingLeave != null ? 'Edit Leave' : 'Apply Leave',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage, vertical: AppSpacing.stackMd),
@@ -478,8 +455,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_editingLeave != null ? 'Edit Leave' : 'Apply Leave', style: AppTextStyles.displayMobile),
-              const SizedBox(height: AppSpacing.stackLg),
               StudentSearchSection(
                 selectedStudent: _selectedStudent,
                 searchController: _searchController,
@@ -500,64 +475,18 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                 },
               ),
               const SizedBox(height: AppSpacing.stackMd),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('FROM DATE', style: AppTextStyles.labelXsUppercase),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: _pickFromDate,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardSurface,
-                              borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                              border: Border.all(color: AppColors.outlineLight),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(AppDateUtils.formatToDMY(_fromDate), style: AppTextStyles.bodyMedium),
-                                const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('TO DATE', style: AppTextStyles.labelXsUppercase),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: _pickToDate,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardSurface,
-                              borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                              border: Border.all(color: AppColors.outlineLight),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(AppDateUtils.formatToDMY(_toDate), style: AppTextStyles.bodyMedium),
-                                const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              ArmsDropdownSelector(
+                label: 'FROM DATE',
+                value: AppDateUtils.formatToDMY(_fromDate),
+                icon: Icons.calendar_today_outlined,
+                onTap: _pickFromDate,
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              ArmsDropdownSelector(
+                label: 'TO DATE',
+                value: AppDateUtils.formatToDMY(_toDate),
+                icon: Icons.calendar_today_outlined,
+                onTap: _pickToDate,
               ),
               const SizedBox(height: AppSpacing.stackMd),
               ArmsDropdownSelector(
@@ -628,25 +557,17 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                       style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
                     ),
                     const SizedBox(height: 6),
-                    TextField(
+                    ArmsTextAreaField(
                       controller: _rejectedReasonController,
+                      hintText: 'If rejected, specify why...',
+                      maxLines: 3,
                       onChanged: (val) {
                         if (val.trim().isNotEmpty && _isApproved) {
                           setState(() => _isApproved = false);
                         }
                       },
-                      style: AppTextStyles.bodyMedium,
-                      decoration: InputDecoration(
-                        hintText: 'If rejected, specify why...',
-                        hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                        fillColor: AppColors.background,
-                        filled: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.roundEight),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
+                      fillColor: AppColors.cardSurface,
+                      hasBorder: false,
                     ),
                   ],
                 ),
@@ -793,37 +714,18 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                       }
                                     },
                           ),
-                          const SizedBox(height: 12),
+              const SizedBox(height: 12),
                           if (_editingLeave != null) ...[
                             ArmsButton(
                               label: 'Delete Application',
                               onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    backgroundColor: AppColors.background,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-                                      side: const BorderSide(color: AppColors.outlineLight),
-                                    ),
-                                    title: Text('Delete Leave', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                                    content: Text('Are you sure you want to delete this leave application? This action cannot be undone.', style: AppTextStyles.bodyMedium),
-                                    actions: [
-                                      ArmsButton(
-                                        label: 'Cancel',
-                                        onPressed: () => Navigator.pop(ctx, false),
-                                        variant: ArmsButtonVariant.text,
-                                        size: ArmsButtonSize.small,
-                                      ),
-                                      ArmsButton(
-                                        label: 'Delete',
-                                        onPressed: () => Navigator.pop(ctx, true),
-                                        variant: ArmsButtonVariant.primary,
-                                        backgroundColor: AppColors.errorText,
-                                        size: ArmsButtonSize.small,
-                                      ),
-                                    ],
-                                  ),
+                                final confirm = await ArmsConfirmDialog.show(
+                                  context,
+                                  title: 'Delete Leave',
+                                  message: 'Are you sure you want to delete this leave application? This action cannot be undone.',
+                                  confirmLabel: 'Delete',
+                                  cancelLabel: 'Cancel',
+                                  isDestructive: true,
                                 );
 
                                 if (confirm == true) {

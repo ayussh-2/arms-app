@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../widgets/arms_input_field.dart';
+import '../../../widgets/components/arms_input_field.dart';
 import '../../../widgets/arms_dropdown_selector.dart';
+import '../../../widgets/components/arms_date_field.dart';
 
 class ExamCreateGeneralInfo extends StatelessWidget {
   final TextEditingController nameController;
@@ -198,15 +199,10 @@ class ExamCreateGeneralInfo extends StatelessWidget {
         ArmsInputField(controller: topicController, hintText: 'e.g., Calculus'),
         const SizedBox(height: 16),
         _Label(text: 'Exam Date'),
-        GestureDetector(
+        ArmsDateField(
+          controller: dateController,
+          hintText: 'YYYY-MM-DD',
           onTap: selectDate,
-          child: AbsorbPointer(
-            child: ArmsInputField(
-              controller: dateController,
-              hintText: 'YYYY-MM-DD',
-              prefixIcon: Icons.calendar_today,
-            ),
-          ),
         ),
         const SizedBox(height: 16),
         _Label(text: 'Total Marks'),
