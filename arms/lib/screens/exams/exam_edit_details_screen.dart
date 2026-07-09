@@ -6,8 +6,9 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/graphql/queries.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/arms_sticky_footer.dart';
-import '../../widgets/arms_input_field.dart';
+import '../../widgets/components/arms_input_field.dart';
 import '../../widgets/arms_dropdown_selector.dart';
+import '../../widgets/components/arms_date_field.dart';
 
 class ExamEditDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> exam;
@@ -303,7 +304,9 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
                     hintText: 'e.g., Calculus',
                   ),
                   _buildLabel('EXAM DATE'),
-                  GestureDetector(
+                  ArmsDateField(
+                    controller: _dateCtrl,
+                    hintText: 'YYYY-MM-DD',
                     onTap: () async {
                       final DateTime? picked = await showDatePicker(
                         context: context,
@@ -318,13 +321,6 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
                         });
                       }
                     },
-                    child: AbsorbPointer(
-                      child: ArmsInputField(
-                        controller: _dateCtrl,
-                        hintText: 'YYYY-MM-DD',
-                        prefixIcon: Icons.calendar_today,
-                      ),
-                    ),
                   ),
                   _buildLabel('ASSIGN TO SCHOOLS'),
                   ArmsDropdownSelector(

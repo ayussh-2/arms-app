@@ -4,7 +4,8 @@ import '../core/theme/app_text_styles.dart';
 import '../core/theme/app_spacing.dart';
 import '../widgets/arms_top_app_bar.dart';
 import '../core/auth/auth_service.dart';
-import '../core/utils/image_url_helper.dart';
+import '../widgets/components/arms_avatar.dart';
+import '../widgets/components/arms_confirm_dialog.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
@@ -19,48 +20,20 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToPhotos;
 
   Future<void> _showLogoutDialog(BuildContext context) async {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.cardSurface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(
-            'Confirm Logout',
-            style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            'Are you sure you want to sign out of ARMS?',
-            style: AppTextStyles.bodyMedium,
-          ),
-          actions: [
-            TextButton(
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.errorText,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                elevation: 0,
-              ),
-              child: const Text('Logout'),
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await AuthService.clearSession();
-                if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                }
-              },
-            ),
-          ],
-        );
-      },
+    final confirmed = await ArmsConfirmDialog.show(
+      context,
+      title: 'Confirm Logout',
+      message: 'Are you sure you want to sign out of ARMS?',
+      confirmLabel: 'Logout',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
     );
+    if (confirmed == true) {
+      await AuthService.clearSession();
+      if (context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+    }
   }
 
   @override
@@ -76,14 +49,10 @@ class DashboardScreen extends StatelessWidget {
             onTap: () {
               // Profile action
             },
-            child: CircleAvatar(
-              backgroundColor: AppColors.cardSurface,
-              backgroundImage: admin?.imageURL != null && admin!.imageURL!.isNotEmpty
-                  ? NetworkImage(ImageUrlHelper.sanitizeUrl(admin.imageURL)!)
-                  : null,
-              child: admin?.imageURL == null || admin!.imageURL!.isEmpty
-                  ? const Icon(Icons.person, color: AppColors.textSecondary)
-                  : null,
+            child: ArmsAvatar(
+              imageUrl: admin?.imageURL,
+              name: admin?.name ?? 'Admin',
+              radius: 20,
             ),
           ),
         ),

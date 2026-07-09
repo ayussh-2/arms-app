@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_text_styles.dart';
-import '../core/utils/image_url_helper.dart';
+import 'components/arms_avatar.dart';
 
 /// Attendance status for a student row.
 enum AttendanceStatus { present, absent, unmarked }
@@ -25,15 +25,7 @@ class ArmsStudentRow extends StatelessWidget {
   final AttendanceStatus status;
   final ValueChanged<AttendanceStatus> onStatusChanged;
 
-  String get _initials {
-    final parts = studentName.split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return studentName
-        .substring(0, studentName.length.clamp(0, 2))
-        .toUpperCase();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -83,23 +75,12 @@ class ArmsStudentRow extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
-    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
-      return CircleAvatar(
-        radius: 20,
-        backgroundImage: NetworkImage(ImageUrlHelper.sanitizeUrl(avatarUrl)!),
-        backgroundColor: AppColors.surfaceVariant,
-      );
-    }
-    return CircleAvatar(
+    return ArmsAvatar(
+      imageUrl: avatarUrl,
+      name: studentName,
       radius: 20,
       backgroundColor: AppColors.surfaceVariant,
-      child: Text(
-        _initials,
-        style: AppTextStyles.labelXs.copyWith(
-          color: AppColors.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      foregroundColor: AppColors.onSurfaceVariant,
     );
   }
 }

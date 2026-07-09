@@ -9,8 +9,9 @@ import '../../core/graphql/queries.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/services/exam_lookup_cache.dart';
 import '../../widgets/arms_top_app_bar.dart';
-import '../../widgets/arms_input_field.dart';
+import '../../widgets/components/arms_input_field.dart';
 import '../../widgets/arms_snackbar.dart';
+import '../../widgets/components/arms_confirm_dialog.dart';
 import 'widgets/exam_view_widgets.dart';
 import 'widgets/exam_list_sheets.dart';
 
@@ -431,25 +432,19 @@ class _ExamViewScreenState extends State<ExamViewScreen> {
             icon: Icons.delete_outline,
             label: 'Delete',
             color: AppColors.errorText,
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Confirm Delete'),
-                  content: const Text('Are you sure you want to delete this exam draft?'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        Navigator.pop(context);
-                        ArmsSnackbar.showError(context, 'Exam marked as soft-deleted.');
-                      },
-                      child: const Text('Delete', style: TextStyle(color: AppColors.errorText)),
-                    ),
-                  ],
-                ),
+            onTap: () async {
+              final confirmed = await ArmsConfirmDialog.show(
+                context,
+                title: 'Confirm Delete',
+                message: 'Are you sure you want to delete this exam draft?',
+                confirmLabel: 'Delete',
+                cancelLabel: 'Cancel',
+                isDestructive: true,
               );
+              if (confirmed == true && context.mounted) {
+                Navigator.pop(context);
+                ArmsSnackbar.showError(context, 'Exam marked as soft-deleted.');
+              }
             },
           ),
         ],

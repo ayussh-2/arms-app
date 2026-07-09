@@ -11,7 +11,8 @@ import '../../widgets/arms_student_row.dart';
 import '../../widgets/arms_sticky_footer.dart';
 import 'widgets/attendance_feed_widgets.dart';
 import '../../core/auth/auth_service.dart';
-import '../../core/utils/image_url_helper.dart';
+import '../../widgets/components/arms_avatar.dart';
+import '../../widgets/components/arms_confirm_dialog.dart';
 
 class AttendanceFeedScreen extends StatefulWidget {
   const AttendanceFeedScreen({super.key});
@@ -161,29 +162,12 @@ class _AttendanceFeedScreenState extends State<AttendanceFeedScreen> {
     final navigator = Navigator.of(context);
 
     if (_unmarkedCount > 0) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.background,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-            side: BorderSide(color: AppColors.outlineLight),
-          ),
-          title: Text('Unmarked Students', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-          content: Text('You have $_unmarkedCount unmarked student(s). Save them as absent?', style: AppTextStyles.bodyMedium),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              style: TextButton.styleFrom(foregroundColor: AppColors.onSurfaceVariant),
-              child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-              child: Text('Save', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
-            ),
-          ],
-        ),
+      final proceed = await ArmsConfirmDialog.show(
+        context,
+        title: 'Unmarked Students',
+        message: 'You have $_unmarkedCount unmarked student(s). Save them as absent?',
+        confirmLabel: 'Save',
+        cancelLabel: 'Cancel',
       );
       if (proceed != true) return;
       for (final key in _statuses.keys) {
@@ -247,13 +231,7 @@ class _AttendanceFeedScreenState extends State<AttendanceFeedScreen> {
     }
   }
 
-  String _getInitials(String name) {
-    final parts = name.split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name.substring(0, name.length.clamp(0, 2)).toUpperCase();
-  }
+
 
   void _showAbsentees() {
     final absentees = _students.where((s) {
@@ -319,23 +297,14 @@ class _AttendanceFeedScreenState extends State<AttendanceFeedScreen> {
                     itemBuilder: (_, i) {
                       final s = absentees[i];
                       final student = s['student'] as Map<String, dynamic>;
-                      final initials = _getInitials(student['name'] ?? '');
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
+                        leading: ArmsAvatar(
+                          imageUrl: student['image_url'] as String?,
+                          name: student['name'] ?? '',
+                          radius: 20,
                           backgroundColor: AppColors.surfaceVariant,
-                          backgroundImage: student['image_url'] != null && (student['image_url'] as String).isNotEmpty
-                              ? NetworkImage(ImageUrlHelper.sanitizeUrl(student['image_url'])!)
-                              : null,
-                          child: student['image_url'] == null || (student['image_url'] as String).isEmpty
-                              ? Text(
-                                  initials,
-                                  style: AppTextStyles.labelXs.copyWith(
-                                    color: AppColors.onSurfaceVariant,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                )
-                              : null,
+                          foregroundColor: AppColors.onSurfaceVariant,
                         ),
                         title: Text(student['name'] ?? '', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
                         subtitle: Text('Roll ${student['roll_no'] ?? ''}', style: AppTextStyles.labelXs),

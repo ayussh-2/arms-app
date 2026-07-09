@@ -7,6 +7,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/image_url_helper.dart';
 import '../../../widgets/arms_dropdown_selector.dart';
 import '../../../widgets/arms_picker_sheet.dart';
+import '../../../widgets/components/arms_search_field.dart';
 
 class StudentPhotoSearchPanel extends StatefulWidget {
   const StudentPhotoSearchPanel({
@@ -502,38 +503,17 @@ class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Search Field
-          TextField(
+          ArmsSearchField(
             key: const ValueKey('search_text_field'),
-            focusNode: _focusNode,
             controller: _controller,
-            style: AppTextStyles.bodyMedium,
+            focusNode: _focusNode,
+            hintText: 'Search student by name or roll number...',
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => _triggerSearch(),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: AppColors.cardSurface,
-              hintText: 'Search student by name or roll number...',
-              hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-              prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-              suffixIcon: _controller.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppColors.textSecondary),
-                      onPressed: _clearSearch,
-                    )
-                  : null,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.roundFull),
-                borderSide: BorderSide(
-                  color: AppColors.outline.withValues(alpha: 0.15),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.roundFull),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            ),
             onChanged: _onChanged,
+            onClear: _clearSearch,
+            fillColor: AppColors.cardSurface,
+            hasBorder: true,
           ),
           const SizedBox(height: 16),
 

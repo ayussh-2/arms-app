@@ -3,9 +3,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/utils/image_url_helper.dart';
 import '../../../widgets/arms_dropdown_selector.dart';
 import 'student_photo_empty_state.dart';
+import '../../../widgets/components/arms_avatar.dart';
 
 class StudentPhotoListPanel extends StatelessWidget {
   const StudentPhotoListPanel({
@@ -48,13 +48,7 @@ class StudentPhotoListPanel extends StatelessWidget {
   final VoidCallback onFetchStudents;
   final ValueChanged<Map<String, dynamic>> onStudentSelected;
 
-  String _getInitials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return name.substring(0, name.length.clamp(0, 2)).toUpperCase();
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +175,6 @@ class StudentPhotoListPanel extends StatelessWidget {
                                           final name = student['name'] ?? 'No Name';
                                           final rollNo = student['roll_no'] ?? 'No Roll No';
                                           final imgUrl = student['image_url'] as String?;
-                                          final hasImg = imgUrl != null && imgUrl.isNotEmpty;
 
                                           return Container(
                                             margin: const EdgeInsets.only(bottom: 8),
@@ -194,22 +187,13 @@ class StudentPhotoListPanel extends StatelessWidget {
                                             ),
                                             child: ListTile(
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                              leading: CircleAvatar(
-                                                radius: 24,
-                                                backgroundColor: AppColors.cardSurface,
-                                                backgroundImage: hasImg
-                                                    ? NetworkImage(ImageUrlHelper.sanitizeUrl(imgUrl)!)
-                                                    : null,
-                                                child: !hasImg
-                                                    ? Text(
-                                                        _getInitials(name),
-                                                        style: AppTextStyles.labelXs.copyWith(
-                                                          color: AppColors.textSecondary,
-                                                          fontWeight: FontWeight.bold,
-                                                        ),
-                                                      )
-                                                    : null,
-                                              ),
+                                              leading: ArmsAvatar(
+                                                  imageUrl: imgUrl,
+                                                  name: name,
+                                                  radius: 24,
+                                                  backgroundColor: AppColors.cardSurface,
+                                                  foregroundColor: AppColors.textSecondary,
+                                                ),
                                               title: Text(
                                                 name,
                                                 style: AppTextStyles.bodyMedium.copyWith(

@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/app_date_utils.dart';
 import '../../../core/services/exam_lookup_cache.dart';
+import '../../../widgets/components/arms_status_badge.dart';
 
 class ExamCard extends StatelessWidget {
   const ExamCard({
@@ -95,23 +96,10 @@ class ExamCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSaved ? AppColors.successBg : AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(9999),
-                  ),
-                  child: Text(
-                    isSaved ? 'Saved' : 'Draft',
-                    style: AppTextStyles.labelXs.copyWith(
-                      color: isSaved ? AppColors.successText : AppColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
+                ArmsStatusBadge(
+                  label: isSaved ? 'Saved' : 'Draft',
+                  type: isSaved ? ArmsStatusType.success : ArmsStatusType.neutral,
+                  fontSize: 12,
                 ),
               ],
             ),

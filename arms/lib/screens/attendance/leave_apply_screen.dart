@@ -1,9 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:image/image.dart' as img;
-import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,9 +13,12 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/graphql/queries.dart';
 import '../../widgets/arms_top_app_bar.dart';
+import '../../widgets/components/arms_button.dart';
+import '../../widgets/components/arms_textarea_field.dart';
 import '../../widgets/arms_dropdown_selector.dart';
 import '../../widgets/arms_picker_sheet.dart';
 import '../../widgets/arms_snackbar.dart';
+import '../../widgets/components/arms_confirm_dialog.dart';
 import '../../core/utils/app_date_utils.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/services/upload_service.dart';
@@ -378,44 +378,13 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   }
 
   Future<void> _confirmRemoveAttachment() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-          side: const BorderSide(color: AppColors.outlineLight),
-        ),
-        title: Text(
-          'Remove Attachment', 
-          style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)
-        ),
-        content: Text(
-          'Are you sure you want to remove this attachment?', 
-          style: AppTextStyles.bodyMedium
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              'Cancel', 
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant)
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.errorText,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.roundEight)
-              ),
-            ),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+    final confirm = await ArmsConfirmDialog.show(
+      context,
+      title: 'Remove Attachment',
+      message: 'Are you sure you want to remove this attachment?',
+      confirmLabel: 'Remove',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
     );
 
     if (confirm == true) {
@@ -475,8 +444,9 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const ArmsTopAppBar(
+      appBar: ArmsTopAppBar(
         showBackButton: true,
+        title: _editingLeave != null ? 'Edit Leave' : 'Apply Leave',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.marginPage, vertical: AppSpacing.stackMd),
@@ -485,8 +455,6 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_editingLeave != null ? 'Edit Leave' : 'Apply Leave', style: AppTextStyles.displayMobile),
-              const SizedBox(height: AppSpacing.stackLg),
               StudentSearchSection(
                 selectedStudent: _selectedStudent,
                 searchController: _searchController,
@@ -507,64 +475,18 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                 },
               ),
               const SizedBox(height: AppSpacing.stackMd),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('FROM DATE', style: AppTextStyles.labelXsUppercase),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: _pickFromDate,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardSurface,
-                              borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                              border: Border.all(color: AppColors.outlineLight),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(AppDateUtils.formatToDMY(_fromDate), style: AppTextStyles.bodyMedium),
-                                const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('TO DATE', style: AppTextStyles.labelXsUppercase),
-                        const SizedBox(height: 6),
-                        GestureDetector(
-                          onTap: _pickToDate,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardSurface,
-                              borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                              border: Border.all(color: AppColors.outlineLight),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(AppDateUtils.formatToDMY(_toDate), style: AppTextStyles.bodyMedium),
-                                const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.textSecondary),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              ArmsDropdownSelector(
+                label: 'FROM DATE',
+                value: AppDateUtils.formatToDMY(_fromDate),
+                icon: Icons.calendar_today_outlined,
+                onTap: _pickFromDate,
+              ),
+              const SizedBox(height: AppSpacing.stackMd),
+              ArmsDropdownSelector(
+                label: 'TO DATE',
+                value: AppDateUtils.formatToDMY(_toDate),
+                icon: Icons.calendar_today_outlined,
+                onTap: _pickToDate,
               ),
               const SizedBox(height: AppSpacing.stackMd),
               ArmsDropdownSelector(
@@ -584,35 +506,18 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
               const SizedBox(height: AppSpacing.stackMd),
               Text('REASON', style: AppTextStyles.labelXsUppercase),
               const SizedBox(height: 6),
-              TextFormField(
+              ArmsTextAreaField(
                 controller: _reasonController,
+                hintText: 'Enter details here...',
                 maxLines: 3,
-                style: AppTextStyles.bodyMedium,
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
                     return 'Please enter a reason for the leave';
                   }
                   return null;
                 },
-                decoration: InputDecoration(
-                  hintText: 'Enter details here...',
-                  hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                  fillColor: AppColors.cardSurface,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                    borderSide: const BorderSide(color: AppColors.outlineLight),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                    borderSide: const BorderSide(color: AppColors.outlineLight),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-                    borderSide: const BorderSide(color: AppColors.primary),
-                  ),
-                  contentPadding: const EdgeInsets.all(16),
-                ),
+                fillColor: AppColors.cardSurface,
+                hasBorder: true,
               ),
               const SizedBox(height: AppSpacing.stackMd),
               Container(
@@ -652,25 +557,17 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                       style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
                     ),
                     const SizedBox(height: 6),
-                    TextField(
+                    ArmsTextAreaField(
                       controller: _rejectedReasonController,
+                      hintText: 'If rejected, specify why...',
+                      maxLines: 3,
                       onChanged: (val) {
                         if (val.trim().isNotEmpty && _isApproved) {
                           setState(() => _isApproved = false);
                         }
                       },
-                      style: AppTextStyles.bodyMedium,
-                      decoration: InputDecoration(
-                        hintText: 'If rejected, specify why...',
-                        hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                        fillColor: AppColors.background,
-                        filled: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.roundEight),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
+                      fillColor: AppColors.cardSurface,
+                      hasBorder: false,
                     ),
                   ],
                 ),
@@ -703,13 +600,13 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
 
                       return Column(
                         children: [
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () async {
+                          ArmsButton(
+                            label: _editingLeave != null ? 'Save' : 'Apply',
+                            isLoading: isLoading,
+                            variant: ArmsButtonVariant.primary,
+                            size: ArmsButtonSize.large,
+                            fullWidth: true,
+                            onPressed: () async {
                                       if (_selectedStudent == null) {
                                         ArmsSnackbar.showError(context, 'Please search and select a student first');
                                         return;
@@ -816,99 +713,60 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                         }
                                       }
                                     },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull)),
-                                elevation: 0,
-                              ),
-                              child: isLoading
-                                  ? const CircularProgressIndicator(color: AppColors.onPrimary)
-                                  : Text(_editingLeave != null ? 'Save' : 'Apply', style: AppTextStyles.headerSmall.copyWith(color: AppColors.onPrimary)),
-                            ),
                           ),
-                          const SizedBox(height: 12),
+              const SizedBox(height: 12),
                           if (_editingLeave != null) ...[
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: OutlinedButton(
-                                onPressed: isLoading
-                                    ? null
-                                    : () async {
-                                        final confirm = await showDialog<bool>(
-                                          context: context,
-                                          builder: (ctx) => AlertDialog(
-                                            backgroundColor: AppColors.background,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(AppRadius.roundSixteen),
-                                              side: const BorderSide(color: AppColors.outlineLight),
-                                            ),
-                                            title: Text('Delete Leave', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.w700)),
-                                            content: Text('Are you sure you want to delete this leave application? This action cannot be undone.', style: AppTextStyles.bodyMedium),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(ctx, false),
-                                                child: Text('Cancel', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.onSurfaceVariant)),
-                                              ),
-                                              ElevatedButton(
-                                                onPressed: () => Navigator.pop(ctx, true),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: AppColors.errorText,
-                                                  foregroundColor: Colors.white,
-                                                  elevation: 0,
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundEight)),
-                                                ),
-                                                child: const Text('Delete'),
-                                              ),
-                                            ],
-                                          ),
-                                        );
+                            ArmsButton(
+                              label: 'Delete Application',
+                              onPressed: () async {
+                                final confirm = await ArmsConfirmDialog.show(
+                                  context,
+                                  title: 'Delete Leave',
+                                  message: 'Are you sure you want to delete this leave application? This action cannot be undone.',
+                                  confirmLabel: 'Delete',
+                                  cancelLabel: 'Cancel',
+                                  isDestructive: true,
+                                );
 
-                                        if (confirm == true) {
-                                          setState(() => _isSaving = true);
-                                          try {
-                                            final orgId = AuthService.currentAdmin?.organization?.id;
-                                            final res = await runDelete({
-                                              'id': _editingLeave!['id'],
-                                              'organisationId': orgId,
-                                            }).networkResult;
+                                if (confirm == true) {
+                                  setState(() => _isSaving = true);
+                                  try {
+                                    final orgId = AuthService.currentAdmin?.organization?.id;
+                                    final res = await runDelete({
+                                      'id': _editingLeave!['id'],
+                                      'organisationId': orgId,
+                                    }).networkResult;
 
-                                            if (res?.hasException == true) {
-                                              throw res!.exception!;
-                                            }
+                                    if (res?.hasException == true) {
+                                      throw res!.exception!;
+                                    }
 
-                                            if (context.mounted) {
-                                              ArmsSnackbar.showSuccess(context, 'Leave application deleted successfully');
-                                              Navigator.pop(context, true);
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted) {
-                                              ArmsSnackbar.showError(context, 'Error deleting: $e');
-                                            }
-                                          } finally {
-                                            if (mounted) setState(() => _isSaving = false);
-                                          }
-                                        }
-                                      },
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: AppColors.errorText, width: 1.5),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull)),
-                                ),
-                                child: Text('Delete Application', style: AppTextStyles.headerSmall.copyWith(color: AppColors.errorText)),
-                              ),
+                                    if (context.mounted) {
+                                      ArmsSnackbar.showSuccess(context, 'Leave application deleted successfully');
+                                      Navigator.pop(context, true);
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ArmsSnackbar.showError(context, 'Error deleting: $e');
+                                    }
+                                  } finally {
+                                    if (mounted) setState(() => _isSaving = false);
+                                  }
+                                }
+                              },
+                              variant: ArmsButtonVariant.destructive,
+                              size: ArmsButtonSize.large,
+                              isLoading: isLoading,
+                              fullWidth: true,
                             ),
                             const SizedBox(height: 12),
                           ],
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppColors.onSurfaceVariant,
-                              ),
-                              child: Text('Cancel', style: AppTextStyles.headerSmall.copyWith(color: AppColors.onSurfaceVariant)),
-                            ),
+                          ArmsButton(
+                            label: 'Cancel',
+                            onPressed: () => Navigator.pop(context),
+                            variant: ArmsButtonVariant.text,
+                            size: ArmsButtonSize.large,
+                            fullWidth: true,
                           ),
                         ],
                       );

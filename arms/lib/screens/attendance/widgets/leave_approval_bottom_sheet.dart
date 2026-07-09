@@ -7,6 +7,10 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/graphql/queries.dart';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/utils/image_url_helper.dart';
+import '../../../widgets/components/arms_button.dart';
+import '../../../widgets/components/arms_textarea_field.dart';
+import '../../../widgets/components/arms_avatar.dart';
+import '../../../widgets/components/arms_confirm_dialog.dart';
 
 String _formatNiceDate(String dateStr) {
   try {
@@ -71,23 +75,13 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
   }
 
   Future<void> _confirmDelete(String leaveId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Leave Application'),
-        content: const Text('Are you sure you want to delete this leave application? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.errorText),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await ArmsConfirmDialog.show(
+      context,
+      title: 'Delete Leave Application',
+      message: 'Are you sure you want to delete this leave application? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
     );
 
     if (confirmed == true) {
@@ -200,16 +194,10 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
+                    ArmsAvatar(
+                      imageUrl: studentAvatar,
+                      name: studentName,
                       radius: 20,
-                      backgroundColor: AppColors.surfaceVariant,
-                      backgroundImage: studentAvatar != null ? NetworkImage(studentAvatar) : null,
-                      child: studentAvatar == null
-                          ? Text(
-                              studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S',
-                              style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-                            )
-                          : null,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -309,25 +297,17 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                             style: AppTextStyles.labelXs.copyWith(fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 6),
-                          TextField(
+                          ArmsTextAreaField(
                             controller: _rejectedReasonController,
+                            hintText: 'If rejected, specify why...',
+                            maxLines: 3,
                             onChanged: (val) {
                               if (val.trim().isNotEmpty && _isApproved) {
                                 setState(() => _isApproved = false);
                               }
                             },
-                            decoration: InputDecoration(
-                              hintText: 'If rejected, specify why...',
-                              hintStyle: AppTextStyles.labelXs.copyWith(color: AppColors.textSecondary),
-                              fillColor: AppColors.cardSurface,
-                              filled: true,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(AppRadius.roundEight),
-                                borderSide: BorderSide.none,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            ),
-                            style: AppTextStyles.bodyMedium,
+                            fillColor: AppColors.cardSurface,
+                            hasBorder: false,
                           ),
                           const SizedBox(height: AppSpacing.stackMd),
                         ],
@@ -336,13 +316,13 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
               ),
 
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
+              ArmsButton(
+                label: 'Save Decisions',
+                isLoading: isLoading,
+                variant: ArmsButtonVariant.primary,
+                size: ArmsButtonSize.large,
+                fullWidth: true,
+                onPressed: () async {
                           setState(() => _isSaving = true);
                           try {
                             final res = await runUpdate({
@@ -391,16 +371,6 @@ class _LeaveApprovalBottomSheetState extends State<LeaveApprovalBottomSheet> {
                             }
                           }
                         },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.onPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.roundFull)),
-                    elevation: 0,
-                  ),
-                  child: isLoading
-                      ? const CircularProgressIndicator(color: AppColors.onPrimary)
-                      : Text('Save Decisions', style: AppTextStyles.headerSmall.copyWith(color: AppColors.onPrimary)),
-                ),
               ),
             ],
           ),
