@@ -16,7 +16,6 @@ import '../widgets/arms_picker_sheet.dart';
 import 'student_photo/widgets/student_photo_capture_panel.dart';
 import 'student_photo/widgets/student_photo_search_panel.dart';
 import 'student_photo/student_camera_screen.dart';
-import 'student_photo/student_edit_details_screen.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../core/utils/image_url_helper.dart';
 
@@ -541,38 +540,7 @@ class StudentPhotoScreenState extends State<StudentPhotoScreen> {
     }
   }
 
-  Future<void> _navigateToEditDetails() async {
-    final student = _selectedStudent;
-    if (student == null) return;
 
-    final orgId = AuthService.currentAdmin?.organization?.id;
-    if (orgId == null) return;
-
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => StudentEditDetailsScreen(
-          studentId: student['id'],
-          organisationId: orgId,
-          schools: _schools,
-          classes: _classes,
-          sections: _sections,
-        ),
-      ),
-    );
-
-    if (result == true && mounted) {
-      await _loadStudents(isRefresh: true);
-      final rollNo = student['roll_no'];
-      final updatedStudent = _searchResults.firstWhere(
-        (s) => s['roll_no'] == rollNo,
-        orElse: () => student,
-      );
-      setState(() {
-        _selectedStudent = updatedStudent;
-      });
-    }
-  }
 
   bool handleBack() {
     if (_selectedStudent != null) {
@@ -625,7 +593,15 @@ class StudentPhotoScreenState extends State<StudentPhotoScreen> {
                   _pickedImage = null;
                 });
               },
-              onEditDetails: _navigateToEditDetails,
+              schools: _schools,
+              classes: _classes,
+              sections: _sections,
+              onDetailsUpdated: (updatedStudent) {
+                setState(() {
+                  _selectedStudent = updatedStudent;
+                });
+                _loadStudents(isRefresh: true);
+              },
             )
           : StudentPhotoSearchPanel(
               onSearch: _searchStudents,
