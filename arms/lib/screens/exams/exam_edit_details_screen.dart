@@ -50,7 +50,9 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
     _nameCtrl = TextEditingController(text: widget.exam['name'] ?? '');
     _chapterCtrl = TextEditingController(text: widget.exam['chapter'] ?? '');
     _topicCtrl = TextEditingController(text: widget.exam['topic'] ?? '');
-    _marksCtrl = TextEditingController(text: (widget.exam['total_marks'] ?? 0).toString());
+    _marksCtrl = TextEditingController(
+      text: (widget.exam['total_marks'] ?? 0).toString(),
+    );
 
     final rawDate = widget.exam['exam_date'] as String? ?? '';
     String initialDateStr = '';
@@ -65,14 +67,25 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
     }
     _dateCtrl = TextEditingController(text: initialDateStr);
 
-    _selectedSchoolIds = _mapValuesToIds(widget.exam['for_school'] as List?, widget.schoolsLookup);
-    _selectedClassIds = _mapValuesToIds(widget.exam['for_class'] as List?, widget.classesLookup);
-    _selectedSectionIds = _mapValuesToIds(widget.exam['for_section'] as List?, widget.sectionsLookup);
+    _selectedSchoolIds = _mapValuesToIds(
+      widget.exam['for_school'] as List?,
+      widget.schoolsLookup,
+    );
+    _selectedClassIds = _mapValuesToIds(
+      widget.exam['for_class'] as List?,
+      widget.classesLookup,
+    );
+    _selectedSectionIds = _mapValuesToIds(
+      widget.exam['for_section'] as List?,
+      widget.sectionsLookup,
+    );
 
     for (final sub in widget.subjects) {
       final subId = sub['id'] as String;
       final maxMarksVal = sub['max_marks'] ?? 100;
-      _subjectMarkControllers[subId] = TextEditingController(text: maxMarksVal.toString());
+      _subjectMarkControllers[subId] = TextEditingController(
+        text: maxMarksVal.toString(),
+      );
     }
   }
 
@@ -95,15 +108,16 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
     for (final val in values) {
       final valStr = val.toString().trim();
       if (valStr.isEmpty) continue;
-      
+
       final matchById = lookup.any((item) => item['id']?.toString() == valStr);
       if (matchById) {
         ids.add(valStr);
         continue;
       }
-      
+
       final matchByName = lookup.firstWhere(
-        (item) => item['name']?.toString().toLowerCase() == valStr.toLowerCase(),
+        (item) =>
+            item['name']?.toString().toLowerCase() == valStr.toLowerCase(),
         orElse: () => <String, dynamic>{},
       );
       if (matchByName.isNotEmpty && matchByName['id'] != null) {
@@ -123,12 +137,13 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
   }) {
     if (selectedIds.isEmpty) return placeholder;
     if (selectedIds.length == options.length) return 'All';
-    
-    final names = options
-        .where((opt) => selectedIds.contains(opt['id']?.toString()))
-        .map((opt) => opt['name'] as String? ?? '')
-        .toList();
-        
+
+    final names =
+        options
+            .where((opt) => selectedIds.contains(opt['id']?.toString()))
+            .map((opt) => opt['name'] as String? ?? '')
+            .toList();
+
     if (names.isEmpty) return placeholder;
     if (names.length <= 3) {
       return names.join(', ');
@@ -156,7 +171,12 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
 
             return SafeArea(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  12,
+                  24,
+                  MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,14 +202,18 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
                     CheckboxListTile(
                       title: Text(
                         'All',
-                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       value: isAllSelected,
                       activeColor: AppColors.primary,
                       onChanged: (val) {
                         setModalState(() {
                           if (val == true) {
-                            selectedIds.addAll(options.map((e) => e['id'] as String));
+                            selectedIds.addAll(
+                              options.map((e) => e['id'] as String),
+                            );
                           } else {
                             selectedIds.clear();
                           }
@@ -242,7 +266,8 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
     int total = 0;
     for (final sub in widget.subjects) {
       final subId = sub['id'] as String;
-      final val = int.tryParse(_subjectMarkControllers[subId]?.text.trim() ?? '0') ?? 0;
+      final val =
+          int.tryParse(_subjectMarkControllers[subId]?.text.trim() ?? '0') ?? 0;
       total += val;
     }
     _marksCtrl.text = total.toString();
@@ -324,48 +349,48 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
                   ),
                   _buildLabel('ASSIGN TO SCHOOLS'),
                   ArmsDropdownSelector(
-                    label: 'Select Schools',
                     value: _getDisplayValue(
                       selectedIds: _selectedSchoolIds,
                       options: widget.schoolsLookup,
                       placeholder: 'Select Schools',
                     ),
-                    onTap: () => _showMultiSelectSheet(
-                      title: 'Select Schools',
-                      options: widget.schoolsLookup,
-                      selectedIds: _selectedSchoolIds,
-                      onSelectionChanged: () => setState(() {}),
-                    ),
+                    onTap:
+                        () => _showMultiSelectSheet(
+                          title: 'Select Schools',
+                          options: widget.schoolsLookup,
+                          selectedIds: _selectedSchoolIds,
+                          onSelectionChanged: () => setState(() {}),
+                        ),
                   ),
                   _buildLabel('ASSIGN TO CLASSES'),
                   ArmsDropdownSelector(
-                    label: 'Select Classes',
                     value: _getDisplayValue(
                       selectedIds: _selectedClassIds,
                       options: widget.classesLookup,
                       placeholder: 'Select Classes',
                     ),
-                    onTap: () => _showMultiSelectSheet(
-                      title: 'Select Classes',
-                      options: widget.classesLookup,
-                      selectedIds: _selectedClassIds,
-                      onSelectionChanged: () => setState(() {}),
-                    ),
+                    onTap:
+                        () => _showMultiSelectSheet(
+                          title: 'Select Classes',
+                          options: widget.classesLookup,
+                          selectedIds: _selectedClassIds,
+                          onSelectionChanged: () => setState(() {}),
+                        ),
                   ),
                   _buildLabel('ASSIGN TO SECTIONS'),
                   ArmsDropdownSelector(
-                    label: 'Select Sections',
                     value: _getDisplayValue(
                       selectedIds: _selectedSectionIds,
                       options: widget.sectionsLookup,
                       placeholder: 'Select Sections',
                     ),
-                    onTap: () => _showMultiSelectSheet(
-                      title: 'Select Sections',
-                      options: widget.sectionsLookup,
-                      selectedIds: _selectedSectionIds,
-                      onSelectionChanged: () => setState(() {}),
-                    ),
+                    onTap:
+                        () => _showMultiSelectSheet(
+                          title: 'Select Sections',
+                          options: widget.sectionsLookup,
+                          selectedIds: _selectedSectionIds,
+                          onSelectionChanged: () => setState(() {}),
+                        ),
                   ),
                   if (isSingleMarks) ...[
                     _buildLabel('TOTAL MARKS'),
@@ -381,61 +406,77 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.cardSurface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.outline.withValues(alpha: 0.15)),
+                        border: Border.all(
+                          color: AppColors.outline.withValues(alpha: 0.15),
+                        ),
                       ),
                       child: Column(
-                        children: widget.subjects.map((sub) {
-                          final subId = sub['id'] as String;
-                          final controller = _subjectMarkControllers[subId]!;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Text(
-                                    sub['name'] ?? '',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textMain,
+                        children:
+                            widget.subjects.map((sub) {
+                              final subId = sub['id'] as String;
+                              final controller =
+                                  _subjectMarkControllers[subId]!;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12.0),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Text(
+                                        sub['name'] ?? '',
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.textMain,
+                                            ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: SizedBox(
-                                    height: 44,
-                                    child: TextField(
-                                      controller: controller,
-                                      keyboardType: TextInputType.number,
-                                      style: AppTextStyles.bodyMedium,
-                                      decoration: InputDecoration(
-                                        hintText: 'Max Marks',
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.3)),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: const BorderSide(color: AppColors.primary),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      flex: 2,
+                                      child: SizedBox(
+                                        height: 44,
+                                        child: TextField(
+                                          controller: controller,
+                                          keyboardType: TextInputType.number,
+                                          style: AppTextStyles.bodyMedium,
+                                          decoration: InputDecoration(
+                                            hintText: 'Max Marks',
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 16,
+                                                  vertical: 8,
+                                                ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: BorderSide(
+                                                color: AppColors.outline
+                                                    .withValues(alpha: 0.3),
+                                              ),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              borderSide: const BorderSide(
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          ),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _updateCalculatedTotalMarks();
+                                            });
+                                          },
                                         ),
                                       ),
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _updateCalculatedTotalMarks();
-                                        });
-                                      },
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                              );
+                            }).toList(),
                       ),
                     ),
                     _buildLabel('TOTAL MARKS'),
@@ -487,7 +528,7 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
 
     final List<String> subjectIds = [];
     final Map<String, int> subjectMarksMap = {};
-    
+
     final isSingleMarks = widget.subjects.length <= 1;
     if (isSingleMarks) {
       if (widget.subjects.isNotEmpty) {

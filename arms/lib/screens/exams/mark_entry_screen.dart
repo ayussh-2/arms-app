@@ -87,11 +87,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       if (q.isEmpty) {
         _filteredStudents = _students;
       } else {
-        _filteredStudents = _students.where((student) {
-          final name = (student['name'] as String? ?? '').toLowerCase();
-          final roll = (student['roll_no']?.toString() ?? '');
-          return name.contains(q) || roll.contains(q);
-        }).toList();
+        _filteredStudents =
+            _students.where((student) {
+              final name = (student['name'] as String? ?? '').toLowerCase();
+              final roll = (student['roll_no']?.toString() ?? '');
+              return name.contains(q) || roll.contains(q);
+            }).toList();
       }
     });
   }
@@ -100,7 +101,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_isLoading) {
-      _exam = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      _exam =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (_exam != null) _loadData();
     }
   }
@@ -140,33 +142,40 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       }
       final client = GraphQLProvider.of(context).value;
 
-      final lookupsResult = await client.query(QueryOptions(
-        document: gql(GqlQueries.getExamLookups),
-        variables: {'organisationId': orgId},
-        fetchPolicy: FetchPolicy.cacheFirst,
-      ));
+      final lookupsResult = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getExamLookups),
+          variables: {'organisationId': orgId},
+          fetchPolicy: FetchPolicy.cacheFirst,
+        ),
+      );
 
       if (lookupsResult.data != null) {
         final lookups = lookupsResult.data!['getExamLookups'];
         if (lookups != null) {
-          _schoolsLookup = (lookups['schools'] as List? ?? []).cast<Map<String, dynamic>>();
-          _classesLookup = (lookups['classes'] as List? ?? []).cast<Map<String, dynamic>>();
-          _sectionsLookup = (lookups['sections'] as List? ?? []).cast<Map<String, dynamic>>();
+          _schoolsLookup =
+              (lookups['schools'] as List? ?? []).cast<Map<String, dynamic>>();
+          _classesLookup =
+              (lookups['classes'] as List? ?? []).cast<Map<String, dynamic>>();
+          _sectionsLookup =
+              (lookups['sections'] as List? ?? []).cast<Map<String, dynamic>>();
         }
       }
 
-      final result = await client.query(QueryOptions(
-        document: gql(GqlQueries.getExamDetails),
-        variables: {
-          'examId': _exam!['id'],
-          'organisationId': orgId,
-        },
-        fetchPolicy: FetchPolicy.networkOnly,
-      ));
+      final result = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getExamDetails),
+          variables: {'examId': _exam!['id'], 'organisationId': orgId},
+          fetchPolicy: FetchPolicy.networkOnly,
+        ),
+      );
 
       if (!mounted) return;
       if (result.hasException) {
-        ArmsSnackbar.showError(context, 'Failed to load exam details: ${result.exception.toString()}');
+        ArmsSnackbar.showError(
+          context,
+          'Failed to load exam details: ${result.exception.toString()}',
+        );
         setState(() => _isLoading = false);
         return;
       }
@@ -174,9 +183,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       final details = result.data?['getExamDetails'] as Map<String, dynamic>?;
       if (details != null) {
         final examData = details['exam'] as Map<String, dynamic>?;
-        final students = (details['students'] as List? ?? []).cast<Map<String, dynamic>>();
-        final existingMarks = (details['marks'] as List? ?? []).cast<Map<String, dynamic>>();
-        final subjects = (details['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
+        final students =
+            (details['students'] as List? ?? []).cast<Map<String, dynamic>>();
+        final existingMarks =
+            (details['marks'] as List? ?? []).cast<Map<String, dynamic>>();
+        final subjects =
+            (details['subjects'] as List? ?? []).cast<Map<String, dynamic>>();
 
         if (examData != null) {
           final oldExam = _exam;
@@ -198,7 +210,9 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
         final marksByStudent = <String, List<Map<String, dynamic>>>{};
         for (final m in existingMarks) {
-          marksByStudent.putIfAbsent(m['student_id'] as String, () => []).add(m);
+          marksByStudent
+              .putIfAbsent(m['student_id'] as String, () => [])
+              .add(m);
         }
 
         students.sort((a, b) {
@@ -213,15 +227,29 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           if (aAbsent) return 1;
           if (bAbsent) return -1;
 
-          final aMarksList = aStudentMarks.map((m) => m['marks_obtained'] as num?).whereType<num>().toList();
-          final bMarksList = bStudentMarks.map((m) => m['marks_obtained'] as num?).whereType<num>().toList();
+          final aMarksList =
+              aStudentMarks
+                  .map((m) => m['marks_obtained'] as num?)
+                  .whereType<num>()
+                  .toList();
+          final bMarksList =
+              bStudentMarks
+                  .map((m) => m['marks_obtained'] as num?)
+                  .whereType<num>()
+                  .toList();
 
           if (aMarksList.isEmpty && bMarksList.isEmpty) return 0;
           if (aMarksList.isEmpty) return 1;
           if (bMarksList.isEmpty) return -1;
 
-          final aSum = aMarksList.fold<double>(0, (sum, val) => sum + val.toDouble());
-          final bSum = bMarksList.fold<double>(0, (sum, val) => sum + val.toDouble());
+          final aSum = aMarksList.fold<double>(
+            0,
+            (sum, val) => sum + val.toDouble(),
+          );
+          final bSum = bMarksList.fold<double>(
+            0,
+            (sum, val) => sum + val.toDouble(),
+          );
           return bSum.compareTo(aSum);
         });
 
@@ -255,7 +283,9 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 _statusNotifierMap[sid]?.value = existing['mark_status'];
               }
             }
-            _controllers[sid]![subjectId] = TextEditingController(text: markVal);
+            _controllers[sid]![subjectId] = TextEditingController(
+              text: markVal,
+            );
           }
         }
 
@@ -264,7 +294,9 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           _filteredStudents = students;
           _isLoading = false;
         });
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSearchFieldTop());
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _scrollToSearchFieldTop(),
+        );
       } else {
         setState(() => _isLoading = false);
       }
@@ -284,6 +316,53 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       _marksData[studentId]?.clear();
       _controllers[studentId]?.values.forEach((ctrl) => ctrl.clear());
     }
+  }
+
+  bool _isEligibleForBulkAbsent(String studentId) {
+    if (_absentMap[studentId] == true) return false;
+
+    final studentControllers = _controllers[studentId];
+    if (studentControllers == null || studentControllers.isEmpty) {
+      return true;
+    }
+
+    return studentControllers.values.every((controller) {
+      return controller.text.trim().isEmpty;
+    });
+  }
+
+  void _markRestAbsent() {
+    if (_students.isEmpty) return;
+
+    final remainingStudents =
+        _students.where((student) {
+          final studentId = student['id'] as String;
+          return _isEligibleForBulkAbsent(studentId);
+        }).toList();
+
+    if (remainingStudents.isEmpty) return;
+
+    setState(() {
+      _currentEditingStudentId = null;
+      _currentMarkFieldIndex = 0;
+
+      for (final student in remainingStudents) {
+        final studentId = student['id'] as String;
+        _absentMap[studentId] = true;
+        _absentNotifierMap[studentId]?.value = true;
+        _marksData[studentId]?.clear();
+        _controllers[studentId]?.values.forEach((ctrl) => ctrl.clear());
+      }
+    });
+
+    _currentMarkFieldFocusNodes?.forEach((node) => node.dispose());
+    _currentMarkFieldFocusNodes = null;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusSearchField();
+      }
+    });
   }
 
   void _cycleStatus(String studentId) {
@@ -307,19 +386,17 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     });
 
     _currentMarkFieldFocusNodes?.forEach((node) => node.dispose());
-    _currentMarkFieldFocusNodes = List.generate(
-      _subjects.length,
-      (index) {
-        final node = FocusNode();
-        node.addListener(() {
-          if (node.hasFocus) _scrollFocusedFieldIntoView(node);
-        });
-        return node;
-      },
-    );
+    _currentMarkFieldFocusNodes = List.generate(_subjects.length, (index) {
+      final node = FocusNode();
+      node.addListener(() {
+        if (node.hasFocus) _scrollFocusedFieldIntoView(node);
+      });
+      return node;
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_currentMarkFieldFocusNodes != null && _currentMarkFieldFocusNodes!.isNotEmpty) {
+      if (_currentMarkFieldFocusNodes != null &&
+          _currentMarkFieldFocusNodes!.isNotEmpty) {
         _currentMarkFieldFocusNodes!.first.requestFocus();
       }
       final searchContext = _searchFieldKey.currentContext;
@@ -333,7 +410,6 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       }
     });
   }
-
 
   void _handleActionButtonPressed(BuildContext context) {
     final keyboardOpen = _isKeyboardOpen(context);
@@ -349,7 +425,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   }
 
   void _focusNextMarkField() {
-    if (_currentEditingStudentId == null || _currentMarkFieldFocusNodes == null) {
+    if (_currentEditingStudentId == null ||
+        _currentMarkFieldFocusNodes == null) {
       _focusSearchField();
       return;
     }
@@ -430,11 +507,15 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       for (final es in _subjects) {
         final subjectId = es['id'] as String? ?? '';
         final marksText = _marksData[sid]?[subjectId] ?? '';
-        final marksVal = marksText.isNotEmpty ? double.tryParse(marksText) : null;
+        final marksVal =
+            marksText.isNotEmpty ? double.tryParse(marksText) : null;
         final maxMarks = es['max_marks'] as num? ?? 100;
 
         if (marksVal != null && marksVal > maxMarks.toDouble()) {
-          ArmsSnackbar.showError(context, 'Error: Marks for ${student['name']} in ${es['name']} exceed maximum marks ($maxMarks)');
+          ArmsSnackbar.showError(
+            context,
+            'Error: Marks for ${student['name']} in ${es['name']} exceed maximum marks ($maxMarks)',
+          );
           setState(() => _isSaving = false);
           return;
         }
@@ -449,7 +530,8 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       for (final es in _subjects) {
         final subjectId = es['id'] as String? ?? '';
         final marksText = _marksData[sid]?[subjectId] ?? '';
-        final marksVal = marksText.isNotEmpty ? double.tryParse(marksText) : null;
+        final marksVal =
+            marksText.isNotEmpty ? double.tryParse(marksText) : null;
 
         input.add({
           'student_id': sid,
@@ -462,13 +544,12 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     }
 
     try {
-      final result = await client.mutate(MutationOptions(
-        document: gql(GqlQueries.saveMarks),
-        variables: {
-          'examId': _exam!['id'],
-          'marks': input,
-        },
-      ));
+      final result = await client.mutate(
+        MutationOptions(
+          document: gql(GqlQueries.saveMarks),
+          variables: {'examId': _exam!['id'], 'marks': input},
+        ),
+      );
 
       if (result.hasException) throw result.exception!;
 
@@ -486,19 +567,21 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   Future<void> _openExcelUploadScreen(BuildContext context) async {
     if (_exam == null) return;
 
-    final Map<String, Map<String, String>>? importedMarks = await Navigator.push<Map<String, Map<String, String>>>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ExcelMarksUploadScreen(
-          exam: _exam!,
-          subjects: _subjects,
-          students: _students,
-          schoolsLookup: _schoolsLookup,
-          classesLookup: _classesLookup,
-          sectionsLookup: _sectionsLookup,
-        ),
-      ),
-    );
+    final Map<String, Map<String, String>>? importedMarks =
+        await Navigator.push<Map<String, Map<String, String>>>(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => ExcelMarksUploadScreen(
+                  exam: _exam!,
+                  subjects: _subjects,
+                  students: _students,
+                  schoolsLookup: _schoolsLookup,
+                  classesLookup: _classesLookup,
+                  sectionsLookup: _sectionsLookup,
+                ),
+          ),
+        );
 
     if (importedMarks != null && mounted) {
       setState(() {
@@ -520,7 +603,10 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
       });
 
       if (!context.mounted) return;
-      ArmsSnackbar.showSuccess(context, 'Marks imported from Excel successfully!');
+      ArmsSnackbar.showSuccess(
+        context,
+        'Marks imported from Excel successfully!',
+      );
     }
   }
 
@@ -529,151 +615,231 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
     final keyboardOpen = _isKeyboardOpen(context);
     final media = MediaQuery.of(context);
     final itemWidth = (media.size.width - 80) / 2;
-    final effectivePageSize = media.size.shortestSide < 360 ? _lowEndPageSize : _pageSize;
+    final effectivePageSize =
+        media.size.shortestSide < 360 ? _lowEndPageSize : _pageSize;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const ArmsTopAppBar(title: 'Marks Entry', showBackButton: true),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : Stack(
-              children: [
-                ListView(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.marginPage,
-                    AppSpacing.stackMd,
-                    AppSpacing.marginPage,
-                    100,
-                  ),
-                  children: [
-                    ExamConfigHeaderPanel(
-                      exam: _exam!,
-                      subjects: _subjects,
-                      schoolsLookup: _schoolsLookup,
-                      classesLookup: _classesLookup,
-                      sectionsLookup: _sectionsLookup,
-                      onExamDetailsUpdated: () => setState(() {}),
+      body:
+          _isLoading
+              ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+              : Stack(
+                children: [
+                  ListView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.marginPage,
+                      AppSpacing.stackMd,
+                      AppSpacing.marginPage,
+                      100,
                     ),
-                    const SizedBox(height: AppSpacing.stackLg),
-                    ExamReferenceDocsSection(
-                      exam: _exam!,
-                      onPdfUploaded: (type, newUrl) {
-                        setState(() {
-                          if (type == 'attendance') {
-                            _exam!['attendance_pdf_url'] = newUrl;
-                          } else {
-                            _exam!['question_pdf_url'] = newUrl;
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.stackLg),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Student Marks'.toUpperCase(),
-                          style: AppTextStyles.labelXsUppercase.copyWith(
-                            color: AppColors.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () => _openExcelUploadScreen(context),
-                          icon: const Icon(Icons.upload_file, size: 16, color: AppColors.primary),
-                          label: Text(
-                            'UPLOAD EXCEL',
-                            style: AppTextStyles.labelXs.copyWith(
-                              color: AppColors.primary,
+                    children: [
+                      ExamConfigHeaderPanel(
+                        exam: _exam!,
+                        subjects: _subjects,
+                        schoolsLookup: _schoolsLookup,
+                        classesLookup: _classesLookup,
+                        sectionsLookup: _sectionsLookup,
+                        onExamDetailsUpdated: () => setState(() {}),
+                      ),
+                      const SizedBox(height: AppSpacing.stackLg),
+                      ExamReferenceDocsSection(
+                        exam: _exam!,
+                        onPdfUploaded: (type, newUrl) {
+                          setState(() {
+                            if (type == 'attendance') {
+                              _exam!['attendance_pdf_url'] = newUrl;
+                            } else {
+                              _exam!['question_pdf_url'] = newUrl;
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.stackLg),
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 16,
+                        runSpacing: 12,
+                        children: [
+                          Text(
+                            'Student Marks'.toUpperCase(),
+                            style: AppTextStyles.labelXsUppercase.copyWith(
+                              color: AppColors.onSurfaceVariant,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.primary, width: 1),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
-                            backgroundColor: AppColors.primaryFaint,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed:
+                                    () => _openExcelUploadScreen(context),
+                                icon: const Icon(
+                                  Icons.upload_file,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
+                                label: Text(
+                                  'UPLOAD EXCEL',
+                                  style: AppTextStyles.labelXs.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 1,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(9999),
+                                  ),
+                                  backgroundColor: AppColors.primaryFaint,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                ),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed:
+                                    _students.any((student) {
+                                          final studentId =
+                                              student['id'] as String;
+                                          return _isEligibleForBulkAbsent(
+                                            studentId,
+                                          );
+                                        })
+                                        ? _markRestAbsent
+                                        : null,
+                                icon: const Icon(
+                                  Icons.block,
+                                  size: 16,
+                                  color: AppColors.errorText,
+                                ),
+                                label: Text(
+                                  'MARK REST STUDENTS ABSENT',
+                                  style: AppTextStyles.labelXs.copyWith(
+                                    color: AppColors.errorText,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(
+                                    color: AppColors.errorText.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                    width: 1,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(9999),
+                                  ),
+                                  backgroundColor: AppColors.errorText
+                                      .withValues(alpha: 0.06),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.stackLg),
+                      Container(
+                        key: _searchFieldKey,
+                        child: ArmsInputField(
+                          controller: _searchCtrl,
+                          focusNode: _searchFocusNode,
+                          hintText: 'Search students by name or roll number...',
+                          prefixIcon: Icons.search,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => _navigateToMarkFields(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      MarkEntryGrid(
+                        students:
+                            _filteredStudents
+                                .skip(_currentPage * effectivePageSize)
+                                .take(effectivePageSize)
+                                .toList(),
+                        subjects: _subjects,
+                        controllers: _controllers,
+                        absentNotifiers: _absentNotifierMap,
+                        statusNotifiers: _statusNotifierMap,
+                        isEditing: _currentEditingStudentId != null,
+                        focusNodes: _currentMarkFieldFocusNodes,
+                        itemWidth: itemWidth,
+                        currentPage: _currentPage,
+                        pageSize: effectivePageSize,
+                        currentEditingStudentId: _currentEditingStudentId,
+                        onMarkChanged: (studentId, subId, val) {
+                          _marksData.putIfAbsent(studentId, () => {})[subId] =
+                              val;
+                        },
+                        onAbsentToggle: _toggleAbsent,
+                        onStatusCycle: _cycleStatus,
+                        onNext: _focusNextMarkField,
+                      ),
+                      if (_filteredStudents.length > effectivePageSize)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Showing ${(_currentPage * effectivePageSize) + 1} to '
+                                '${((_currentPage + 1) * effectivePageSize).clamp(1, _filteredStudents.length)} of ${_filteredStudents.length}',
+                                style: AppTextStyles.labelXs.copyWith(
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  _PaginationButton(
+                                    icon: Icons.chevron_left,
+                                    isEnabled: _currentPage > 0,
+                                    onTap: () => setState(() => _currentPage--),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _PaginationButton(
+                                    icon: Icons.chevron_right,
+                                    isEnabled:
+                                        (_currentPage + 1) * effectivePageSize <
+                                        _filteredStudents.length,
+                                    onTap: () => setState(() => _currentPage++),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.stackLg),
-                    Container(
-                      key: _searchFieldKey,
-                      child: ArmsInputField(
-                        controller: _searchCtrl,
-                        focusNode: _searchFocusNode,
-                        hintText: 'Search students by name or roll number...',
-                        prefixIcon: Icons.search,
-                        textInputAction: TextInputAction.next,
-                        onSubmitted: (_) => _navigateToMarkFields(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    MarkEntryGrid(
-                      students: _filteredStudents.skip(_currentPage * effectivePageSize).take(effectivePageSize).toList(),
-                      subjects: _subjects,
-                      controllers: _controllers,
-                      absentNotifiers: _absentNotifierMap,
-                      statusNotifiers: _statusNotifierMap,
-                      isEditing: _currentEditingStudentId != null,
-                      focusNodes: _currentMarkFieldFocusNodes,
-                      itemWidth: itemWidth,
-                      currentPage: _currentPage,
-                      pageSize: effectivePageSize,
-                      currentEditingStudentId: _currentEditingStudentId,
-                      onMarkChanged: (studentId, subId, val) {
-                        _marksData.putIfAbsent(studentId, () => {})[subId] = val;
-                      },
-                      onAbsentToggle: _toggleAbsent,
-                      onStatusCycle: _cycleStatus,
-                      onNext: _focusNextMarkField,
-                    ),
-                    if (_filteredStudents.length > effectivePageSize)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Showing ${(_currentPage * effectivePageSize) + 1} to '
-                              '${((_currentPage + 1) * effectivePageSize).clamp(1, _filteredStudents.length)} of ${_filteredStudents.length}',
-                              style: AppTextStyles.labelXs.copyWith(color: AppColors.onSurfaceVariant),
-                            ),
-                            Row(
-                              children: [
-                                _PaginationButton(
-                                  icon: Icons.chevron_left,
-                                  isEnabled: _currentPage > 0,
-                                  onTap: () => setState(() => _currentPage--),
-                                ),
-                                const SizedBox(width: 8),
-                                _PaginationButton(
-                                  icon: Icons.chevron_right,
-                                  isEnabled: (_currentPage + 1) * effectivePageSize < _filteredStudents.length,
-                                  onTap: () => setState(() => _currentPage++),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: ArmsStickyFooter(
-                    primaryButtonText: _isSaving
-                        ? 'Saving...'
-                        : (keyboardOpen ? 'Next' : 'Save & Close'),
-                    onPrimaryPressed: _isSaving ? () {} : () => _handleActionButtonPressed(context),
+                    ],
                   ),
-                ),
-              ],
-            ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: ArmsStickyFooter(
+                      primaryButtonText:
+                          _isSaving
+                              ? 'Saving...'
+                              : (keyboardOpen ? 'Next' : 'Save & Close'),
+                      onPrimaryPressed:
+                          _isSaving
+                              ? () {}
+                              : () => _handleActionButtonPressed(context),
+                    ),
+                  ),
+                ],
+              ),
     );
   }
 }
@@ -700,7 +866,8 @@ class _PaginationButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: isEnabled ? AppColors.primary : AppColors.cardSurface,
             shape: BoxShape.circle,
-            border: isEnabled ? null : Border.all(color: AppColors.outlineLight),
+            border:
+                isEnabled ? null : Border.all(color: AppColors.outlineLight),
           ),
           child: Icon(
             icon,
