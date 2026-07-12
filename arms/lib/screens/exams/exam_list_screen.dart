@@ -521,6 +521,7 @@ class _ExamListScreenState extends State<ExamListScreen> {
             ),
       floatingActionButton: _activeSubTab == 0
           ? FloatingActionButton(
+              heroTag: 'fab_exam_list',
               onPressed: () async {
                 final result = await Navigator.of(context).pushNamed('/exam-create');
                 if (result == true) {
