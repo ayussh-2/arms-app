@@ -16,7 +16,7 @@ class ArmsPickerSheet {
       context: context,
       backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       builder:
           (ctx) => SafeArea(
@@ -46,11 +46,21 @@ class ArmsPickerSheet {
                         title: Text(
                           itemLabel(item),
                           style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isSelected ? AppColors.primary : AppColors.textMain,
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color:
+                                isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textMain,
                           ),
                         ),
-                        trailing: isSelected ? const Icon(Icons.check, color: AppColors.primary) : null,
+                        trailing:
+                            isSelected
+                                ? const Icon(
+                                  Icons.check,
+                                  color: AppColors.primary,
+                                )
+                                : null,
                         onTap: () {
                           Navigator.pop(ctx);
                           onItemSelected(item);

@@ -56,7 +56,6 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
   String? _selectedTagCategory;
   String? _selectedTagIdToAdd;
 
-
   Map<String, dynamic>? _studentData;
   List<Map<String, dynamic>> _alumni = [];
   String? _rawDob;
@@ -101,7 +100,8 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     super.didUpdateWidget(oldWidget);
     if (widget.selectedStudent['id'] != oldWidget.selectedStudent['id']) {
       _loadData();
-    } else if (widget.selectedStudent != oldWidget.selectedStudent && !_isEditable) {
+    } else if (widget.selectedStudent != oldWidget.selectedStudent &&
+        !_isEditable) {
       if (_studentData != null) {
         setState(() {
           _studentData!['name'] = widget.selectedStudent['name'];
@@ -179,7 +179,8 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
 
       final student = result.data?['getStudentDetails'];
       final alumniList = alumniResult.data?['getAlumni'] as List? ?? [];
-      final availableTagsList = tagsResult.data?['getAvailableTags'] as List? ?? [];
+      final availableTagsList =
+          tagsResult.data?['getAvailableTags'] as List? ?? [];
 
       if (student != null) {
         if (mounted) {
@@ -250,7 +251,6 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     }
   }
 
-
   void _resetForm() {
     _syncFieldsFromStudentData();
     setState(() {
@@ -263,8 +263,18 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
   }
 
   static const List<String> _monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   String _formatDobForDisplay(String? rawDob) {
@@ -275,16 +285,26 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
         final year = int.tryParse(parts[0]);
         final month = int.tryParse(parts[1]);
         final day = int.tryParse(parts[2]);
-        if (year != null && month != null && day != null && month >= 1 && month <= 12) {
+        if (year != null &&
+            month != null &&
+            day != null &&
+            month >= 1 &&
+            month <= 12) {
           final yearStr = year.toString();
-          final shortYear = yearStr.length >= 2 ? yearStr.substring(yearStr.length - 2) : yearStr;
+          final shortYear =
+              yearStr.length >= 2
+                  ? yearStr.substring(yearStr.length - 2)
+                  : yearStr;
           return "${day.toString().padLeft(2, '0')} ${_monthNames[month - 1]} $shortYear";
         }
       }
       final dt = DateTime.tryParse(rawDob);
       if (dt != null) {
         final yearStr = dt.year.toString();
-        final shortYear = yearStr.length >= 2 ? yearStr.substring(yearStr.length - 2) : yearStr;
+        final shortYear =
+            yearStr.length >= 2
+                ? yearStr.substring(yearStr.length - 2)
+                : yearStr;
         return "${dt.day.toString().padLeft(2, '0')} ${_monthNames[dt.month - 1]} $shortYear";
       }
     } catch (_) {}
@@ -298,7 +318,8 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       if (dob == null) return null;
       final now = DateTime.now();
       int age = now.year - dob.year;
-      if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+      if (now.month < dob.month ||
+          (now.month == dob.month && now.day < dob.day)) {
         age--;
       }
       return age >= 0 ? age : null;
@@ -322,7 +343,8 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     );
     if (picked != null) {
       setState(() {
-        _rawDob = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+        _rawDob =
+            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
         _dobController.text = _formatDobForDisplay(_rawDob);
       });
     }
@@ -351,7 +373,10 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       setState(() => _rollNoError = 'Admission No. / Roll No. is required.');
       hasError = true;
     } else if (rollNoVal == null) {
-      setState(() => _rollNoError = 'Admission No. / Roll No. must be a valid integer.');
+      setState(
+        () =>
+            _rollNoError = 'Admission No. / Roll No. must be a valid integer.',
+      );
       hasError = true;
     }
 
@@ -368,7 +393,9 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     if (phone1.isNotEmpty) {
       final phoneRegExp = RegExp(r'^[0-9]{10}$');
       if (!phoneRegExp.hasMatch(phone1)) {
-        setState(() => _phone1Error = 'Please enter a valid 10-digit Phone 1 number.');
+        setState(
+          () => _phone1Error = 'Please enter a valid 10-digit Phone 1 number.',
+        );
         hasError = true;
       }
     }
@@ -377,7 +404,9 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     if (phone2.isNotEmpty) {
       final phoneRegExp = RegExp(r'^[0-9]{10}$');
       if (!phoneRegExp.hasMatch(phone2)) {
-        setState(() => _phone2Error = 'Please enter a valid 10-digit Phone 2 number.');
+        setState(
+          () => _phone2Error = 'Please enter a valid 10-digit Phone 2 number.',
+        );
         hasError = true;
       }
     }
@@ -397,19 +426,43 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
 
       final input = {
         'name': name,
-        'father_name': _fatherNameController.text.trim().isEmpty ? null : _fatherNameController.text.trim(),
-        'mother_name': _motherNameController.text.trim().isEmpty ? null : _motherNameController.text.trim(),
-        'dob': _rawDob != null && _rawDob!.trim().isNotEmpty ? _rawDob!.trim() : null,
+        'father_name':
+            _fatherNameController.text.trim().isEmpty
+                ? null
+                : _fatherNameController.text.trim(),
+        'mother_name':
+            _motherNameController.text.trim().isEmpty
+                ? null
+                : _motherNameController.text.trim(),
+        'dob':
+            _rawDob != null && _rawDob!.trim().isNotEmpty
+                ? _rawDob!.trim()
+                : null,
         'school_id': _selectedSchoolId,
         'class_id': _selectedClassId,
         'section_id': _selectedSectionId,
         'roll_no': rollNoVal,
-        'email': _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-        'password': _passwordController.text.trim().isEmpty ? null : _passwordController.text.trim(),
-        'phone1': _phone1Controller.text.trim().isEmpty ? null : _phone1Controller.text.trim(),
-        'phone2': _phone2Controller.text.trim().isEmpty ? null : _phone2Controller.text.trim(),
+        'email':
+            _emailController.text.trim().isEmpty
+                ? null
+                : _emailController.text.trim(),
+        'password':
+            _passwordController.text.trim().isEmpty
+                ? null
+                : _passwordController.text.trim(),
+        'phone1':
+            _phone1Controller.text.trim().isEmpty
+                ? null
+                : _phone1Controller.text.trim(),
+        'phone2':
+            _phone2Controller.text.trim().isEmpty
+                ? null
+                : _phone2Controller.text.trim(),
         'category': _selectedCategory,
-        'address': _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+        'address':
+            _addressController.text.trim().isEmpty
+                ? null
+                : _addressController.text.trim(),
         'gender': _selectedGender,
         'age': _calculateAge(_rawDob),
         'fl_batch_id': _selectedFlBatchId,
@@ -433,7 +486,10 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       }
 
       if (mounted) {
-        ArmsSnackbar.showSuccess(context, 'Student details updated successfully!');
+        ArmsSnackbar.showSuccess(
+          context,
+          'Student details updated successfully!',
+        );
 
         final selectedClass = widget.classes.firstWhere(
           (c) => c['id']?.toString() == _selectedClassId,
@@ -448,26 +504,60 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
           'id': widget.selectedStudent['id'],
           'name': name,
           'roll_no': rollNoVal,
-          'image_url': _studentData?['image_url'] ?? widget.selectedStudent['image_url'],
-          'class': selectedClass != null ? {'id': selectedClass['id'], 'name': selectedClass['name']} : null,
-          'section': selectedSection != null ? {'id': selectedSection['id'], 'name': selectedSection['name']} : null,
+          'image_url':
+              _studentData?['image_url'] ?? widget.selectedStudent['image_url'],
+          'class':
+              selectedClass != null
+                  ? {'id': selectedClass['id'], 'name': selectedClass['name']}
+                  : null,
+          'section':
+              selectedSection != null
+                  ? {
+                    'id': selectedSection['id'],
+                    'name': selectedSection['name'],
+                  }
+                  : null,
         };
 
         setState(() {
           _studentData!['name'] = name;
           _studentData!['roll_no'] = rollNoVal;
-          _studentData!['father_name'] = _fatherNameController.text.trim().isEmpty ? null : _fatherNameController.text.trim();
-          _studentData!['mother_name'] = _motherNameController.text.trim().isEmpty ? null : _motherNameController.text.trim();
-          _studentData!['dob'] = _rawDob != null && _rawDob!.trim().isNotEmpty ? _rawDob!.trim() : null;
+          _studentData!['father_name'] =
+              _fatherNameController.text.trim().isEmpty
+                  ? null
+                  : _fatherNameController.text.trim();
+          _studentData!['mother_name'] =
+              _motherNameController.text.trim().isEmpty
+                  ? null
+                  : _motherNameController.text.trim();
+          _studentData!['dob'] =
+              _rawDob != null && _rawDob!.trim().isNotEmpty
+                  ? _rawDob!.trim()
+                  : null;
           _studentData!['school_id'] = _selectedSchoolId;
           _studentData!['class_id'] = _selectedClassId;
           _studentData!['section_id'] = _selectedSectionId;
-          _studentData!['email'] = _emailController.text.trim().isEmpty ? null : _emailController.text.trim();
-          _studentData!['password'] = _passwordController.text.trim().isEmpty ? null : _passwordController.text.trim();
-          _studentData!['phone1'] = _phone1Controller.text.trim().isEmpty ? null : _phone1Controller.text.trim();
-          _studentData!['phone2'] = _phone2Controller.text.trim().isEmpty ? null : _phone2Controller.text.trim();
+          _studentData!['email'] =
+              _emailController.text.trim().isEmpty
+                  ? null
+                  : _emailController.text.trim();
+          _studentData!['password'] =
+              _passwordController.text.trim().isEmpty
+                  ? null
+                  : _passwordController.text.trim();
+          _studentData!['phone1'] =
+              _phone1Controller.text.trim().isEmpty
+                  ? null
+                  : _phone1Controller.text.trim();
+          _studentData!['phone2'] =
+              _phone2Controller.text.trim().isEmpty
+                  ? null
+                  : _phone2Controller.text.trim();
           _studentData!['category'] = _selectedCategory;
-          _studentData!['address'] = _addressController.text.trim().isEmpty ? null : _addressController.text.trim();
+          _studentData!['address'] =
+              _addressController.text.trim().isEmpty
+                  ? null
+                  : _addressController.text.trim();
           _studentData!['gender'] = _selectedGender;
           _studentData!['fl_batch_id'] = _selectedFlBatchId;
 
@@ -499,30 +589,39 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       errorText: errorText,
       errorStyle: const TextStyle(height: 0.8),
       filled: true,
-      fillColor: _isEditable ? AppColors.cardSurface : AppColors.surfaceVariant.withValues(alpha: 0.5),
+      fillColor:
+          _isEditable
+              ? AppColors.cardSurface
+              : AppColors.surfaceVariant.withValues(alpha: 0.5),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.15), width: 1),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: AppColors.outline.withValues(alpha: 0.15),
+          width: 1,
+        ),
       ),
       disabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.05), width: 1),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: AppColors.outline.withValues(alpha: 0.05),
+          width: 1,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.errorText, width: 1),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(color: AppColors.errorText, width: 2),
       ),
     );
@@ -533,7 +632,9 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          padding: const EdgeInsets.only(
+            bottom: 8,
+          ), // Removed left: 4 padding for perfectly flush alignment
           child: Text(
             label,
             style: AppTextStyles.labelXs.copyWith(
@@ -543,12 +644,17 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
           ),
         ),
         child,
-        const SizedBox(height: 16),
+        const SizedBox(height: 20), // Unified spacing between form groups
       ],
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, {String? placeholder, TextInputType? keyboardType, String? errorText}) {
+  Widget _buildTextField(
+    TextEditingController controller, {
+    String? placeholder,
+    TextInputType? keyboardType,
+    String? errorText,
+  }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
@@ -556,7 +662,10 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       style: AppTextStyles.bodyMedium.copyWith(
         color: _isEditable ? AppColors.textMain : AppColors.textSecondary,
       ),
-      decoration: _getInputDecoration(hintText: placeholder, errorText: errorText),
+      decoration: _getInputDecoration(
+        hintText: placeholder,
+        errorText: errorText,
+      ),
     );
   }
 
@@ -565,7 +674,10 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       controller: _dobController,
       hintText: 'dd mm yyyy',
       onTap: _isEditable ? () => _selectDate(context) : () {},
-      fillColor: _isEditable ? AppColors.cardSurface : AppColors.cardSurface.withValues(alpha: 0.5),
+      fillColor:
+          _isEditable
+              ? AppColors.cardSurface
+              : AppColors.cardSurface.withValues(alpha: 0.5),
       hasBorder: true,
     );
   }
@@ -584,19 +696,27 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
         isExpanded: true,
         padding: EdgeInsets.zero,
         style: AppTextStyles.bodyMedium.copyWith(
-          color: onChanged != null ? AppColors.textMain : AppColors.textSecondary,
+          color:
+              onChanged != null ? AppColors.textMain : AppColors.textSecondary,
         ),
         decoration: _getInputDecoration(hintText: hintText),
         icon: Icon(
           Icons.keyboard_arrow_down_rounded,
-          color: onChanged != null ? AppColors.textSecondary : AppColors.textSecondary.withValues(alpha: 0.3),
+          color:
+              onChanged != null
+                  ? AppColors.textSecondary
+                  : AppColors.textSecondary.withValues(alpha: 0.3),
           size: 24,
         ),
       ),
     );
   }
 
-  Widget _buildSectionCard({required String title, required IconData icon, required List<Widget> children}) {
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 20),
@@ -617,9 +737,7 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-          ),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 12)),
           ...children,
         ],
       ),
@@ -632,20 +750,32 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: AppColors.background,
-          title: Text(tag['name'] ?? 'Tag Details', style: const TextStyle(color: AppColors.textMain)),
+          title: Text(
+            tag['name'] ?? 'Tag Details',
+            style: const TextStyle(color: AppColors.textMain),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Category: ${tag['type'] ?? 'None'}', style: const TextStyle(color: AppColors.textSecondary)),
+              Text(
+                'Category: ${tag['type'] ?? 'None'}',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
               const SizedBox(height: 8),
-              Text(tag['assignedByLabel'] ?? 'Assignment info unavailable', style: const TextStyle(color: AppColors.textSecondary)),
+              Text(
+                tag['assignedByLabel'] ?? 'Assignment info unavailable',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close', style: TextStyle(color: AppColors.primary)),
+              child: const Text(
+                'Close',
+                style: TextStyle(color: AppColors.primary),
+              ),
             ),
           ],
         );
@@ -662,12 +792,18 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
           builder: (context, setStateDialog) {
             return AlertDialog(
               backgroundColor: AppColors.background,
-              title: const Text('Remove Tag', style: TextStyle(color: AppColors.textMain)),
+              title: const Text(
+                'Remove Tag',
+                style: TextStyle(color: AppColors.textMain),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Type "remove" to confirm removing the tag "${tag['name']}".', style: const TextStyle(color: AppColors.textSecondary)),
+                  Text(
+                    'Type "remove" to confirm removing the tag "${tag['name']}".',
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: confirmController,
@@ -675,8 +811,12 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                     decoration: const InputDecoration(
                       hintText: 'Type remove',
                       hintStyle: TextStyle(color: AppColors.textSecondary),
-                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.outline)),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: AppColors.outline),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: AppColors.primary),
+                      ),
                     ),
                     onChanged: (_) {
                       setStateDialog(() {});
@@ -687,12 +827,16 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel', style: TextStyle(color: AppColors.primary)),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: AppColors.primary),
+                  ),
                 ),
                 TextButton(
-                  onPressed: confirmController.text.trim().toLowerCase() == 'remove'
-                      ? () => Navigator.pop(context, true)
-                      : null,
+                  onPressed:
+                      confirmController.text.trim().toLowerCase() == 'remove'
+                          ? () => Navigator.pop(context, true)
+                          : null,
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.errorText,
                   ),
@@ -795,17 +939,23 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
   }
 
   Widget _buildTagPickerSection() {
-    final categories = _availableTags
-        .map((tag) => tag['type']?.toString().trim() ?? '')
-        .where((type) => type.isNotEmpty)
-        .toSet()
-        .toList();
+    final categories =
+        _availableTags
+            .map((tag) => tag['type']?.toString().trim() ?? '')
+            .where((type) => type.isNotEmpty)
+            .toSet()
+            .toList();
     categories.sort((a, b) => a.compareTo(b));
 
-    final tagsInSelectedCategory = _availableTags
-        .where((tag) => (tag['type']?.toString().trim() ?? '') == _selectedTagCategory && 
-                        !_assignedTags.any((assigned) => assigned['id'] == tag['id']))
-        .toList();
+    final tagsInSelectedCategory =
+        _availableTags
+            .where(
+              (tag) =>
+                  (tag['type']?.toString().trim() ?? '') ==
+                      _selectedTagCategory &&
+                  !_assignedTags.any((assigned) => assigned['id'] == tag['id']),
+            )
+            .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -817,8 +967,13 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                 value: _selectedTagCategory,
                 hintText: 'Select category',
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('Select Category')),
-                  ...categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('Select Category'),
+                  ),
+                  ...categories.map(
+                    (c) => DropdownMenuItem(value: c, child: Text(c)),
+                  ),
                 ],
                 onChanged: (val) {
                   setState(() {
@@ -834,19 +989,25 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                 value: _selectedTagIdToAdd,
                 hintText: 'Select tag name',
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('Select Tag')),
-                  ...tagsInSelectedCategory.map((t) => DropdownMenuItem(
-                        value: t['id']?.toString(),
-                        child: Text(t['name']?.toString() ?? ''),
-                      )),
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('Select Tag'),
+                  ),
+                  ...tagsInSelectedCategory.map(
+                    (t) => DropdownMenuItem(
+                      value: t['id']?.toString(),
+                      child: Text(t['name']?.toString() ?? ''),
+                    ),
+                  ),
                 ],
-                onChanged: _selectedTagCategory == null
-                    ? null
-                    : (val) {
-                        setState(() {
-                          _selectedTagIdToAdd = val;
-                        });
-                      },
+                onChanged:
+                    _selectedTagCategory == null
+                        ? null
+                        : (val) {
+                          setState(() {
+                            _selectedTagIdToAdd = val;
+                          });
+                        },
               ),
             ),
           ],
@@ -856,14 +1017,15 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
           width: double.infinity,
           height: 48,
           child: ElevatedButton.icon(
-            onPressed: _selectedTagIdToAdd == null || _isSaving ? null : _assignTag,
+            onPressed:
+                _selectedTagIdToAdd == null || _isSaving ? null : _assignTag,
             icon: const Icon(Icons.add_circle_outline),
             label: const Text('Add Tag'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
           ),
@@ -874,7 +1036,6 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
 
   @override
   Widget build(BuildContext context) {
-
     // final name = widget.selectedStudent['name'] ?? 'No Name';
     // final rollNo = widget.selectedStudent['roll_no'] ?? 'No Roll No';
     final currentImgUrl = widget.selectedStudent['image_url'] as String?;
@@ -950,14 +1111,13 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
             child: Column(
               children: [
                 if (widget.pickedImage != null) ...[
-                 
                   Container(
                     width: 250,
                     height: 250,
                     decoration: BoxDecoration(
                       color: AppColors.cardSurface,
-                      borderRadius: BorderRadius.circular(20),
-                     
+                      borderRadius: BorderRadius.circular(12),
+
                       image: DecorationImage(
                         image: FileImage(widget.pickedImage!),
                         fit: BoxFit.cover,
@@ -970,25 +1130,31 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                     height: 250,
                     decoration: BoxDecoration(
                       color: AppColors.cardSurface,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: AppColors.outline.withValues(alpha: 0.3),
                         width: 2,
                       ),
-                      image: hasCurrentImg
-                          ? DecorationImage(
-                              image: NetworkImage(ImageUrlHelper.sanitizeUrl(currentImgUrl)!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
+                      image:
+                          hasCurrentImg
+                              ? DecorationImage(
+                                image: NetworkImage(
+                                  ImageUrlHelper.sanitizeUrl(currentImgUrl)!,
+                                ),
+                                fit: BoxFit.cover,
+                              )
+                              : null,
                     ),
-                    child: !hasCurrentImg
-                        ? Icon(
-                            Icons.person_outline_rounded,
-                            size: 80,
-                            color: AppColors.textSecondary.withValues(alpha: 0.5),
-                          )
-                        : null,
+                    child:
+                        !hasCurrentImg
+                            ? Icon(
+                              Icons.person_outline_rounded,
+                              size: 80,
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.5,
+                              ),
+                            )
+                            : null,
                   ),
                 ],
               ],
@@ -1016,14 +1182,15 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                     child: SizedBox(
                       height: 56,
                       child: ElevatedButton.icon(
-                        onPressed: () => widget.onCapturePhoto(ImageSource.camera),
+                        onPressed:
+                            () => widget.onCapturePhoto(ImageSource.camera),
                         icon: const Icon(Icons.camera_alt_rounded),
                         label: const Text('Capture'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                       ),
@@ -1034,14 +1201,15 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                     child: SizedBox(
                       height: 56,
                       child: OutlinedButton.icon(
-                        onPressed: () => widget.onCapturePhoto(ImageSource.gallery),
+                        onPressed:
+                            () => widget.onCapturePhoto(ImageSource.gallery),
                         icon: const Icon(Icons.photo_library_rounded),
                         label: const Text('Gallery'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                       ),
@@ -1062,7 +1230,7 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                     backgroundColor: AppColors.successText,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
@@ -1074,7 +1242,8 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                     child: SizedBox(
                       height: 50,
                       child: TextButton.icon(
-                        onPressed: () => widget.onCapturePhoto(ImageSource.camera),
+                        onPressed:
+                            () => widget.onCapturePhoto(ImageSource.camera),
                         icon: const Icon(Icons.replay_rounded),
                         label: const Text('Recapture'),
                         style: TextButton.styleFrom(
@@ -1089,7 +1258,10 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                       height: 50,
                       child: TextButton.icon(
                         onPressed: widget.onDiscardPickedImage,
-                        icon: const Icon(Icons.close_rounded, color: AppColors.errorText),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: AppColors.errorText,
+                        ),
                         label: const Text(
                           'Discard',
                           style: TextStyle(color: AppColors.errorText),
@@ -1102,7 +1274,7 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                   ),
                 ],
               ),
-            ]
+            ],
           ],
           const SizedBox(height: AppSpacing.stackLg),
 
@@ -1118,25 +1290,47 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                   if (_assignedTags.isEmpty)
                     const Text(
                       'No tags allotted to this student.',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
                     )
                   else
-                    ..._assignedTags.map((tag) => GestureDetector(
-                          onLongPress: () => _showTagDetails(tag),
-                          child: Chip(
-                            label: Text(tag['name'] ?? ''),
-                            avatar: const Icon(Icons.tag, size: 14, color: Colors.white),
-                            backgroundColor: AppColors.primary,
-                            labelStyle: const TextStyle(color: Colors.white, fontSize: 13),
-                            deleteIcon: _isTagEditing
-                                ? const Icon(Icons.cancel, size: 16, color: Colors.white)
-                                : null,
-                            onDeleted: _isTagEditing ? () => _confirmRemoveTag(tag) : null,
+                    ..._assignedTags.map(
+                      (tag) => GestureDetector(
+                        onLongPress: () => _showTagDetails(tag),
+                        child: Chip(
+                          label: Text(tag['name'] ?? ''),
+                          avatar: const Icon(
+                            Icons.tag,
+                            size: 14,
+                            color: Colors.white,
                           ),
-                        )),
+                          backgroundColor: AppColors.primary,
+                          labelStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
+                          deleteIcon:
+                              _isTagEditing
+                                  ? const Icon(
+                                    Icons.cancel,
+                                    size: 16,
+                                    color: Colors.white,
+                                  )
+                                  : null,
+                          onDeleted:
+                              _isTagEditing
+                                  ? () => _confirmRemoveTag(tag)
+                                  : null,
+                        ),
+                      ),
+                    ),
                   IconButton(
                     icon: Icon(
-                      _isTagEditing ? Icons.check_circle_outline : Icons.edit_rounded,
+                      _isTagEditing
+                          ? Icons.check_circle_outline
+                          : Icons.edit_rounded,
                       color: AppColors.primary,
                     ),
                     onPressed: () {
@@ -1166,7 +1360,10 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
             children: [
               Text(
                 'Student Details',
-                style: AppTextStyles.headerSmall.copyWith(fontSize: 18, fontWeight: FontWeight.bold),
+                style: AppTextStyles.headerSmall.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (!_isLoading && _errorMessage == null)
                 Row(
@@ -1175,7 +1372,10 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                     Text(
                       _isEditable ? '' : 'Edit?',
                       style: AppTextStyles.labelXs.copyWith(
-                        color: _isEditable ? AppColors.primary : AppColors.textSecondary,
+                        color:
+                            _isEditable
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1224,6 +1424,9 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ],
@@ -1237,20 +1440,32 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
               children: [
                 _buildFieldWrapper(
                   'Student Name',
-                  _buildTextField(_nameController, placeholder: 'Student Name', errorText: _nameError),
+                  _buildTextField(
+                    _nameController,
+                    placeholder: 'Student Name',
+                    errorText: _nameError,
+                  ),
                 ),
                 _buildFieldWrapper(
                   'School',
                   _buildDropdownField<String>(
                     value: _selectedSchoolId,
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Not Selected')),
-                      ...widget.schools.map((s) => DropdownMenuItem(
-                            value: s['id']?.toString(),
-                            child: Text(s['name']?.toString() ?? ''),
-                          )),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Not Selected'),
+                      ),
+                      ...widget.schools.map(
+                        (s) => DropdownMenuItem(
+                          value: s['id']?.toString(),
+                          child: Text(s['name']?.toString() ?? ''),
+                        ),
+                      ),
                     ],
-                    onChanged: _isEditable ? (val) => setState(() => _selectedSchoolId = val) : null,
+                    onChanged:
+                        _isEditable
+                            ? (val) => setState(() => _selectedSchoolId = val)
+                            : null,
                   ),
                 ),
                 _buildFieldWrapper(
@@ -1258,13 +1473,21 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                   _buildDropdownField<String>(
                     value: _selectedClassId,
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Not Selected')),
-                      ...widget.classes.map((c) => DropdownMenuItem(
-                            value: c['id']?.toString(),
-                            child: Text(c['name']?.toString() ?? ''),
-                          )),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Not Selected'),
+                      ),
+                      ...widget.classes.map(
+                        (c) => DropdownMenuItem(
+                          value: c['id']?.toString(),
+                          child: Text(c['name']?.toString() ?? ''),
+                        ),
+                      ),
                     ],
-                    onChanged: _isEditable ? (val) => setState(() => _selectedClassId = val) : null,
+                    onChanged:
+                        _isEditable
+                            ? (val) => setState(() => _selectedClassId = val)
+                            : null,
                   ),
                 ),
                 _buildFieldWrapper(
@@ -1272,13 +1495,21 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                   _buildDropdownField<String>(
                     value: _selectedSectionId,
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Not Selected')),
-                      ...widget.sections.map((s) => DropdownMenuItem(
-                            value: s['id']?.toString(),
-                            child: Text(s['name']?.toString() ?? ''),
-                          )),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Not Selected'),
+                      ),
+                      ...widget.sections.map(
+                        (s) => DropdownMenuItem(
+                          value: s['id']?.toString(),
+                          child: Text(s['name']?.toString() ?? ''),
+                        ),
+                      ),
                     ],
-                    onChanged: _isEditable ? (val) => setState(() => _selectedSectionId = val) : null,
+                    onChanged:
+                        _isEditable
+                            ? (val) => setState(() => _selectedSectionId = val)
+                            : null,
                   ),
                 ),
                 _buildFieldWrapper(
@@ -1294,22 +1525,31 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                   'Password',
                   _buildTextField(_passwordController, placeholder: 'Password'),
                 ),
-                _buildFieldWrapper(
-                  'Date of Birth',
-                  _buildDobField(),
-                ),
+                _buildFieldWrapper('Date of Birth', _buildDobField()),
                 _buildFieldWrapper(
                   'Gender',
                   _buildDropdownField<String>(
                     value: _selectedGender,
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Not Selected')),
-                      ..._genders.map((g) => DropdownMenuItem(
-                            value: g,
-                            child: Text(g == 'male' ? 'Male' : (g == 'female' ? 'Female' : g)),
-                          )),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Not Selected'),
+                      ),
+                      ..._genders.map(
+                        (g) => DropdownMenuItem(
+                          value: g,
+                          child: Text(
+                            g == 'male'
+                                ? 'Male'
+                                : (g == 'female' ? 'Female' : g),
+                          ),
+                        ),
+                      ),
                     ],
-                    onChanged: _isEditable ? (val) => setState(() => _selectedGender = val) : null,
+                    onChanged:
+                        _isEditable
+                            ? (val) => setState(() => _selectedGender = val)
+                            : null,
                   ),
                 ),
                 _buildFieldWrapper(
@@ -1317,13 +1557,21 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                   _buildDropdownField<String>(
                     value: _selectedCategory,
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Not Selected')),
-                      ..._categories.map((c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(c.toUpperCase()),
-                          )),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Not Selected'),
+                      ),
+                      ..._categories.map(
+                        (c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(c.toUpperCase()),
+                        ),
+                      ),
                     ],
-                    onChanged: _isEditable ? (val) => setState(() => _selectedCategory = val) : null,
+                    onChanged:
+                        _isEditable
+                            ? (val) => setState(() => _selectedCategory = val)
+                            : null,
                   ),
                 ),
                 _buildFieldWrapper(
@@ -1331,22 +1579,36 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                   _buildDropdownField<String>(
                     value: _selectedFlBatchId,
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('Not Selected')),
-                      ..._alumni.map((a) => DropdownMenuItem(
-                            value: a['id']?.toString(),
-                            child: Text(a['name']?.toString() ?? ''),
-                          )),
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('Not Selected'),
+                      ),
+                      ..._alumni.map(
+                        (a) => DropdownMenuItem(
+                          value: a['id']?.toString(),
+                          child: Text(a['name']?.toString() ?? ''),
+                        ),
+                      ),
                     ],
-                    onChanged: _isEditable ? (val) => setState(() => _selectedFlBatchId = val) : null,
+                    onChanged:
+                        _isEditable
+                            ? (val) => setState(() => _selectedFlBatchId = val)
+                            : null,
                   ),
                 ),
                 _buildFieldWrapper(
                   'Father\'s Name',
-                  _buildTextField(_fatherNameController, placeholder: 'Father\'s Name'),
+                  _buildTextField(
+                    _fatherNameController,
+                    placeholder: 'Father\'s Name',
+                  ),
                 ),
                 _buildFieldWrapper(
                   'Mother\'s Name',
-                  _buildTextField(_motherNameController, placeholder: 'Mother\'s Name'),
+                  _buildTextField(
+                    _motherNameController,
+                    placeholder: 'Mother\'s Name',
+                  ),
                 ),
                 _buildFieldWrapper(
                   'Email Address',
@@ -1390,22 +1652,32 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                     child: SizedBox(
                       height: 54,
                       child: OutlinedButton(
-                        onPressed: _isSaving
-                            ? null
-                            : () {
-                                setState(() {
-                                  _isEditable = false;
-                                  _resetForm();
-                                });
-                              },
+                        onPressed:
+                            _isSaving
+                                ? null
+                                : () {
+                                  setState(() {
+                                    _isEditable = false;
+                                    _resetForm();
+                                  });
+                                },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary, width: 1.5),
+                          side: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(27),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child: const Text('Cancel', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1419,17 +1691,27 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(27),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           elevation: 0,
                         ),
-                        child: _isSaving
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Text('Save Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        child:
+                            _isSaving
+                                ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Text(
+                                  'Save Details',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                       ),
                     ),
                   ),
@@ -1437,7 +1719,7 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
               ),
               const SizedBox(height: 32),
             ],
-          ]
+          ],
         ],
       ),
     );

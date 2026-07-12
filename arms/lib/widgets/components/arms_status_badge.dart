@@ -51,7 +51,7 @@ class ArmsStatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(9999),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         label.toUpperCase(),

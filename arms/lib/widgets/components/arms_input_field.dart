@@ -61,26 +61,31 @@ class ArmsInputField extends StatelessWidget {
         ),
         filled: true,
         fillColor: fillColor ?? AppColors.surfaceVariant,
-        prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon, color: AppColors.outlineMedium, size: 22)
-            : null,
+        prefixIcon:
+            prefixIcon != null
+                ? Icon(prefixIcon, color: AppColors.outlineMedium, size: 22)
+                : null,
         suffixIcon: suffixIcon,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(9999),
-          borderSide: hasBorder
-              ? const BorderSide(color: AppColors.outlineLight, width: 1.0)
-              : BorderSide.none,
+          borderRadius: BorderRadius.circular(8), // Changed from 9999
+          borderSide:
+              hasBorder
+                  ? const BorderSide(color: AppColors.outlineLight, width: 1.0)
+                  : BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(9999),
-          borderSide: hasBorder
-              ? const BorderSide(color: AppColors.outlineLight, width: 1.0)
-              : BorderSide.none,
+          borderRadius: BorderRadius.circular(8), // Changed from 9999
+          borderSide:
+              hasBorder
+                  ? const BorderSide(color: AppColors.outlineLight, width: 1.0)
+                  : BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(9999),
+          borderRadius: BorderRadius.circular(8), // Changed from 9999
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
       ),

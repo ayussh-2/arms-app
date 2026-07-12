@@ -697,13 +697,14 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                                     width: 1,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(9999),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   backgroundColor: AppColors.primaryFaint,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 8,
                                   ),
+                                  // foregroundColor: AppColors.primary,
                                 ),
                               ),
                               OutlinedButton.icon(
@@ -737,7 +738,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                                     width: 1,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(9999),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   backgroundColor: AppColors.errorText
                                       .withValues(alpha: 0.06),

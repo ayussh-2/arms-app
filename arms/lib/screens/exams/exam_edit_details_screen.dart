@@ -401,83 +401,73 @@ class _ExamEditDetailsScreenState extends State<ExamEditDetailsScreen> {
                     ),
                   ] else ...[
                     _buildLabel('ALLOCATE SUBJECT MARKS'),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardSurface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.outline.withValues(alpha: 0.15),
-                        ),
-                      ),
-                      child: Column(
-                        children:
-                            widget.subjects.map((sub) {
-                              final subId = sub['id'] as String;
-                              final controller =
-                                  _subjectMarkControllers[subId]!;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12.0),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        sub['name'] ?? '',
-                                        style: AppTextStyles.bodyMedium
-                                            .copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.textMain,
-                                            ),
-                                      ),
+                    Column(
+                      children:
+                          widget.subjects.map((sub) {
+                            final subId = sub['id'] as String;
+                            final controller =
+                                _subjectMarkControllers[subId]!;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      sub['name'] ?? '',
+                                      style: AppTextStyles.bodyMedium
+                                          .copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textMain,
+                                          ),
                                     ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      flex: 2,
-                                      child: SizedBox(
-                                        height: 44,
-                                        child: TextField(
-                                          controller: controller,
-                                          keyboardType: TextInputType.number,
-                                          style: AppTextStyles.bodyMedium,
-                                          decoration: InputDecoration(
-                                            hintText: 'Max Marks',
-                                            filled: true,
-                                            fillColor: Colors.white,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 16,
-                                                  vertical: 8,
-                                                ),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              borderSide: BorderSide(
-                                                color: AppColors.outline
-                                                    .withValues(alpha: 0.3),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    flex: 2,
+                                    child: SizedBox(
+                                      height: 44,
+                                      child: TextField(
+                                        controller: controller,
+                                        keyboardType: TextInputType.number,
+                                        style: AppTextStyles.bodyMedium,
+                                        decoration: InputDecoration(
+                                          hintText: 'Max Marks',
+                                          filled: true,
+                                          fillColor: Colors.white,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 8,
                                               ),
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              borderSide: const BorderSide(
-                                                color: AppColors.primary,
-                                              ),
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            borderSide: BorderSide(
+                                              color: AppColors.outline
+                                                  .withValues(alpha: 0.3),
                                             ),
                                           ),
-                                          onChanged: (val) {
-                                            setState(() {
-                                              _updateCalculatedTotalMarks();
-                                            });
-                                          },
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            borderSide: const BorderSide(
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
                                         ),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            _updateCalculatedTotalMarks();
+                                          });
+                                        },
                                       ),
                                     ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                      ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                     ),
                     _buildLabel('TOTAL MARKS'),
                     AbsorbPointer(
