@@ -11,8 +11,8 @@ import '../../../core/auth/auth_service.dart';
 import '../../../widgets/arms_snackbar.dart';
 import '../../../widgets/components/arms_date_field.dart';
 
-class StudentPhotoCapturePanel extends StatefulWidget {
-  const StudentPhotoCapturePanel({
+class StudentCapturePanel extends StatefulWidget {
+  const StudentCapturePanel({
     super.key,
     required this.selectedStudent,
     required this.pickedImage,
@@ -41,14 +41,21 @@ class StudentPhotoCapturePanel extends StatefulWidget {
   final ValueChanged<Map<String, dynamic>>? onDetailsUpdated;
 
   @override
-  State<StudentPhotoCapturePanel> createState() => _StudentPhotoCapturePanelState();
+  State<StudentCapturePanel> createState() => _StudentCapturePanelState();
 }
 
-class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
+class _StudentCapturePanelState extends State<StudentCapturePanel> {
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
   bool _isEditable = false;
+
+  List<dynamic> _assignedTags = [];
+  List<dynamic> _availableTags = [];
+  bool _isTagEditing = false;
+  String? _selectedTagCategory;
+  String? _selectedTagIdToAdd;
+
 
   Map<String, dynamic>? _studentData;
   List<Map<String, dynamic>> _alumni = [];
@@ -90,7 +97,7 @@ class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
   }
 
   @override
-  void didUpdateWidget(covariant StudentPhotoCapturePanel oldWidget) {
+  void didUpdateWidget(covariant StudentCapturePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.selectedStudent['id'] != oldWidget.selectedStudent['id']) {
       _loadData();
@@ -152,15 +159,27 @@ class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
         ),
       );
 
+      final tagsResult = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getAvailableTags),
+          variables: {'organisationId': orgId},
+          fetchPolicy: FetchPolicy.networkOnly,
+        ),
+      );
+
       if (result.hasException) {
         throw Exception(result.exception.toString());
       }
       if (alumniResult.hasException) {
         throw Exception(alumniResult.exception.toString());
       }
+      if (tagsResult.hasException) {
+        throw Exception(tagsResult.exception.toString());
+      }
 
       final student = result.data?['getStudentDetails'];
       final alumniList = alumniResult.data?['getAlumni'] as List? ?? [];
+      final availableTagsList = tagsResult.data?['getAvailableTags'] as List? ?? [];
 
       if (student != null) {
         if (mounted) {
@@ -169,6 +188,7 @@ class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
             _alumni = List<Map<String, dynamic>>.from(
               alumniList.map((a) => Map<String, dynamic>.from(a as Map)),
             );
+            _availableTags = List<dynamic>.from(availableTagsList);
             _syncFieldsFromStudentData();
             _isLoading = false;
           });
@@ -207,6 +227,8 @@ class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
     _selectedSectionId = student['section_id'];
     _selectedFlBatchId = student['fl_batch_id'];
 
+    _assignedTags = List<dynamic>.from(student['tags'] ?? []);
+
     final rawCategory = student['category']?.toString().toLowerCase();
     if (rawCategory != null && _categories.contains(rawCategory)) {
       _selectedCategory = rawCategory;
@@ -227,6 +249,7 @@ class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
       _selectedGender = null;
     }
   }
+
 
   void _resetForm() {
     _syncFieldsFromStudentData();
@@ -603,15 +626,262 @@ class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
     );
   }
 
+  void _showTagDetails(Map<String, dynamic> tag) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.background,
+          title: Text(tag['name'] ?? 'Tag Details', style: const TextStyle(color: AppColors.textMain)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Category: ${tag['type'] ?? 'None'}', style: const TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 8),
+              Text(tag['assignedByLabel'] ?? 'Assignment info unavailable', style: const TextStyle(color: AppColors.textSecondary)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close', style: TextStyle(color: AppColors.primary)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmRemoveTag(Map<String, dynamic> tag) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final confirmController = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              backgroundColor: AppColors.background,
+              title: const Text('Remove Tag', style: TextStyle(color: AppColors.textMain)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Type "remove" to confirm removing the tag "${tag['name']}".', style: const TextStyle(color: AppColors.textSecondary)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: confirmController,
+                    style: const TextStyle(color: AppColors.textMain),
+                    decoration: const InputDecoration(
+                      hintText: 'Type remove',
+                      hintStyle: TextStyle(color: AppColors.textSecondary),
+                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.outline)),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                    ),
+                    onChanged: (_) {
+                      setStateDialog(() {});
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel', style: TextStyle(color: AppColors.primary)),
+                ),
+                TextButton(
+                  onPressed: confirmController.text.trim().toLowerCase() == 'remove'
+                      ? () => Navigator.pop(context, true)
+                      : null,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.errorText,
+                  ),
+                  child: const Text('Remove'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted) return;
+
+    if (confirm == true) {
+      setState(() {
+        _isSaving = true;
+      });
+      try {
+        final client = GraphQLProvider.of(context).value;
+        final result = await client.mutate(
+          MutationOptions(
+            document: gql(GqlQueries.removeStudentTag),
+            variables: {
+              'studentId': widget.selectedStudent['id'],
+              'tagId': tag['id'],
+            },
+          ),
+        );
+
+        if (!mounted) return;
+
+        if (result.hasException) {
+          throw Exception(result.exception.toString());
+        }
+
+        ArmsSnackbar.showSuccess(context, 'Tag removed successfully!');
+        await _loadData();
+      } catch (e) {
+        if (!mounted) return;
+        ArmsSnackbar.showError(context, 'Failed to remove tag: $e');
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _assignTag() async {
+    if (_selectedTagIdToAdd == null || _selectedTagIdToAdd!.isEmpty) return;
+
+    final adminId = AuthService.currentAdmin?.id;
+    if (adminId == null) {
+      ArmsSnackbar.showError(context, 'Admin session not found.');
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.mutate(
+        MutationOptions(
+          document: gql(GqlQueries.assignStudentTag),
+          variables: {
+            'studentId': widget.selectedStudent['id'],
+            'tagId': _selectedTagIdToAdd,
+            'assignedBy': adminId,
+            'assignedByType': 'admin',
+          },
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result.hasException) {
+        throw Exception(result.exception.toString());
+      }
+
+      ArmsSnackbar.showSuccess(context, 'Tag added successfully!');
+      setState(() {
+        _selectedTagIdToAdd = null;
+      });
+      await _loadData();
+    } catch (e) {
+      if (!mounted) return;
+      ArmsSnackbar.showError(context, 'Failed to add tag: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildTagPickerSection() {
+    final categories = _availableTags
+        .map((tag) => tag['type']?.toString().trim() ?? '')
+        .where((type) => type.isNotEmpty)
+        .toSet()
+        .toList();
+    categories.sort((a, b) => a.compareTo(b));
+
+    final tagsInSelectedCategory = _availableTags
+        .where((tag) => (tag['type']?.toString().trim() ?? '') == _selectedTagCategory && 
+                        !_assignedTags.any((assigned) => assigned['id'] == tag['id']))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildDropdownField<String>(
+                value: _selectedTagCategory,
+                hintText: 'Select category',
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('Select Category')),
+                  ...categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                ],
+                onChanged: (val) {
+                  setState(() {
+                    _selectedTagCategory = val;
+                    _selectedTagIdToAdd = null;
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDropdownField<String>(
+                value: _selectedTagIdToAdd,
+                hintText: 'Select tag name',
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('Select Tag')),
+                  ...tagsInSelectedCategory.map((t) => DropdownMenuItem(
+                        value: t['id']?.toString(),
+                        child: Text(t['name']?.toString() ?? ''),
+                      )),
+                ],
+                onChanged: _selectedTagCategory == null
+                    ? null
+                    : (val) {
+                        setState(() {
+                          _selectedTagIdToAdd = val;
+                        });
+                      },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: _selectedTagIdToAdd == null || _isSaving ? null : _assignTag,
+            icon: const Icon(Icons.add_circle_outline),
+            label: const Text('Add Tag'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final name = widget.selectedStudent['name'] ?? 'No Name';
-    final rollNo = widget.selectedStudent['roll_no'] ?? 'No Roll No';
+
+    // final name = widget.selectedStudent['name'] ?? 'No Name';
+    // final rollNo = widget.selectedStudent['roll_no'] ?? 'No Roll No';
     final currentImgUrl = widget.selectedStudent['image_url'] as String?;
     final hasCurrentImg = currentImgUrl != null && currentImgUrl.isNotEmpty;
 
-    final className = widget.selectedStudent['class']?['name']?.toString() ?? 'Unknown Class';
-    final sectionName = widget.selectedStudent['section']?['name']?.toString() ?? 'Unknown Section';
+    // final className = widget.selectedStudent['class']?['name']?.toString() ?? 'Unknown Class';
+    // final sectionName = widget.selectedStudent['section']?['name']?.toString() ?? 'Unknown Section';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.marginPage),
@@ -834,6 +1104,60 @@ class _StudentPhotoCapturePanelState extends State<StudentPhotoCapturePanel> {
               ),
             ]
           ],
+          const SizedBox(height: AppSpacing.stackLg),
+
+          _buildSectionCard(
+            title: 'Student Tags (${_assignedTags.length} allotted)',
+            icon: Icons.local_offer_rounded,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (_assignedTags.isEmpty)
+                    const Text(
+                      'No tags allotted to this student.',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    )
+                  else
+                    ..._assignedTags.map((tag) => GestureDetector(
+                          onLongPress: () => _showTagDetails(tag),
+                          child: Chip(
+                            label: Text(tag['name'] ?? ''),
+                            avatar: const Icon(Icons.tag, size: 14, color: Colors.white),
+                            backgroundColor: AppColors.primary,
+                            labelStyle: const TextStyle(color: Colors.white, fontSize: 13),
+                            deleteIcon: _isTagEditing
+                                ? const Icon(Icons.cancel, size: 16, color: Colors.white)
+                                : null,
+                            onDeleted: _isTagEditing ? () => _confirmRemoveTag(tag) : null,
+                          ),
+                        )),
+                  IconButton(
+                    icon: Icon(
+                      _isTagEditing ? Icons.check_circle_outline : Icons.edit_rounded,
+                      color: AppColors.primary,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isTagEditing = !_isTagEditing;
+                        if (!_isTagEditing) {
+                          _selectedTagCategory = null;
+                          _selectedTagIdToAdd = null;
+                        }
+                      });
+                    },
+                  ),
+                ],
+              ),
+              if (_isTagEditing) ...[
+                const SizedBox(height: 16),
+                _buildTagPickerSection(),
+              ],
+            ],
+          ),
+
           const SizedBox(height: AppSpacing.stackLg),
 
           // Details section title & edit mode switch (duplicated just above the fields as well for quick editing)

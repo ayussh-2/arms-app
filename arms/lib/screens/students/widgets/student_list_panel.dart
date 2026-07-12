@@ -4,11 +4,11 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../widgets/arms_dropdown_selector.dart';
-import 'student_photo_empty_state.dart';
+import 'student_empty_state.dart';
 import '../../../widgets/components/arms_avatar.dart';
 
-class StudentPhotoListPanel extends StatelessWidget {
-  const StudentPhotoListPanel({
+class StudentListPanel extends StatelessWidget {
+  const StudentListPanel({
     super.key,
     required this.schools,
     required this.classes,
@@ -98,7 +98,7 @@ class StudentPhotoListPanel extends StatelessWidget {
           // Search & List Section
           Expanded(
             child: !hasFilterSelected
-                ? const StudentPhotoEmptyState(
+                ? const StudentEmptyState(
                     icon: Icons.school_outlined,
                     title: 'Select Class & Section',
                     subtitle: 'Choose a class and section above to display and capture student profile photos.',
@@ -163,7 +163,7 @@ class StudentPhotoListPanel extends StatelessWidget {
                               // Student List
                               Expanded(
                                 child: filteredStudents.isEmpty
-                                    ? const StudentPhotoEmptyState(
+                                    ? const StudentEmptyState(
                                         icon: Icons.search_off_outlined,
                                         title: 'No Students Found',
                                         subtitle: 'Try searching with a different name or roll number.',

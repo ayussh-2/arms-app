@@ -503,6 +503,14 @@ class GqlQueries {
         roll_no
         image_url
         image_version
+        tags {
+          id
+          name
+          type
+          assignedById
+          assignedByType
+          assignedByLabel
+        }
       }
     }
   ''';
@@ -525,4 +533,27 @@ class GqlQueries {
       }
     }
   ''';
+
+  static const String getAvailableTags = r'''
+    query GetAvailableTags($organisationId: ID!) {
+      getAvailableTags(organisationId: $organisationId) {
+        id
+        name
+        type
+      }
+    }
+  ''';
+
+  static const String assignStudentTag = r'''
+    mutation AssignStudentTag($studentId: ID!, $tagId: ID!, $assignedBy: ID!, $assignedByType: String!) {
+      assignStudentTag(studentId: $studentId, tagId: $tagId, assignedBy: $assignedBy, assignedByType: $assignedByType)
+    }
+  ''';
+
+  static const String removeStudentTag = r'''
+    mutation RemoveStudentTag($studentId: ID!, $tagId: ID!) {
+      removeStudentTag(studentId: $studentId, tagId: $tagId)
+    }
+  ''';
 }
+

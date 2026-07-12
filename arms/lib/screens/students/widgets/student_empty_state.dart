@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
-class StudentPhotoEmptyState extends StatelessWidget {
-  const StudentPhotoEmptyState({
+class StudentEmptyState extends StatelessWidget {
+  const StudentEmptyState({
     super.key,
     required this.icon,
     required this.title,
