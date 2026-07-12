@@ -13,22 +13,22 @@ import '../core/theme/app_colors.dart';
 import '../widgets/arms_snackbar.dart';
 import '../widgets/arms_top_app_bar.dart';
 import '../widgets/arms_picker_sheet.dart';
-import 'student_photo/widgets/student_photo_capture_panel.dart';
-import 'student_photo/widgets/student_photo_search_panel.dart';
-import 'student_photo/student_camera_screen.dart';
+import 'students/widgets/student_capture_panel.dart';
+import 'students/widgets/student_search_panel.dart';
+import 'students/student_camera_screen.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../core/utils/image_url_helper.dart';
 
-class StudentPhotoScreen extends StatefulWidget {
-  const StudentPhotoScreen({super.key, this.showBackButton = true});
+class StudentsScreen extends StatefulWidget {
+  const StudentsScreen({super.key, this.showBackButton = true});
 
   final bool showBackButton;
 
   @override
-  State<StudentPhotoScreen> createState() => StudentPhotoScreenState();
+  State<StudentsScreen> createState() => StudentsScreenState();
 }
 
-class StudentPhotoScreenState extends State<StudentPhotoScreen> {
+class StudentsScreenState extends State<StudentsScreen> {
   final ImagePicker _imagePicker = ImagePicker();
 
   bool _isSearching = false;
@@ -558,7 +558,9 @@ class StudentPhotoScreenState extends State<StudentPhotoScreen> {
     final scaffold = Scaffold(
       backgroundColor: AppColors.background,
       appBar: ArmsTopAppBar(
-        title: "Upload Student Photo",
+        title: _selectedStudent != null
+            ? (_selectedStudent!['name']?.toString() ?? 'Student Details')
+            : "Students",
         leading: (widget.showBackButton || _selectedStudent != null)
             ? IconButton(
                 icon: const Icon(Icons.arrow_back, color: AppColors.textMain),
@@ -576,7 +578,7 @@ class StudentPhotoScreenState extends State<StudentPhotoScreen> {
             : null,
       ),
       body: _selectedStudent != null
-          ? StudentPhotoCapturePanel(
+          ? StudentCapturePanel(
               selectedStudent: _selectedStudent!,
               pickedImage: _pickedImage,
               isUploading: _isUploading,
@@ -603,7 +605,7 @@ class StudentPhotoScreenState extends State<StudentPhotoScreen> {
                 _loadStudents(isRefresh: true);
               },
             )
-          : StudentPhotoSearchPanel(
+          : StudentSearchPanel(
               onSearch: _searchStudents,
               isLoading: _isSearching,
               searchResults: _searchResults,

@@ -7,7 +7,7 @@ KEY_ALIAS=arms-key
 BACKEND_DIR=D:/Projects/Personal/ARMS
 
 PAIR_IP=192.168.29.66:42039
-CONNECT_IP=192.168.29.66:37137
+CONNECT_IP=192.168.29.66:41051
 
 DEV_URL=http://192.168.29.188:6582/api/graphql
 PROD_URL=https://arms.pariksit.com/api/graphql

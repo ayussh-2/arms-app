@@ -47,7 +47,7 @@ class ArmsDropdownSelector extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             decoration: BoxDecoration(
               color: AppColors.cardSurface,
-              borderRadius: BorderRadius.circular(AppRadius.roundFull),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: AppColors.outline.withValues(alpha: 0.15),
                 width: 1,
@@ -63,9 +63,10 @@ class ArmsDropdownSelector extends StatelessWidget {
                   child: Text(
                     hasValue ? value! : (placeholder ?? 'Select'),
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: hasValue
-                          ? AppColors.textMain
-                          : AppColors.textSecondary,
+                      color:
+                          hasValue
+                              ? AppColors.textMain
+                              : AppColors.textSecondary,
                     ),
                   ),
                 ),

@@ -12,12 +12,12 @@ class DashboardScreen extends StatelessWidget {
     super.key,
     this.onNavigateToAttendance,
     this.onNavigateToExams,
-    this.onNavigateToPhotos,
+    this.onNavigateToStudents,
   });
 
   final VoidCallback? onNavigateToAttendance;
   final VoidCallback? onNavigateToExams;
-  final VoidCallback? onNavigateToPhotos;
+  final VoidCallback? onNavigateToStudents;
 
   Future<void> _showLogoutDialog(BuildContext context) async {
     final confirmed = await ArmsConfirmDialog.show(
@@ -111,10 +111,10 @@ class DashboardScreen extends StatelessWidget {
                   onTap: () => onNavigateToExams?.call(),
                 ),
                 ArmsGridDashboardButton(
-                  title: 'Photos',
-                  icon: Icons.photo_camera_front_outlined,
+                  title: 'Students',
+                  icon: Icons.people_outline_rounded,
                   iconColor: AppColors.accent,
-                  onTap: () => onNavigateToPhotos?.call(),
+                  onTap: () => onNavigateToStudents?.call(),
                 ),
               ],
             ),

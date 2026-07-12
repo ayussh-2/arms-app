@@ -4,7 +4,7 @@ import '../widgets/arms_bottom_nav_bar.dart';
 import 'dashboard_screen.dart';
 import 'attendance/attendance_config_screen.dart';
 import 'exams/exam_list_screen.dart';
-import 'student_photo_screen.dart';
+import 'students_screen.dart';
 import '../core/services/ota_update_service.dart';
 
 class ShellScreen extends StatefulWidget {
@@ -16,7 +16,7 @@ class ShellScreen extends StatefulWidget {
 
 class ShellScreenState extends State<ShellScreen> {
   int _currentIndex = 0;
-  final GlobalKey<StudentPhotoScreenState> _studentPhotoKey = GlobalKey<StudentPhotoScreenState>();
+  final GlobalKey<StudentsScreenState> _studentsKey = GlobalKey<StudentsScreenState>();
 
   @override
   void initState() {
@@ -36,7 +36,7 @@ class ShellScreenState extends State<ShellScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (_currentIndex == 3) {
-          final handled = _studentPhotoKey.currentState?.handleBack() ?? false;
+          final handled = _studentsKey.currentState?.handleBack() ?? false;
           if (handled) return;
         }
         if (_currentIndex > 0) {
@@ -52,12 +52,12 @@ class ShellScreenState extends State<ShellScreen> {
             DashboardScreen(
               onNavigateToAttendance: () => switchTab(1),
               onNavigateToExams: () => switchTab(2),
-              onNavigateToPhotos: () => switchTab(3),
+              onNavigateToStudents: () => switchTab(3),
             ),
             const AttendanceConfigScreen(),
             const ExamListScreen(),
-            StudentPhotoScreen(
-              key: _studentPhotoKey,
+            StudentsScreen(
+              key: _studentsKey,
               showBackButton: false,
             ),
           ],
@@ -70,3 +70,4 @@ class ShellScreenState extends State<ShellScreen> {
     );
   }
 }
+

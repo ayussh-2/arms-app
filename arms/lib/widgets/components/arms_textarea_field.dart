@@ -41,19 +41,19 @@ class ArmsTextAreaField extends StatelessWidget {
         filled: true,
         fillColor: fillColor,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
+          borderRadius: BorderRadius.circular(8),
           borderSide: hasBorder
               ? const BorderSide(color: AppColors.outlineLight, width: 1.0)
               : BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
+          borderRadius: BorderRadius.circular(8),
           borderSide: hasBorder
               ? const BorderSide(color: AppColors.outlineLight, width: 1.0)
               : BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.primary, width: 2.0),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),

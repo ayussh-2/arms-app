@@ -18,7 +18,7 @@ class ArmsBottomNavBar extends StatelessWidget {
     _NavItem(icon: Icons.home_rounded, filledIcon: Icons.home_rounded, label: 'Home'),
     _NavItem(icon: Icons.calendar_today_outlined, filledIcon: Icons.calendar_today, label: 'Attendance'),
     _NavItem(icon: Icons.assignment_outlined, filledIcon: Icons.assignment, label: 'Exams'),
-    _NavItem(icon: Icons.photo_camera_front_outlined, filledIcon: Icons.photo_camera_front, label: 'Photos'),
+    _NavItem(icon: Icons.people_outline_rounded, filledIcon: Icons.people_rounded, label: 'Students'),
   ];
 
   @override

@@ -2,18 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 
-enum ArmsButtonVariant {
-  primary,
-  secondary,
-  text,
-  destructive,
-}
+enum ArmsButtonVariant { primary, secondary, text, destructive }
 
-enum ArmsButtonSize {
-  small,
-  medium,
-  large,
-}
+enum ArmsButtonSize { small, medium, large }
 
 /// A standard, reusable button component matching the ARMS design specification.
 /// Support primary, secondary, text, and destructive variants, as well as size adjustments,
@@ -88,7 +79,9 @@ class ArmsButton extends StatelessWidget {
             elevation: 0,
             minimumSize: minSize,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           child: _buildChild(fg, spinnerSize, strokeWidth),
         );
@@ -102,14 +95,17 @@ class ArmsButton extends StatelessWidget {
             backgroundColor: secondaryBg,
             foregroundColor: fg,
             disabledForegroundColor: fg.withValues(alpha: 0.6),
-            disabledBackgroundColor: secondaryBg == Colors.transparent
-                ? Colors.transparent
-                : secondaryBg.withValues(alpha: 0.6),
+            disabledBackgroundColor:
+                secondaryBg == Colors.transparent
+                    ? Colors.transparent
+                    : secondaryBg.withValues(alpha: 0.6),
             side: BorderSide(color: fg, width: 1.0),
             elevation: 0,
             minimumSize: minSize,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9999),
+            ),
           ),
           child: _buildChild(fg, spinnerSize, strokeWidth),
         );
@@ -123,14 +119,17 @@ class ArmsButton extends StatelessWidget {
             backgroundColor: destructiveBg,
             foregroundColor: fg,
             disabledForegroundColor: fg.withValues(alpha: 0.6),
-            disabledBackgroundColor: destructiveBg == Colors.transparent
-                ? Colors.transparent
-                : destructiveBg.withValues(alpha: 0.6),
+            disabledBackgroundColor:
+                destructiveBg == Colors.transparent
+                    ? Colors.transparent
+                    : destructiveBg.withValues(alpha: 0.6),
             side: BorderSide(color: fg, width: 1.0),
             elevation: 0,
             minimumSize: minSize,
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9999),
+            ),
           ),
           child: _buildChild(fg, spinnerSize, strokeWidth),
         );
@@ -167,10 +166,7 @@ class ArmsButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (icon != null) ...[
-          icon!,
-          const SizedBox(width: 8),
-        ],
+        if (icon != null) ...[icon!, const SizedBox(width: 8)],
         Text(
           label,
           style: AppTextStyles.bodyMedium.copyWith(

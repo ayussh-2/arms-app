@@ -35,14 +35,15 @@ class ArmsConfirmDialog extends StatelessWidget {
   }) {
     return showDialog<bool>(
       context: context,
-      builder: (context) => ArmsConfirmDialog(
-        title: title,
-        message: message,
-        confirmLabel: confirmLabel,
-        cancelLabel: cancelLabel,
-        isDestructive: isDestructive,
-        showCancel: showCancel,
-      ),
+      builder:
+          (context) => ArmsConfirmDialog(
+            title: title,
+            message: message,
+            confirmLabel: confirmLabel,
+            cancelLabel: cancelLabel,
+            isDestructive: isDestructive,
+            showCancel: showCancel,
+          ),
     );
   }
 
@@ -52,10 +53,15 @@ class ArmsConfirmDialog extends StatelessWidget {
       backgroundColor: AppColors.background,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12), // Changed from 16
       ),
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-      contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      titlePadding: const EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        16,
+      ), // Adjusted for better visual rhythm
+      contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       title: Text(
         title,
@@ -80,7 +86,10 @@ class ArmsConfirmDialog extends StatelessWidget {
           ),
         ArmsButton(
           label: confirmLabel,
-          variant: isDestructive ? ArmsButtonVariant.destructive : ArmsButtonVariant.primary,
+          variant:
+              isDestructive
+                  ? ArmsButtonVariant.destructive
+                  : ArmsButtonVariant.primary,
           size: ArmsButtonSize.medium,
           onPressed: () => Navigator.of(context).pop(true),
         ),

@@ -412,7 +412,7 @@ class _ExamCreateScreenState extends State<ExamCreateScreen> {
                 foregroundColor: AppColors.onPrimary,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.roundFull),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
               child: Text(

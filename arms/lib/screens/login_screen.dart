@@ -211,12 +211,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLabel(String text) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 4),
-        child: Text(
-          text,
-          style: AppTextStyles.labelXs.copyWith(color: AppColors.textMain),
-        ),
+      child: Text(
+        text,
+        style: AppTextStyles.labelXs.copyWith(color: AppColors.textMain),
       ),
     );
   }

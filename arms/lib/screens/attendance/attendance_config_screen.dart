@@ -331,6 +331,7 @@ class _AttendanceConfigScreenState extends State<AttendanceConfigScreen> {
                 ),
       floatingActionButton: _tabIndex == 1
           ? FloatingActionButton(
+              heroTag: 'fab_attendance_config',
               onPressed: () async {
                 final result = await Navigator.pushNamed(
                   context,

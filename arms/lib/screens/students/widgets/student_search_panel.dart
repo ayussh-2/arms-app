@@ -9,8 +9,8 @@ import '../../../widgets/arms_dropdown_selector.dart';
 import '../../../widgets/arms_picker_sheet.dart';
 import '../../../widgets/components/arms_search_field.dart';
 
-class StudentPhotoSearchPanel extends StatefulWidget {
-  const StudentPhotoSearchPanel({
+class StudentSearchPanel extends StatefulWidget {
+  const StudentSearchPanel({
     super.key,
     required this.onSearch,
     required this.isLoading,
@@ -66,10 +66,10 @@ class StudentPhotoSearchPanel extends StatefulWidget {
   final VoidCallback onClearHavingPhoto;
 
   @override
-  State<StudentPhotoSearchPanel> createState() => _StudentPhotoSearchPanelState();
+  State<StudentSearchPanel> createState() => _StudentSearchPanelState();
 }
 
-class _StudentPhotoSearchPanelState extends State<StudentPhotoSearchPanel> {
+class _StudentSearchPanelState extends State<StudentSearchPanel> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
