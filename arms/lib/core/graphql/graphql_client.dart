@@ -3,6 +3,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import '../constants/app_constants.dart';
 import '../debug/debug_service.dart';
 import '../debug/logging_http_link.dart';
+import 'retry_link.dart';
 
 class ArmsGraphQLClient {
   ArmsGraphQLClient._();
@@ -25,9 +26,12 @@ class ArmsGraphQLClient {
   static GraphQLClient _buildClient(DebugService service) {
     final endpoint = _normalizeEndpoint(service.apiBaseUrl.value);
     final httpLink = LoggingHttpLink(endpoint, debugService: service);
+    final retryLink = RetryLink(maxRetries: 3);
+
+    final link = Link.from([retryLink, httpLink]);
 
     return GraphQLClient(
-      link: httpLink,
+      link: link,
       cache: GraphQLCache(store: HiveStore()),
     );
   }

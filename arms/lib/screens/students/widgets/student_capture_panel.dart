@@ -8,6 +8,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/image_url_helper.dart';
 import '../../../core/graphql/queries.dart';
 import '../../../core/auth/auth_service.dart';
+import '../../../core/utils/app_error_handler.dart';
 import '../../../widgets/arms_snackbar.dart';
 import '../../../widgets/components/arms_date_field.dart';
 
@@ -199,13 +200,13 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       } else {
         throw Exception("No student details returned.");
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = AppErrorHandler.parseAndLogError(e, stackTrace: st, contextMessage: 'Student Panel Load Data');
           _isLoading = false;
         });
-        ArmsSnackbar.showError(context, 'Error loading student details: $e');
+        AppErrorHandler.showErrorSnackbar(context, e, stackTrace: st, contextMessage: 'Student Panel Load Data');
       }
     }
   }

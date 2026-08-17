@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/graphql/queries.dart';
+import '../../core/utils/app_error_handler.dart';
 import '../../widgets/arms_snackbar.dart';
 import '../../widgets/arms_top_app_bar.dart';
 import '../../widgets/components/arms_date_field.dart';
@@ -178,13 +179,13 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
       } else {
         throw Exception("No student details returned.");
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = AppErrorHandler.parseAndLogError(e, stackTrace: st, contextMessage: 'Load Student Details');
           _isLoading = false;
         });
-        ArmsSnackbar.showError(context, 'Error loading student details: $e');
+        AppErrorHandler.showErrorSnackbar(context, e, stackTrace: st, contextMessage: 'Load Student Details');
       }
     }
   }
@@ -422,12 +423,12 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
         );
         Navigator.of(context).pop(true);
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
           _isSaving = false;
         });
-        ArmsSnackbar.showError(context, 'Failed to save student details: $e');
+        AppErrorHandler.showErrorSnackbar(context, e, stackTrace: st, contextMessage: 'Save Student Details');
       }
     }
   }
@@ -497,10 +498,10 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
           ArmsSnackbar.showSuccess(context, 'Student deleted successfully!');
           Navigator.of(context).pop(true);
         }
-      } catch (e) {
+      } catch (e, st) {
         if (mounted) {
           setState(() => _isSaving = false);
-          ArmsSnackbar.showError(context, 'Failed to delete student: $e');
+          AppErrorHandler.showErrorSnackbar(context, e, stackTrace: st, contextMessage: 'Delete Student Details');
         }
       }
     }
