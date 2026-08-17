@@ -8,6 +8,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/image_url_helper.dart';
 import '../../../core/graphql/queries.dart';
 import '../../../core/auth/auth_service.dart';
+import '../../../core/utils/app_error_handler.dart';
 import '../../../widgets/arms_snackbar.dart';
 import '../../../widgets/components/arms_date_field.dart';
 
@@ -25,6 +26,7 @@ class StudentCapturePanel extends StatefulWidget {
     required this.classes,
     required this.sections,
     this.onDetailsUpdated,
+    this.onStudentDeleted,
   });
 
   final Map<String, dynamic> selectedStudent;
@@ -39,6 +41,7 @@ class StudentCapturePanel extends StatefulWidget {
   final List<dynamic> classes;
   final List<dynamic> sections;
   final ValueChanged<Map<String, dynamic>>? onDetailsUpdated;
+  final VoidCallback? onStudentDeleted;
 
   @override
   State<StudentCapturePanel> createState() => _StudentCapturePanelState();
@@ -197,13 +200,13 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       } else {
         throw Exception("No student details returned.");
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = AppErrorHandler.parseAndLogError(e, stackTrace: st, contextMessage: 'Student Panel Load Data');
           _isLoading = false;
         });
-        ArmsSnackbar.showError(context, 'Error loading student details: $e');
+        AppErrorHandler.showErrorSnackbar(context, e, stackTrace: st, contextMessage: 'Student Panel Load Data');
       }
     }
   }
@@ -576,6 +579,87 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
           _isSaving = false;
         });
         ArmsSnackbar.showError(context, 'Failed to update student details: $e');
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteStudent() async {
+    final studentName = _studentData?['name'] ?? widget.selectedStudent['name'] ?? 'this student';
+    final studentId = widget.selectedStudent['id'];
+    final admin = AuthService.currentAdmin;
+    final orgId = admin?.organization?.id;
+
+    if (orgId == null || orgId.isEmpty || studentId == null) {
+      ArmsSnackbar.showError(context, 'Missing student or organization details.');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.cardSurface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.errorText),
+              SizedBox(width: 10),
+              Text('Delete Student', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to delete "$studentName"? This action cannot be undone.',
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMain),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.errorText,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isSaving = true);
+      try {
+        final client = GraphQLProvider.of(context).value;
+        final result = await client.mutate(
+          MutationOptions(
+            document: gql(GqlQueries.deleteStudentDetails),
+            variables: {
+              'id': studentId,
+              'organisationId': orgId,
+            },
+          ),
+        );
+
+        if (result.hasException) {
+          throw Exception(result.exception.toString());
+        }
+
+        if (mounted) {
+          ArmsSnackbar.showSuccess(context, 'Student deleted successfully!');
+          if (widget.onStudentDeleted != null) {
+            widget.onStudentDeleted!();
+          } else {
+            widget.onBackPressed();
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSaving = false);
+          ArmsSnackbar.showError(context, 'Failed to delete student: $e');
+        }
       }
     }
   }
@@ -1717,6 +1801,22 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: _isSaving ? null : _confirmDeleteStudent,
+                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.errorText),
+                  label: const Text('Delete Student', style: TextStyle(color: AppColors.errorText, fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.errorText),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 32),
             ],
           ],
@@ -1725,3 +1825,4 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     );
   }
 }
+

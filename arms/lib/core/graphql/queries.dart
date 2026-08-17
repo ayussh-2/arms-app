@@ -525,12 +525,27 @@ class GqlQueries {
     }
   ''';
 
+  static const String createStudentDetails = r'''
+    mutation CreateStudentDetails($organisationId: ID!, $input: CreateStudentInput!) {
+      createStudentDetails(organisationId: $organisationId, input: $input) {
+        id
+        name
+      }
+    }
+  ''';
+
   static const String updateStudentDetails = r'''
     mutation UpdateStudentDetails($id: ID!, $organisationId: ID!, $input: UpdateStudentInput!) {
       updateStudentDetails(id: $id, organisationId: $organisationId, input: $input) {
         id
         name
       }
+    }
+  ''';
+
+  static const String deleteStudentDetails = r'''
+    mutation DeleteStudentDetails($id: ID!, $organisationId: ID!) {
+      deleteStudentDetails(id: $id, organisationId: $organisationId)
     }
   ''';
 

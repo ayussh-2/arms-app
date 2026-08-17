@@ -10,6 +10,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/attendance_html_generator.dart';
 import '../../../core/services/attendance_report_service.dart';
 import '../../../core/services/attendance_excel_generator.dart';
+import '../../../core/services/evalbee_csv_generator.dart';
 
 class AttendanceExportConfig {
   final DateTime fromDate;
@@ -43,25 +44,25 @@ class AttendanceExportConfig {
     required this.reportType,
     required this.session,
     required this.mode,
-    required this.selectedSchoolId,
-    required this.selectedSchoolName,
-    required this.selectedClassId,
-    required this.selectedClassName,
-    required this.selectedSectionId,
-    required this.selectedSectionName,
-    required this.includeStudentPic,
-    required this.showRollNo,
-    required this.showSchool,
-    required this.showClassSection,
-    required this.isShortStatus,
-    required this.coloredStatus,
-    required this.isLightTheme,
-    required this.showHolidays,
-    required this.showSundays,
-    required this.removeBlankRows,
-    required this.showRemarks,
-    required this.hideUnmarkedDays,
-    required this.datesDescending,
+    this.selectedSchoolId,
+    this.selectedSchoolName = 'All Schools',
+    this.selectedClassId,
+    this.selectedClassName = 'All Classes',
+    this.selectedSectionId,
+    this.selectedSectionName = 'All Sections',
+    this.includeStudentPic = false,
+    this.showRollNo = true,
+    this.showSchool = true,
+    this.showClassSection = true,
+    this.isShortStatus = true,
+    this.coloredStatus = true,
+    this.isLightTheme = true,
+    this.showHolidays = false,
+    this.showSundays = false,
+    this.removeBlankRows = false,
+    this.showRemarks = false,
+    this.hideUnmarkedDays = false,
+    this.datesDescending = false,
   });
 }
 
@@ -183,6 +184,46 @@ class AttendanceExportHandler {
       dialogTitle: 'Save Attendance Excel Report',
       fileName: fileName,
       bytes: Uint8List.fromList(fileBytes),
+    );
+
+    if (outputFile == null) {
+      throw Exception('Save operation cancelled or failed.');
+    }
+  }
+
+  static Future<void> exportEvalBeeCsv({
+    required BuildContext context,
+    required String orgId,
+    required AttendanceExportConfig config,
+  }) async {
+    final client = GraphQLProvider.of(context).value;
+    final preparedData = await AttendanceReportService.fetchAndPrepareData(
+      client: client,
+      organisationId: orgId,
+      fromDate: config.fromDate,
+      toDate: config.toDate,
+      schoolId: config.selectedSchoolId,
+      classId: config.selectedClassId,
+      sectionId: config.selectedSectionId,
+      showSundays: config.showSundays,
+      datesDescending: config.datesDescending,
+      hideUnmarkedDays: config.hideUnmarkedDays,
+      includeStudentPic: false,
+      reportType: config.reportType,
+      removeBlankRows: config.removeBlankRows,
+      showHolidays: config.showHolidays,
+      session: config.session,
+    );
+
+    if (preparedData.parsedRows.isEmpty) {
+      throw Exception('No matching records to export.');
+    }
+
+    final fileName = '${_sanitizeName(config.selectedSchoolName)}_${_sanitizeName(config.selectedClassName)}_${_sanitizeName(config.selectedSectionName)}_evalbee.csv';
+
+    final String? outputFile = await EvalBeeCsvGenerator.exportEvalBeeCsv(
+      preparedData: preparedData,
+      fileName: fileName,
     );
 
     if (outputFile == null) {

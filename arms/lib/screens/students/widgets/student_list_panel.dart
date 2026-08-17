@@ -176,39 +176,42 @@ class StudentListPanel extends StatelessWidget {
                                           final rollNo = student['roll_no'] ?? 'No Roll No';
                                           final imgUrl = student['image_url'] as String?;
 
-                                          return Container(
-                                            margin: const EdgeInsets.only(bottom: 8),
-                                            decoration: BoxDecoration(
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 8),
+                                            child: Material(
                                               color: AppColors.background,
-                                              borderRadius: BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: AppColors.outline.withValues(alpha: 0.08),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(12),
+                                                side: BorderSide(
+                                                  color: AppColors.outline.withValues(alpha: 0.08),
+                                                ),
                                               ),
-                                            ),
-                                            child: ListTile(
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                              leading: ArmsAvatar(
+                                              clipBehavior: Clip.antiAlias,
+                                              child: ListTile(
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                                leading: ArmsAvatar(
                                                   imageUrl: imgUrl,
                                                   name: name,
                                                   radius: 24,
                                                   backgroundColor: AppColors.cardSurface,
                                                   foregroundColor: AppColors.textSecondary,
                                                 ),
-                                              title: Text(
-                                                name,
-                                                style: AppTextStyles.bodyMedium.copyWith(
-                                                  fontWeight: FontWeight.w600,
+                                                title: Text(
+                                                  name,
+                                                  style: AppTextStyles.bodyMedium.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
+                                                subtitle: Text(
+                                                  'Roll: $rollNo',
+                                                  style: AppTextStyles.labelXs,
+                                                ),
+                                                trailing: const Icon(
+                                                  Icons.chevron_right_rounded,
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                                onTap: () => onStudentSelected(Map<String, dynamic>.from(student)),
                                               ),
-                                              subtitle: Text(
-                                                'Roll: $rollNo',
-                                                style: AppTextStyles.labelXs,
-                                              ),
-                                              trailing: const Icon(
-                                                Icons.chevron_right_rounded,
-                                                color: AppColors.textSecondary,
-                                              ),
-                                              onTap: () => onStudentSelected(Map<String, dynamic>.from(student)),
                                             ),
                                           );
                                         },

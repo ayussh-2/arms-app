@@ -6,13 +6,30 @@ import 'package:ota_update/ota_update.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/arms_snackbar.dart';
 
+import '../constants/app_constants.dart';
+
 class OtaUpdateService {
   OtaUpdateService._();
 
   static const String githubUser = "ayussh-2";
   static const String githubRepo = "arms-app";
 
-  /// Query the GitHub API to check for updates
+  /// Fetch backend API version details from Next.js server
+  static Future<Map<String, dynamic>?> _fetchApiVersion() async {
+    try {
+      final response = await http
+          .get(Uri.parse(AppConstants.versionApiEndpoint))
+          .timeout(const Duration(seconds: 6));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      debugPrint('Failed to query backend API version: $e');
+    }
+    return null;
+  }
+
+  /// Query the GitHub API to check for updates (validating API version compatibility first)
   static Future<void> checkForUpdates(BuildContext context, {bool showFeedback = false}) async {
     if (!Platform.isAndroid) {
       if (showFeedback && context.mounted) {
@@ -22,6 +39,21 @@ class OtaUpdateService {
     }
 
     try {
+      // 1. Verify Backend API Version Compatibility First
+      final serverApiData = await _fetchApiVersion();
+      if (serverApiData == null) {
+        if (showFeedback && context.mounted) {
+          ArmsSnackbar.showWarning(
+            context,
+            'Unable to reach backend API server. OTA update check paused until backend is online.',
+          );
+        }
+        return;
+      }
+
+      final String serverApiVersion = serverApiData['apiVersion']?.toString() ?? '0.0.0';
+
+      // 2. Fetch Latest Mobile App Release Info from GitHub
       final response = await http.get(
         Uri.parse('https://api.github.com/repos/$githubUser/$githubRepo/releases/latest'),
         headers: {'Accept': 'application/vnd.github.v3+json'},
@@ -35,18 +67,39 @@ class OtaUpdateService {
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final String latestVersionTag = data['tag_name'] ?? ''; // e.g. "v1.0.1"
-      final String cleanLatestVersion = latestVersionTag.replaceAll('v', '');
+      final String latestVersionTag = data['tag_name'] ?? ''; // e.g. "v1.0.12"
+      final String cleanLatestVersion = latestVersionTag.replaceAll('v', '').trim();
 
-      // Get current app version details
+      // Get current app version details dynamically from pubspec.yaml via PackageInfo
       final packageInfo = await PackageInfo.fromPlatform();
-      final String currentVersion = packageInfo.version; // e.g. "1.0.0"
+      final String currentVersion = packageInfo.version;
+
+      // 3. Dynamically extract minimum API version required for this release from release notes/body
+      final String releaseBody = data['body']?.toString() ?? '';
+      String requiredApiForRelease = currentVersion;
+      final apiMatch = RegExp(r'(?:min_api_version|api_version|min_api):\s*([0-9\.]+)').firstMatch(releaseBody);
+      if (apiMatch != null && apiMatch.group(1) != null) {
+        requiredApiForRelease = apiMatch.group(1)!;
+      } else {
+        // Fallback: If not explicitly tagged in release body, require server API version matching latest release
+        requiredApiForRelease = cleanLatestVersion;
+      }
+
+      // Check if backend API version is lower than the required version for the update
+      if (_isVersionNewer(serverApiVersion, requiredApiForRelease)) {
+        if (context.mounted) {
+          ArmsSnackbar.showWarning(
+            context,
+            'Backend API (v$serverApiVersion) has not been updated yet for release v$cleanLatestVersion (requires API v$requiredApiForRelease). Update server first.',
+          );
+        }
+        return;
+      }
 
       if (_isVersionNewer(currentVersion, cleanLatestVersion)) {
         final List assets = data['assets'] ?? [];
         
         // Find the correct APK matching the system architecture
-        // (Defaulting to arm64-v8a which fits most modern devices)
         final apkAsset = assets.firstWhere(
           (asset) => asset['name'].toString().contains('arm64-v8a'),
           orElse: () => assets.firstWhere(
@@ -57,7 +110,7 @@ class OtaUpdateService {
 
         if (apkAsset != null && context.mounted) {
           final downloadUrl = apkAsset['browser_download_url'] as String;
-          _showUpdateDialog(context, cleanLatestVersion, downloadUrl);
+          _showUpdateDialog(context, cleanLatestVersion, downloadUrl, serverApiVersion);
         } else {
           if (showFeedback && context.mounted) {
             ArmsSnackbar.showWarning(context, 'No compatible APK found in the latest release.');
@@ -65,7 +118,7 @@ class OtaUpdateService {
         }
       } else {
         if (showFeedback && context.mounted) {
-          ArmsSnackbar.showSuccess(context, 'ARMS is up to date (v$currentVersion).');
+          ArmsSnackbar.showSuccess(context, 'ARMS is up to date (v$currentVersion, API v$serverApiVersion).');
         }
       }
     } catch (e) {
@@ -90,7 +143,7 @@ class OtaUpdateService {
   }
 
   /// Display a premium alert prompting the user to install the update
-  static void _showUpdateDialog(BuildContext context, String version, String downloadUrl) {
+  static void _showUpdateDialog(BuildContext context, String version, String downloadUrl, String apiVersion) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -114,7 +167,9 @@ class OtaUpdateService {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Version $version is ready for install.', style: const TextStyle(color: Colors.white70)),
+                  Text('App Version $version is ready for install.', style: const TextStyle(color: Colors.white70)),
+                  const SizedBox(height: 4),
+                  Text('Backend API: v$apiVersion (Compatible)', style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
                   const SizedBox(height: 20),
                   if (isDownloading) ...[
                     LinearProgressIndicator(

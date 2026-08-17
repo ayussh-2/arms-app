@@ -193,6 +193,32 @@ class _ExportSheetWidgetState extends State<ExportSheetWidget> {
     }
   }
 
+  Future<void> _exportEvalBeeCsv() async {
+    final admin = AuthService.currentAdmin;
+    final orgId = admin?.organization?.id;
+    if (orgId == null || orgId.isEmpty) {
+      ArmsSnackbar.showError(context, 'No organization details found.');
+      return;
+    }
+    setState(() => _isExporting = true);
+    try {
+      await AttendanceExportHandler.exportEvalBeeCsv(
+        context: context,
+        orgId: orgId,
+        config: _buildConfig(),
+      );
+      if (mounted) {
+        ArmsSnackbar.showSuccess(context, 'EvalBee CSV report exported successfully.');
+      }
+    } catch (e) {
+      if (mounted) {
+        ArmsSnackbar.showError(context, 'EvalBee CSV export failed: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(

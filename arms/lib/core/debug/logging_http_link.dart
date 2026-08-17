@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'debug_service.dart';
+import '../services/app_logger.dart';
 
 /// Custom HTTP Link with built-in logging for network requests and responses
 class LoggingHttpLink extends HttpLink {
@@ -44,6 +45,10 @@ class LoggingHttpLink extends HttpLink {
                 timestamp: DateTime.now(),
                 url: urlString,
               );
+              AppLogger.logError(
+                error.toString(),
+                context: 'LoggingHttpLink ($operationName) - $urlString',
+              );
             }
           } else {
             // Log successful response
@@ -65,6 +70,11 @@ class LoggingHttpLink extends HttpLink {
             timestamp: DateTime.now(),
             url: urlString,
             stackTrace: stackTrace,
+          );
+          AppLogger.logError(
+            error,
+            stackTrace: stackTrace,
+            context: 'LoggingHttpLink Error ($operationName) - $urlString',
           );
           sink.addError(error, stackTrace);
         },

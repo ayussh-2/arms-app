@@ -1,4 +1,4 @@
-flags=--android-skip-build-dependency-validation
+flags=--android-skip-build-dependency-validation --no-enable-impeller
 
 APP_DIR=arms
 KEY_TOOL_DIR=D:/Softwares/Android/jbr/bin/keytool.exe
@@ -6,10 +6,10 @@ KEYSTORE_NAME=keys/arms-release.jks
 KEY_ALIAS=arms-key
 BACKEND_DIR=D:/Projects/Personal/ARMS
 
-PAIR_IP=192.168.29.66:42039
-CONNECT_IP=192.168.29.66:41051
+PAIR_IP=192.168.0.102:39833
+CONNECT_IP=192.168.0.102:44483
 
-DEV_URL=http://192.168.29.188:6582/api/graphql
+DEV_URL=http://192.168.0.100:6582/api/graphql
 PROD_URL=https://arms.pariksit.com/api/graphql
 
 

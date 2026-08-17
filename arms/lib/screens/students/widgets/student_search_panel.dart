@@ -134,14 +134,15 @@ class _StudentSearchPanelState extends State<StudentSearchPanel> {
     final className = student['class']?['name']?.toString() ?? 'Unknown Class';
     final sectionName = student['section']?['name']?.toString() ?? 'Unknown Section';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardSurface,
+    return Material(
+      color: AppColors.cardSurface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.roundTwelve),
-        border: Border.all(
+        side: BorderSide(
           color: AppColors.outline.withValues(alpha: 0.1),
         ),
       ),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(

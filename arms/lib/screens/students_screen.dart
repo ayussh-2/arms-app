@@ -16,6 +16,7 @@ import '../widgets/arms_picker_sheet.dart';
 import 'students/widgets/student_capture_panel.dart';
 import 'students/widgets/student_search_panel.dart';
 import 'students/student_camera_screen.dart';
+import 'students/student_edit_details_screen.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../core/utils/image_url_helper.dart';
 
@@ -542,6 +543,32 @@ class StudentsScreenState extends State<StudentsScreen> {
 
 
 
+  void _openAddStudentScreen() {
+    final admin = AuthService.currentAdmin;
+    final orgId = admin?.organization?.id;
+    if (orgId == null || orgId.isEmpty) {
+      ArmsSnackbar.showError(context, 'No organization associated with this account.');
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StudentEditDetailsScreen(
+          studentId: '',
+          organisationId: orgId,
+          schools: _schools,
+          classes: _classes,
+          sections: _sections,
+        ),
+      ),
+    ).then((res) {
+      if (res == true) {
+        _loadStudents(isRefresh: true);
+      }
+    });
+  }
+
   bool handleBack() {
     if (_selectedStudent != null) {
       setState(() {
@@ -561,6 +588,15 @@ class StudentsScreenState extends State<StudentsScreen> {
         title: _selectedStudent != null
             ? (_selectedStudent!['name']?.toString() ?? 'Student Details')
             : "Students",
+        actions: _selectedStudent == null
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.person_add_alt_1, color: AppColors.textMain),
+                  tooltip: 'Add Student',
+                  onPressed: _openAddStudentScreen,
+                ),
+              ]
+            : null,
         leading: (widget.showBackButton || _selectedStudent != null)
             ? IconButton(
                 icon: const Icon(Icons.arrow_back, color: AppColors.textMain),
@@ -601,6 +637,13 @@ class StudentsScreenState extends State<StudentsScreen> {
               onDetailsUpdated: (updatedStudent) {
                 setState(() {
                   _selectedStudent = updatedStudent;
+                });
+                _loadStudents(isRefresh: true);
+              },
+              onStudentDeleted: () {
+                setState(() {
+                  _selectedStudent = null;
+                  _pickedImage = null;
                 });
                 _loadStudents(isRefresh: true);
               },
