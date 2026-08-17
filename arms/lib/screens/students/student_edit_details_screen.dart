@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/graphql/queries.dart';
-import '../../../widgets/arms_snackbar.dart';
-import '../../../widgets/arms_top_app_bar.dart';
-import '../../../widgets/components/arms_date_field.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
+import '../../core/theme/app_spacing.dart';
+import '../../core/graphql/queries.dart';
+import '../../widgets/arms_snackbar.dart';
+import '../../widgets/arms_top_app_bar.dart';
+import '../../widgets/components/arms_date_field.dart';
 
 class StudentEditDetailsScreen extends StatefulWidget {
   final String studentId;
@@ -92,6 +92,26 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
     try {
       final client = GraphQLProvider.of(context).value;
 
+      final alumniResult = await client.query(
+        QueryOptions(
+          document: gql(GqlQueries.getAlumni),
+          fetchPolicy: FetchPolicy.networkOnly,
+        ),
+      );
+
+      final alumniList = alumniResult.data?['getAlumni'] as List? ?? [];
+      _alumni = List<Map<String, dynamic>>.from(
+        alumniList.map((a) => Map<String, dynamic>.from(a as Map)),
+      );
+
+      if (widget.studentId.isEmpty) {
+        // Add Student Mode
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
       final result = await client.query(
         QueryOptions(
           document: gql(GqlQueries.getStudentDetails),
@@ -99,13 +119,6 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
             'id': widget.studentId,
             'organisationId': widget.organisationId,
           },
-          fetchPolicy: FetchPolicy.networkOnly,
-        ),
-      );
-
-      final alumniResult = await client.query(
-        QueryOptions(
-          document: gql(GqlQueries.getAlumni),
           fetchPolicy: FetchPolicy.networkOnly,
         ),
       );
@@ -118,14 +131,10 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
       }
 
       final student = result.data?['getStudentDetails'];
-      final alumniList = alumniResult.data?['getAlumni'] as List? ?? [];
 
       if (student != null) {
         setState(() {
           _studentData = Map<String, dynamic>.from(student);
-          _alumni = List<Map<String, dynamic>>.from(
-            alumniList.map((a) => Map<String, dynamic>.from(a as Map)),
-          );
 
           _nameController.text = student['name'] ?? '';
           _rollNoController.text = (student['roll_no'] ?? '').toString();
@@ -385,14 +394,20 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
         'image_version': _studentData?['image_version'],
       };
 
+      final isCreateMode = widget.studentId.isEmpty;
       final result = await client.mutate(
         MutationOptions(
-          document: gql(GqlQueries.updateStudentDetails),
-          variables: {
-            'id': widget.studentId,
-            'organisationId': widget.organisationId,
-            'input': input,
-          },
+          document: gql(isCreateMode ? GqlQueries.createStudentDetails : GqlQueries.updateStudentDetails),
+          variables: isCreateMode
+              ? {
+                  'organisationId': widget.organisationId,
+                  'input': input,
+                }
+              : {
+                  'id': widget.studentId,
+                  'organisationId': widget.organisationId,
+                  'input': input,
+                },
         ),
       );
 
@@ -403,7 +418,7 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
       if (mounted) {
         ArmsSnackbar.showSuccess(
           context,
-          'Student details updated successfully!',
+          isCreateMode ? 'Student created successfully!' : 'Student details updated successfully!',
         );
         Navigator.of(context).pop(true);
       }
@@ -412,7 +427,81 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
         setState(() {
           _isSaving = false;
         });
-        ArmsSnackbar.showError(context, 'Failed to update student details: $e');
+        ArmsSnackbar.showError(context, 'Failed to save student details: $e');
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteStudent() async {
+    final studentName = _nameController.text.trim().isNotEmpty
+        ? _nameController.text.trim()
+        : 'this student';
+    final studentId = widget.studentId;
+
+    if (studentId.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.cardSurface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.errorText),
+              SizedBox(width: 10),
+              Text('Delete Student', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to delete "$studentName"? This action cannot be undone.',
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMain),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.errorText,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isSaving = true);
+      try {
+        final client = GraphQLProvider.of(context).value;
+        final result = await client.mutate(
+          MutationOptions(
+            document: gql(GqlQueries.deleteStudentDetails),
+            variables: {
+              'id': studentId,
+              'organisationId': widget.organisationId,
+            },
+          ),
+        );
+
+        if (result.hasException) {
+          throw Exception(result.exception.toString());
+        }
+
+        if (mounted) {
+          ArmsSnackbar.showSuccess(context, 'Student deleted successfully!');
+          Navigator.of(context).pop(true);
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSaving = false);
+          ArmsSnackbar.showError(context, 'Failed to delete student: $e');
+        }
       }
     }
   }
@@ -531,7 +620,9 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const ArmsTopAppBar(title: "Edit Student Details"),
+      appBar: ArmsTopAppBar(
+        title: widget.studentId.isEmpty ? "Add Student" : "Edit Student Details",
+      ),
       body:
           _isLoading
               ? const Center(
@@ -773,15 +864,33 @@ class _StudentEditDetailsScreenState extends State<StudentEditDetailsScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                                : const Text(
-                                  'Save Details',
-                                  style: TextStyle(
+                                : Text(
+                                  widget.studentId.isEmpty ? 'Add Student' : 'Save Details',
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                       ),
                     ),
+                    if (widget.studentId.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: OutlinedButton.icon(
+                          onPressed: _isSaving ? null : _confirmDeleteStudent,
+                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.errorText),
+                          label: const Text('Delete Student', style: TextStyle(color: AppColors.errorText, fontWeight: FontWeight.bold)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.errorText),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

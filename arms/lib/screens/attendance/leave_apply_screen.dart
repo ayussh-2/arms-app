@@ -1,11 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:printing/printing.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:pdf/pdf.dart';
-import '../../core/utils/image_url_helper.dart';
 import '../../core/utils/image_compress_utils.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -44,10 +41,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
   String _leaveType = 'FEVER';
   bool _isApproved = true;
   bool _isSaving = false;
-  bool _hasAttachment = false;
-  String? _attachmentPath;
-  String? _previewImagePath;
-  bool _isAttachmentPdf = false;
+  List<String> _attachmentPaths = [];
   bool _isProcessingAttachment = false;
 
   static const Map<String, String> leaveTypeMap = {
@@ -123,9 +117,16 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
 
             final imgUrl = leave['leave_application_image_url'] as String?;
             if (imgUrl != null && imgUrl.isNotEmpty) {
-              _hasAttachment = true;
-              _attachmentPath = imgUrl;
-              _isAttachmentPdf = _checkIfPdf(imgUrl);
+              if (imgUrl.trim().startsWith('[')) {
+                try {
+                  final parsed = jsonDecode(imgUrl) as List;
+                  _attachmentPaths = parsed.map((e) => e.toString()).toList();
+                } catch (_) {
+                  _attachmentPaths = [imgUrl];
+                }
+              } else {
+                _attachmentPaths = [imgUrl];
+              }
             }
           }
         }
@@ -270,22 +271,31 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     });
     try {
       final picker = ImagePicker();
-      final XFile? pickedFile = await picker.pickImage(source: source);
-      
-      if (pickedFile != null) {
-        final File file = File(pickedFile.path);
-        // Process the image: compress if exceeds 500KB
-        final File compressedFile = await ImageCompressUtils.compressImageUnderSize(file);
-        
-        setState(() {
-          _hasAttachment = true;
-          _attachmentPath = compressedFile.path;
-          _previewImagePath = compressedFile.path; // Show the compressed image itself in the preview
-          _isAttachmentPdf = false;
-        });
-        
-        if (mounted) {
-          ArmsSnackbar.showSuccess(context, 'Photo processed and compressed.');
+      if (source == ImageSource.gallery) {
+        final List<XFile> pickedFiles = await picker.pickMultiImage();
+        if (pickedFiles.isNotEmpty) {
+          final newPaths = <String>[];
+          for (final file in pickedFiles) {
+            final compressedFile = await ImageCompressUtils.compressImageUnderSize(File(file.path));
+            newPaths.add(compressedFile.path);
+          }
+          setState(() {
+            _attachmentPaths.addAll(newPaths);
+          });
+          if (mounted) {
+            ArmsSnackbar.showSuccess(context, '${pickedFiles.length} photo(s) added.');
+          }
+        }
+      } else {
+        final XFile? pickedFile = await picker.pickImage(source: ImageSource.camera);
+        if (pickedFile != null) {
+          final compressedFile = await ImageCompressUtils.compressImageUnderSize(File(pickedFile.path));
+          setState(() {
+            _attachmentPaths.add(compressedFile.path);
+          });
+          if (mounted) {
+            ArmsSnackbar.showSuccess(context, 'Photo captured and added.');
+          }
         }
       }
     } catch (e) {
@@ -301,101 +311,7 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
     }
   }
 
-  bool _checkIfPdf(String path) {
-    try {
-      final uri = Uri.parse(path);
-      return uri.path.toLowerCase().endsWith('.pdf');
-    } catch (_) {
-      return path.toLowerCase().contains('.pdf');
-    }
-  }
 
-  Future<void> _openAttachment() async {
-    if (_attachmentPath == null) return;
-    
-    final isPdf = _isAttachmentPdf;
-    final path = _attachmentPath!;
-    
-    if (isPdf) {
-      try {
-        if (path.startsWith('http')) {
-          final uri = Uri.parse(path);
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          final file = File(path);
-          final exists = await file.exists();
-          if (!mounted) return;
-          if (exists) {
-            await Printing.layoutPdf(
-              onLayout: (PdfPageFormat format) async => file.readAsBytes(),
-              name: 'Leave Attachment',
-            );
-          } else {
-            ArmsSnackbar.showError(context, 'PDF file not found locally.');
-          }
-        }
-      } catch (e) {
-        if (!mounted) return;
-        ArmsSnackbar.showError(context, 'Could not open PDF: $e');
-      }
-    } else {
-      // It's an image. Show full screen/zoomable image preview dialog!
-      showDialog(
-        context: context,
-        builder: (ctx) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(12),
-          child: Stack(
-            alignment: Alignment.topRight,
-            children: [
-              InteractiveViewer(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: path.startsWith('http')
-                      ? Image.network(
-                          ImageUrlHelper.sanitizeUrl(path) ?? path,
-                          fit: BoxFit.contain,
-                        )
-                      : Image.file(
-                          File(path),
-                          fit: BoxFit.contain,
-                        ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _confirmRemoveAttachment() async {
-    final confirm = await ArmsConfirmDialog.show(
-      context,
-      title: 'Remove Attachment',
-      message: 'Are you sure you want to remove this attachment?',
-      confirmLabel: 'Remove',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-    );
-
-    if (confirm == true) {
-      setState(() {
-        _hasAttachment = false;
-        _attachmentPath = null;
-        _previewImagePath = null;
-        _isAttachmentPdf = false;
-      });
-    }
-  }
 
   Future<void> _onSearchChanged(String query) async {
     if (query.trim().isEmpty) {
@@ -574,14 +490,14 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
               ),
               const SizedBox(height: AppSpacing.stackMd),
               LeaveApplyAttachmentSection(
-                hasAttachment: _hasAttachment,
-                attachmentPath: _attachmentPath,
-                previewImagePath: _previewImagePath,
-                isAttachmentPdf: _isAttachmentPdf,
+                attachmentPaths: _attachmentPaths,
                 isProcessing: _isProcessingAttachment,
                 onPickAttachment: _showAttachmentSourceSelector,
-                onRemoveAttachment: _confirmRemoveAttachment,
-                onTapAttachment: _openAttachment,
+                onRemoveAttachment: (index) {
+                  setState(() {
+                    _attachmentPaths.removeAt(index);
+                  });
+                },
               ),
               const SizedBox(height: AppSpacing.stackLg),
               Mutation(
@@ -614,67 +530,40 @@ class _LeaveApplyScreenState extends State<LeaveApplyScreen> {
                                       if (_formKey.currentState!.validate()) {
                                         setState(() => _isSaving = true);
                                         try {
-                                          String? leaveAttachmentUrl = _attachmentPath;
-                                          
-                                          if (_hasAttachment && _attachmentPath != null && !_attachmentPath!.startsWith('http')) {
-                                            final isImage = !_isAttachmentPdf && 
-                                                (_attachmentPath!.toLowerCase().endsWith('.jpg') || 
-                                                 _attachmentPath!.toLowerCase().endsWith('.jpeg') || 
-                                                 _attachmentPath!.toLowerCase().endsWith('.png'));
+                                          String? leaveAttachmentUrl;
 
-                                            File fileToUpload = File(_attachmentPath!);
-                                            File? compressedImageFile;
-
-                                            if (isImage) {
-                                              try {
-                                                compressedImageFile = await ImageCompressUtils.compressImageUnderSize(
-                                                  fileToUpload,
-                                                );
-                                                fileToUpload = compressedImageFile;
-                                              } catch (compressError) {
-                                                debugPrint('Error compressing attachment image: $compressError');
-                                              }
-                                            }
-
+                                          if (_attachmentPaths.isNotEmpty) {
+                                            final List<String> uploadedUrls = [];
+                                            final orgFolder = AuthService.currentAdmin?.organization?.name ?? 'org';
                                             final rollNo = _selectedStudent?['roll_no']?.toString() ?? 'unknown';
                                             final schoolName = _selectedStudent?['school']?['name']?.toString() ?? 'school';
                                             final className = _selectedStudent?['class']?['name']?.toString() ?? 'class';
                                             final sectionName = _selectedStudent?['section']?['name']?.toString() ?? 'section';
-                                            
-                                            final timestamp = DateTime.now().millisecondsSinceEpoch;
-                                            String sanitize(String value) {
-                                              return value
-                                                  .trim()
-                                                  .toLowerCase()
-                                                  .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-                                                  .replaceAll(RegExp(r'^_+|_+$'), '');
+                                            String sanitize(String value) => value.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_').replaceAll(RegExp(r'^_+|_+$'), '');
+
+                                            for (int i = 0; i < _attachmentPaths.length; i++) {
+                                              final path = _attachmentPaths[i];
+                                              if (path.startsWith('http')) {
+                                                uploadedUrls.add(path);
+                                              } else {
+                                                File fileToUpload = File(path);
+                                                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                                                final filenameBase = [timestamp, i, sanitize(rollNo), sanitize(schoolName), sanitize(className), sanitize(sectionName)].join('-');
+
+                                                final uploadedUrl = await UploadService.uploadFile(
+                                                  apiUrlPath: '/api/leave-applications',
+                                                  organisationFolder: orgFolder,
+                                                  filenameBase: filenameBase,
+                                                  file: fileToUpload,
+                                                );
+                                                uploadedUrls.add(uploadedUrl);
+                                              }
                                             }
 
-                                            final filenameBase = [
-                                              timestamp,
-                                              sanitize(rollNo),
-                                              sanitize(schoolName),
-                                              sanitize(className),
-                                              sanitize(sectionName),
-                                            ].join('-');
-                                            
-                                            final orgFolder = AuthService.currentAdmin?.organization?.name ?? 'org';
-                                            
-                                            final uploadedUrl = await UploadService.uploadFile(
-                                              apiUrlPath: '/api/leave-applications',
-                                              organisationFolder: orgFolder,
-                                              filenameBase: filenameBase,
-                                              file: fileToUpload,
-                                            );
-                                            
-                                            leaveAttachmentUrl = uploadedUrl;
-
-                                            if (compressedImageFile != null && await compressedImageFile.exists()) {
-                                              try {
-                                                await compressedImageFile.delete();
-                                              } catch (cleanupError) {
-                                                debugPrint('Error cleaning up temp compressed file: $cleanupError');
-                                              }
+                                            if (uploadedUrls.length == 1) {
+                                              leaveAttachmentUrl = uploadedUrls.first;
+                                            } else if (uploadedUrls.length > 1) {
+                                              leaveAttachmentUrl = jsonEncode(uploadedUrls);
                                             }
                                           }
 
