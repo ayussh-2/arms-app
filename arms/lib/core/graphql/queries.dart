@@ -138,6 +138,41 @@ class GqlQueries {
     }
   ''';
 
+  static const String getEvalBeeStudents = r'''
+    query GetEvalBeeStudents(
+      $organisationId: ID!
+      $schoolId: ID
+      $classId: ID
+      $sectionId: ID
+    ) {
+      getEvalBeeStudents(
+        organisationId: $organisationId
+        schoolId: $schoolId
+        classId: $classId
+        sectionId: $sectionId
+      ) {
+        id
+        name
+        roll_no
+        school_id
+        class_id
+        section_id
+        school {
+          id
+          name
+        }
+        class {
+          id
+          name
+        }
+        section {
+          id
+          name
+        }
+      }
+    }
+  ''';
+
   static const String getAttendanceReportData = r'''
     query GetAttendanceReportData(
       $organisationId: ID!
