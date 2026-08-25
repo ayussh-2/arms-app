@@ -38,6 +38,8 @@ class AttendanceExportConfig {
   final bool hideUnmarkedDays;
   final bool datesDescending;
 
+  final String? customClassOverride;
+
   AttendanceExportConfig({
     required this.fromDate,
     required this.toDate,
@@ -63,6 +65,7 @@ class AttendanceExportConfig {
     this.showRemarks = false,
     this.hideUnmarkedDays = false,
     this.datesDescending = false,
+    this.customClassOverride,
   });
 }
 
@@ -195,35 +198,20 @@ class AttendanceExportHandler {
     required BuildContext context,
     required String orgId,
     required AttendanceExportConfig config,
+    String? customClassOverride,
   }) async {
     final client = GraphQLProvider.of(context).value;
-    final preparedData = await AttendanceReportService.fetchAndPrepareData(
-      client: client,
-      organisationId: orgId,
-      fromDate: config.fromDate,
-      toDate: config.toDate,
-      schoolId: config.selectedSchoolId,
-      classId: config.selectedClassId,
-      sectionId: config.selectedSectionId,
-      showSundays: config.showSundays,
-      datesDescending: config.datesDescending,
-      hideUnmarkedDays: config.hideUnmarkedDays,
-      includeStudentPic: false,
-      reportType: config.reportType,
-      removeBlankRows: config.removeBlankRows,
-      showHolidays: config.showHolidays,
-      session: config.session,
-    );
-
-    if (preparedData.parsedRows.isEmpty) {
-      throw Exception('No matching records to export.');
-    }
 
     final fileName = '${_sanitizeName(config.selectedSchoolName)}_${_sanitizeName(config.selectedClassName)}_${_sanitizeName(config.selectedSectionName)}_evalbee.csv';
 
-    final String? outputFile = await EvalBeeCsvGenerator.exportEvalBeeCsv(
-      preparedData: preparedData,
+    final String? outputFile = await EvalBeeCsvGenerator.fetchAndExportEvalBeeCsv(
+      client: client,
+      organisationId: orgId,
+      schoolId: config.selectedSchoolId,
+      classId: config.selectedClassId,
+      sectionId: config.selectedSectionId,
       fileName: fileName,
+      customClassOverride: customClassOverride ?? config.customClassOverride,
     );
 
     if (outputFile == null) {

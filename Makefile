@@ -6,8 +6,8 @@ KEYSTORE_NAME=keys/arms-release.jks
 KEY_ALIAS=arms-key
 BACKEND_DIR=D:/Projects/Personal/ARMS
 
-PAIR_IP=192.168.0.102:39833
-CONNECT_IP=192.168.0.102:44483
+PAIR_IP=192.168.0.100:38091
+CONNECT_IP=192.168.0.100:38165
 
 DEV_URL=http://192.168.0.100:6582/api/graphql
 PROD_URL=https://arms.pariksit.com/api/graphql

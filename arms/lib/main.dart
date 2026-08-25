@@ -15,6 +15,7 @@ import 'screens/exams/exam_create_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/demo_screen.dart';
 import 'screens/students_screen.dart';
+import 'screens/evalbee_export_screen.dart';
 
 import 'core/auth/auth_service.dart';
 
@@ -65,6 +66,7 @@ class _ArmsAppState extends State<ArmsApp> {
           '/settings': (_) => const SettingsScreen(),
           '/demo': (_) => const ExamReportDemoScreen(),
           '/students': (_) => const StudentsScreen(),
+          '/evalbee-export': (_) => const EvalBeeExportScreen(),
         },
         builder: (context, child) {
           return child!;

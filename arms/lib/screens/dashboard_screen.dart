@@ -6,9 +6,6 @@ import '../widgets/arms_top_app_bar.dart';
 import '../core/auth/auth_service.dart';
 import '../widgets/components/arms_avatar.dart';
 import '../widgets/components/arms_confirm_dialog.dart';
-import '../widgets/arms_snackbar.dart';
-import '../core/utils/attendance_html_generator.dart';
-import 'attendance/widgets/export_handlers.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
@@ -23,83 +20,7 @@ class DashboardScreen extends StatelessWidget {
   final VoidCallback? onNavigateToStudents;
 
   void _openEvalBeeExport(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('EvalBee CSV Export', style: AppTextStyles.headerSmall.copyWith(fontWeight: FontWeight.bold)),
-                IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Generate and export EvalBee OMR compatible CSV file for student roster (ROLLNO, NAME, CLASS, EMAILID, PHONENO).',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final admin = AuthService.currentAdmin;
-                  final orgId = admin?.organization?.id;
-                  if (orgId == null || orgId.isEmpty) {
-                    ArmsSnackbar.showError(context, 'No organization associated with this account.');
-                    return;
-                  }
-                  try {
-                    await AttendanceExportHandler.exportEvalBeeCsv(
-                      context: context,
-                      orgId: orgId,
-                      config: AttendanceExportConfig(
-                        fromDate: DateTime.now(),
-                        toDate: DateTime.now(),
-                        reportType: 'Attendance Sheet',
-                        session: AttendanceSession.morningIn,
-                        mode: AttendanceSheetMode.sessionWise,
-                        selectedSchoolId: orgId,
-                      ),
-                    );
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ArmsSnackbar.showSuccess(context, 'EvalBee CSV exported successfully!');
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ArmsSnackbar.showError(context, 'Export failed: $e');
-                    }
-                  }
-                },
-                icon: const Icon(Icons.download_outlined, color: Colors.white),
-                label: const Text('Export EvalBee CSV', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
+    Navigator.pushNamed(context, '/evalbee-export');
   }
 
   Future<void> _showLogoutDialog(BuildContext context) async {
@@ -114,7 +35,9 @@ class DashboardScreen extends StatelessWidget {
     if (confirmed == true) {
       await AuthService.clearSession();
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     }
   }
@@ -167,7 +90,9 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 admin!.organization!.displayName!,
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
             const SizedBox(height: AppSpacing.stackLg),
@@ -200,7 +125,7 @@ class DashboardScreen extends StatelessWidget {
                   onTap: () => onNavigateToStudents?.call(),
                 ),
                 ArmsGridDashboardButton(
-                  title: 'EvalBee CSV',
+                  title: 'EvalBee',
                   icon: Icons.download_outlined,
                   iconColor: AppColors.accent,
                   onTap: () => _openEvalBeeExport(context),
@@ -234,9 +159,7 @@ class ArmsGridDashboardButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.outline.withValues(alpha: 0.1),
-        ),
+        border: Border.all(color: AppColors.outline.withValues(alpha: 0.1)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -253,11 +176,7 @@ class ArmsGridDashboardButton extends StatelessWidget {
                   color: iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 24,
-                ),
+                child: Icon(icon, color: iconColor, size: 24),
               ),
               Text(
                 title,
