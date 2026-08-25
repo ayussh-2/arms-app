@@ -16,14 +16,11 @@ class AppConstants {
     return '$r2Host/$schoolName/students/${rollNo}_thumb.jpg?v=2';
   }
 
-  // API Configuration & Versioning
-  // static const String defaultApiEndpoint = String.fromEnvironment(
-  //   'BASE_API_URL',
-  //   defaultValue: 'https://arms.pariksit.com/api/graphql',
-  // );
-
-  static const String defaultApiEndpoint =
-      "http://192.168.0.103:6582/api/graphql";
+  API Configuration & Versioning
+  static const String defaultApiEndpoint = String.fromEnvironment(
+    'BASE_API_URL',
+    defaultValue: 'https://arms.pariksit.com/api/graphql',
+  );
 
   static String get versionApiEndpoint {
     if (defaultApiEndpoint.endsWith('/graphql')) {
