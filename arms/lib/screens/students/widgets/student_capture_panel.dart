@@ -2,9 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/app_date_utils.dart';
 import '../../../core/utils/image_url_helper.dart';
 import '../../../core/graphql/queries.dart';
 import '../../../core/auth/auth_service.dart';
@@ -55,6 +57,7 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
 
   List<dynamic> _assignedTags = [];
   List<dynamic> _availableTags = [];
+  List<dynamic> _comments = [];
   bool _isTagEditing = false;
   String? _selectedTagCategory;
   String? _selectedTagIdToAdd;
@@ -73,6 +76,11 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
   final _phone2Controller = TextEditingController();
   final _passwordController = TextEditingController();
   final _addressController = TextEditingController();
+  final _commentController = TextEditingController();
+  bool _isSubmittingComment = false;
+  String? _editingCommentId;
+  final _editCommentController = TextEditingController();
+  bool _isSavingComment = false;
 
   String? _selectedSchoolId;
   String? _selectedClassId;
@@ -127,6 +135,8 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     _phone2Controller.dispose();
     _passwordController.dispose();
     _addressController.dispose();
+    _commentController.dispose();
+    _editCommentController.dispose();
     super.dispose();
   }
 
@@ -203,10 +213,19 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     } catch (e, st) {
       if (mounted) {
         setState(() {
-          _errorMessage = AppErrorHandler.parseAndLogError(e, stackTrace: st, contextMessage: 'Student Panel Load Data');
+          _errorMessage = AppErrorHandler.parseAndLogError(
+            e,
+            stackTrace: st,
+            contextMessage: 'Student Panel Load Data',
+          );
           _isLoading = false;
         });
-        AppErrorHandler.showErrorSnackbar(context, e, stackTrace: st, contextMessage: 'Student Panel Load Data');
+        AppErrorHandler.showErrorSnackbar(
+          context,
+          e,
+          stackTrace: st,
+          contextMessage: 'Student Panel Load Data',
+        );
       }
     }
   }
@@ -232,6 +251,7 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     _selectedFlBatchId = student['fl_batch_id'];
 
     _assignedTags = List<dynamic>.from(student['tags'] ?? []);
+    _comments = List<dynamic>.from(student['comments'] ?? []);
 
     final rawCategory = student['category']?.toString().toLowerCase();
     if (rawCategory != null && _categories.contains(rawCategory)) {
@@ -584,13 +604,19 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
   }
 
   Future<void> _confirmDeleteStudent() async {
-    final studentName = _studentData?['name'] ?? widget.selectedStudent['name'] ?? 'this student';
+    final studentName =
+        _studentData?['name'] ??
+        widget.selectedStudent['name'] ??
+        'this student';
     final studentId = widget.selectedStudent['id'];
     final admin = AuthService.currentAdmin;
     final orgId = admin?.organization?.id;
 
     if (orgId == null || orgId.isEmpty || studentId == null) {
-      ArmsSnackbar.showError(context, 'Missing student or organization details.');
+      ArmsSnackbar.showError(
+        context,
+        'Missing student or organization details.',
+      );
       return;
     }
 
@@ -599,12 +625,20 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: AppColors.cardSurface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: AppColors.errorText),
               SizedBox(width: 10),
-              Text('Delete Student', style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold)),
+              Text(
+                'Delete Student',
+                style: TextStyle(
+                  color: AppColors.textMain,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           content: Text(
@@ -614,7 +648,10 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
@@ -636,10 +673,7 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
         final result = await client.mutate(
           MutationOptions(
             document: gql(GqlQueries.deleteStudentDetails),
-            variables: {
-              'id': studentId,
-              'organisationId': orgId,
-            },
+            variables: {'id': studentId, 'organisationId': orgId},
           ),
         );
 
@@ -825,6 +859,503 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
           ...children,
         ],
       ),
+    );
+  }
+
+  String _formatCommentDate(String? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    final dt = DateTime.tryParse(raw)?.toLocal();
+    if (dt == null) return raw;
+    return '${AppDateUtils.formatToDMY(dt)}, ${DateFormat('hh:mm a').format(dt)}';
+  }
+
+  Future<void> _handleAddComment() async {
+    final text = _commentController.text.trim();
+    if (text.isEmpty) return;
+
+    final adminId = AuthService.currentAdmin?.id;
+    if (adminId == null) {
+      ArmsSnackbar.showError(context, 'Admin session not found.');
+      return;
+    }
+
+    setState(() {
+      _isSubmittingComment = true;
+    });
+
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.mutate(
+        MutationOptions(
+          document: gql(GqlQueries.addStudentComment),
+          variables: {
+            'studentId': widget.selectedStudent['id'],
+            'commentText': text,
+            'authorId': adminId,
+            'authorType': 'admin',
+          },
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result.hasException) {
+        throw Exception(result.exception.toString());
+      }
+
+      final newComment = result.data?['addStudentComment'];
+      if (newComment != null) {
+        setState(() {
+          _comments = [newComment, ..._comments];
+          _commentController.clear();
+        });
+        ArmsSnackbar.showSuccess(context, 'Comment added successfully!');
+      }
+    } catch (e) {
+      if (mounted) {
+        ArmsSnackbar.showError(context, 'Failed to add comment: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingComment = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleUpdateComment(String commentId) async {
+    final text = _editCommentController.text.trim();
+    if (text.isEmpty) return;
+
+    final adminId = AuthService.currentAdmin?.id;
+    if (adminId == null) {
+      ArmsSnackbar.showError(context, 'Admin session not found.');
+      return;
+    }
+
+    setState(() {
+      _isSavingComment = true;
+    });
+
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.mutate(
+        MutationOptions(
+          document: gql(GqlQueries.updateStudentComment),
+          variables: {
+            'commentId': commentId,
+            'commentText': text,
+            'authorId': adminId,
+          },
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result.hasException) {
+        throw Exception(result.exception.toString());
+      }
+
+      final updated = result.data?['updateStudentComment'];
+      if (updated != null) {
+        setState(() {
+          _comments =
+              _comments.map((c) => c['id'] == commentId ? updated : c).toList();
+          _editingCommentId = null;
+          _editCommentController.clear();
+        });
+        ArmsSnackbar.showSuccess(context, 'Comment updated successfully!');
+      }
+    } catch (e) {
+      if (mounted) {
+        ArmsSnackbar.showError(context, 'Failed to update comment: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingComment = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleDeleteComment(String commentId) async {
+    final adminId = AuthService.currentAdmin?.id;
+    if (adminId == null) {
+      ArmsSnackbar.showError(context, 'Admin session not found.');
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppColors.background,
+            title: const Text(
+              'Delete Comment',
+              style: TextStyle(color: AppColors.textMain),
+            ),
+            content: const Text(
+              'Are you sure you want to delete this comment?',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.errorText,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final result = await client.mutate(
+        MutationOptions(
+          document: gql(GqlQueries.deleteStudentComment),
+          variables: {'commentId': commentId, 'authorId': adminId},
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result.hasException) {
+        throw Exception(result.exception.toString());
+      }
+
+      setState(() {
+        _comments = _comments.where((c) => c['id'] != commentId).toList();
+        if (_editingCommentId == commentId) {
+          _editingCommentId = null;
+          _editCommentController.clear();
+        }
+      });
+      ArmsSnackbar.showSuccess(context, 'Comment deleted successfully!');
+    } catch (e) {
+      if (mounted) {
+        ArmsSnackbar.showError(context, 'Failed to delete comment: $e');
+      }
+    }
+  }
+
+  Widget _buildCommentsSection() {
+    final currentAdminId = AuthService.currentAdmin?.id;
+
+    return _buildSectionCard(
+      title: 'Comments (${_comments.length})',
+      icon: Icons.comment_outlined,
+      children: [
+        if (_comments.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardSurface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.outline.withValues(alpha: 0.2),
+              ),
+            ),
+            child: const Text(
+              'No comments added yet.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
+          )
+        else
+          ..._comments.map((comment) {
+            final authorName = comment['author_name']?.toString() ?? 'Admin';
+            final commentText = comment['comment_text']?.toString() ?? '';
+            final createdAt = _formatCommentDate(
+              comment['created_at']?.toString(),
+            );
+            final isAuthor =
+                currentAdminId != null &&
+                currentAdminId == comment['author_id'];
+            final isEditing = _editingCommentId == comment['id'];
+
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.cardSurface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.outline.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isAuthor ? 'You' : authorName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          if (createdAt.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              createdAt,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (isAuthor && !isEditing)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _editingCommentId = comment['id'];
+                                  _editCommentController.text = commentText;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(4),
+                              child: const Padding(
+                                padding: EdgeInsets.all(4),
+                                child: Icon(
+                                  Icons.edit_outlined,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            InkWell(
+                              onTap: () => _handleDeleteComment(comment['id']),
+                              borderRadius: BorderRadius.circular(4),
+                              child: const Padding(
+                                padding: EdgeInsets.all(4),
+                                child: Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 16,
+                                  color: AppColors.errorText,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  if (isEditing) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _editCommentController,
+                      maxLines: 3,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textMain,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Edit your comment...',
+                        filled: true,
+                        fillColor: AppColors.background,
+                        contentPadding: const EdgeInsets.all(10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: AppColors.outline.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: AppColors.outline.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed:
+                              _isSavingComment
+                                  ? null
+                                  : () {
+                                    setState(() {
+                                      _editingCommentId = null;
+                                      _editCommentController.clear();
+                                    });
+                                  },
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed:
+                              _isSavingComment
+                                  ? null
+                                  : () => _handleUpdateComment(comment['id']),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          child:
+                              _isSavingComment
+                                  ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                  : const Text(
+                                    'Save',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      commentText,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.cardSurface,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.outline.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              TextField(
+                controller: _commentController,
+                maxLines: 3,
+                style: const TextStyle(fontSize: 14, color: AppColors.textMain),
+                decoration: InputDecoration(
+                  hintText: 'Write a comment...',
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  contentPadding: const EdgeInsets.all(12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: AppColors.outline.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: AppColors.outline.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 38,
+                child: ElevatedButton.icon(
+                  onPressed: _isSubmittingComment ? null : _handleAddComment,
+                  icon:
+                      _isSubmittingComment
+                          ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                          : const Icon(Icons.send_rounded, size: 15),
+                  label: Text(
+                    _isSubmittingComment ? 'Adding...' : 'Add Comment',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1127,7 +1658,6 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
 
     // final className = widget.selectedStudent['class']?['name']?.toString() ?? 'Unknown Class';
     // final sectionName = widget.selectedStudent['section']?['name']?.toString() ?? 'Unknown Section';
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.marginPage),
       child: Column(
@@ -1246,242 +1776,6 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
           ),
           const SizedBox(height: AppSpacing.stackLg),
 
-          // Actions
-          if (widget.isUploading)
-            const Center(
-              child: Column(
-                children: [
-                  CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: 12),
-                  Text('Uploading Image...'),
-                ],
-              ),
-            )
-          else ...[
-            if (widget.pickedImage == null) ...[
-              // Camera and Gallery buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        onPressed:
-                            () => widget.onCapturePhoto(ImageSource.camera),
-                        icon: const Icon(Icons.camera_alt_rounded),
-                        label: const Text('Capture'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
-                      child: OutlinedButton.icon(
-                        onPressed:
-                            () => widget.onCapturePhoto(ImageSource.gallery),
-                        icon: const Icon(Icons.photo_library_rounded),
-                        label: const Text('Gallery'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: const BorderSide(color: AppColors.primary),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              // Confirm upload and Cancel buttons
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton.icon(
-                  onPressed: widget.onUploadAndAssignPhoto,
-                  icon: const Icon(Icons.cloud_upload_rounded),
-                  label: const Text('Upload Photo'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.successText,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 50,
-                      child: TextButton.icon(
-                        onPressed:
-                            () => widget.onCapturePhoto(ImageSource.camera),
-                        icon: const Icon(Icons.replay_rounded),
-                        label: const Text('Recapture'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 50,
-                      child: TextButton.icon(
-                        onPressed: widget.onDiscardPickedImage,
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: AppColors.errorText,
-                        ),
-                        label: const Text(
-                          'Discard',
-                          style: TextStyle(color: AppColors.errorText),
-                        ),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.errorText,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-          const SizedBox(height: AppSpacing.stackLg),
-
-          _buildSectionCard(
-            title: 'Student Tags (${_assignedTags.length} allotted)',
-            icon: Icons.local_offer_rounded,
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (_assignedTags.isEmpty)
-                    const Text(
-                      'No tags allotted to this student.',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                      ),
-                    )
-                  else
-                    ..._assignedTags.map(
-                      (tag) => GestureDetector(
-                        onLongPress: () => _showTagDetails(tag),
-                        child: Chip(
-                          label: Text(tag['name'] ?? ''),
-                          avatar: const Icon(
-                            Icons.tag,
-                            size: 14,
-                            color: Colors.white,
-                          ),
-                          backgroundColor: AppColors.primary,
-                          labelStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                          deleteIcon:
-                              _isTagEditing
-                                  ? const Icon(
-                                    Icons.cancel,
-                                    size: 16,
-                                    color: Colors.white,
-                                  )
-                                  : null,
-                          onDeleted:
-                              _isTagEditing
-                                  ? () => _confirmRemoveTag(tag)
-                                  : null,
-                        ),
-                      ),
-                    ),
-                  IconButton(
-                    icon: Icon(
-                      _isTagEditing
-                          ? Icons.check_circle_outline
-                          : Icons.edit_rounded,
-                      color: AppColors.primary,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _isTagEditing = !_isTagEditing;
-                        if (!_isTagEditing) {
-                          _selectedTagCategory = null;
-                          _selectedTagIdToAdd = null;
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-              if (_isTagEditing) ...[
-                const SizedBox(height: 16),
-                _buildTagPickerSection(),
-              ],
-            ],
-          ),
-
-          const SizedBox(height: AppSpacing.stackLg),
-
-          // Details section title & edit mode switch (duplicated just above the fields as well for quick editing)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Student Details',
-                style: AppTextStyles.headerSmall.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (!_isLoading && _errorMessage == null)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _isEditable ? '' : 'Edit?',
-                      style: AppTextStyles.labelXs.copyWith(
-                        color:
-                            _isEditable
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Switch.adaptive(
-                      value: _isEditable,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: (value) {
-                        setState(() {
-                          _isEditable = value;
-                          if (!_isEditable) {
-                            _resetForm();
-                          }
-                        });
-                      },
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
           if (_isLoading)
             const Center(
               child: Padding(
@@ -1489,335 +1783,599 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
             )
-          else if (_errorMessage != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+          else ...[
+            // Actions
+            if (widget.isUploading)
+              const Center(
                 child: Column(
                   children: [
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: AppColors.errorText),
-                      textAlign: TextAlign.center,
+                    CircularProgressIndicator(color: AppColors.primary),
+                    SizedBox(height: 12),
+                    Text('Uploading Image...'),
+                  ],
+                ),
+              )
+            else ...[
+              if (widget.pickedImage == null) ...[
+                // Camera and Gallery buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed:
+                              () => widget.onCapturePhoto(ImageSource.camera),
+                          icon: const Icon(Icons.camera_alt_rounded),
+                          label: const Text('Capture'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: _loadData,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry Loading Details'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 56,
+                        child: OutlinedButton.icon(
+                          onPressed:
+                              () => widget.onCapturePhoto(ImageSource.gallery),
+                          icon: const Icon(Icons.photo_library_rounded),
+                          label: const Text('Gallery'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(color: AppColors.primary),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            )
-          else ...[
-            _buildSectionCard(
-              title: 'Profile Details',
-              icon: Icons.assignment_ind_rounded,
-              children: [
-                _buildFieldWrapper(
-                  'Student Name',
-                  _buildTextField(
-                    _nameController,
-                    placeholder: 'Student Name',
-                    errorText: _nameError,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'School',
-                  _buildDropdownField<String>(
-                    value: _selectedSchoolId,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Not Selected'),
+              ] else ...[
+                // Confirm upload and Cancel buttons
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: widget.onUploadAndAssignPhoto,
+                    icon: const Icon(Icons.cloud_upload_rounded),
+                    label: const Text('Upload Photo'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.successText,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      ...widget.schools.map(
-                        (s) => DropdownMenuItem(
-                          value: s['id']?.toString(),
-                          child: Text(s['name']?.toString() ?? ''),
-                        ),
-                      ),
-                    ],
-                    onChanged:
-                        _isEditable
-                            ? (val) => setState(() => _selectedSchoolId = val)
-                            : null,
+                    ),
                   ),
                 ),
-                _buildFieldWrapper(
-                  'Class',
-                  _buildDropdownField<String>(
-                    value: _selectedClassId,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Not Selected'),
-                      ),
-                      ...widget.classes.map(
-                        (c) => DropdownMenuItem(
-                          value: c['id']?.toString(),
-                          child: Text(c['name']?.toString() ?? ''),
-                        ),
-                      ),
-                    ],
-                    onChanged:
-                        _isEditable
-                            ? (val) => setState(() => _selectedClassId = val)
-                            : null,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Section',
-                  _buildDropdownField<String>(
-                    value: _selectedSectionId,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Not Selected'),
-                      ),
-                      ...widget.sections.map(
-                        (s) => DropdownMenuItem(
-                          value: s['id']?.toString(),
-                          child: Text(s['name']?.toString() ?? ''),
-                        ),
-                      ),
-                    ],
-                    onChanged:
-                        _isEditable
-                            ? (val) => setState(() => _selectedSectionId = val)
-                            : null,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Roll No.',
-                  _buildTextField(
-                    _rollNoController,
-                    placeholder: 'Roll No.',
-                    keyboardType: TextInputType.number,
-                    errorText: _rollNoError,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Password',
-                  _buildTextField(_passwordController, placeholder: 'Password'),
-                ),
-                _buildFieldWrapper('Date of Birth', _buildDobField()),
-                _buildFieldWrapper(
-                  'Gender',
-                  _buildDropdownField<String>(
-                    value: _selectedGender,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Not Selected'),
-                      ),
-                      ..._genders.map(
-                        (g) => DropdownMenuItem(
-                          value: g,
-                          child: Text(
-                            g == 'male'
-                                ? 'Male'
-                                : (g == 'female' ? 'Female' : g),
-                          ),
-                        ),
-                      ),
-                    ],
-                    onChanged:
-                        _isEditable
-                            ? (val) => setState(() => _selectedGender = val)
-                            : null,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Category',
-                  _buildDropdownField<String>(
-                    value: _selectedCategory,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Not Selected'),
-                      ),
-                      ..._categories.map(
-                        (c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(c.toUpperCase()),
-                        ),
-                      ),
-                    ],
-                    onChanged:
-                        _isEditable
-                            ? (val) => setState(() => _selectedCategory = val)
-                            : null,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'FL Batch',
-                  _buildDropdownField<String>(
-                    value: _selectedFlBatchId,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('Not Selected'),
-                      ),
-                      ..._alumni.map(
-                        (a) => DropdownMenuItem(
-                          value: a['id']?.toString(),
-                          child: Text(a['name']?.toString() ?? ''),
-                        ),
-                      ),
-                    ],
-                    onChanged:
-                        _isEditable
-                            ? (val) => setState(() => _selectedFlBatchId = val)
-                            : null,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Father\'s Name',
-                  _buildTextField(
-                    _fatherNameController,
-                    placeholder: 'Father\'s Name',
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Mother\'s Name',
-                  _buildTextField(
-                    _motherNameController,
-                    placeholder: 'Mother\'s Name',
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Email Address',
-                  _buildTextField(
-                    _emailController,
-                    placeholder: 'Email Address',
-                    keyboardType: TextInputType.emailAddress,
-                    errorText: _emailError,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Phone 1',
-                  _buildTextField(
-                    _phone1Controller,
-                    placeholder: 'Phone 1',
-                    keyboardType: TextInputType.phone,
-                    errorText: _phone1Error,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Phone 2',
-                  _buildTextField(
-                    _phone2Controller,
-                    placeholder: 'Phone 2',
-                    keyboardType: TextInputType.phone,
-                    errorText: _phone2Error,
-                  ),
-                ),
-                _buildFieldWrapper(
-                  'Address',
-                  _buildTextField(_addressController, placeholder: 'Address'),
-                ),
-              ],
-            ),
-
-            if (_isEditable) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 54,
-                      child: OutlinedButton(
-                        onPressed:
-                            _isSaving
-                                ? null
-                                : () {
-                                  setState(() {
-                                    _isEditable = false;
-                                    _resetForm();
-                                  });
-                                },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: const BorderSide(
-                            color: AppColors.primary,
-                            width: 1.5,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 50,
+                        child: TextButton.icon(
+                          onPressed:
+                              () => widget.onCapturePhoto(ImageSource.camera),
+                          icon: const Icon(Icons.replay_rounded),
+                          label: const Text('Recapture'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primary,
                           ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 50,
+                        child: TextButton.icon(
+                          onPressed: widget.onDiscardPickedImage,
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: AppColors.errorText,
+                          ),
+                          label: const Text(
+                            'Discard',
+                            style: TextStyle(color: AppColors.errorText),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.errorText,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+            const SizedBox(height: AppSpacing.stackLg),
+
+            _buildCommentsSection(),
+
+            const SizedBox(height: AppSpacing.stackLg),
+
+            _buildSectionCard(
+              title: 'Student Tags (${_assignedTags.length} allotted)',
+              icon: Icons.local_offer_rounded,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (_assignedTags.isEmpty)
+                      const Text(
+                        'No tags allotted to this student.',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      )
+                    else
+                      ..._assignedTags.map(
+                        (tag) => GestureDetector(
+                          onLongPress: () => _showTagDetails(tag),
+                          child: Chip(
+                            label: Text(tag['name'] ?? ''),
+                            avatar: const Icon(
+                              Icons.tag,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                            backgroundColor: AppColors.primary,
+                            side: BorderSide.none,
+                            labelStyle: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                            deleteIcon:
+                                _isTagEditing
+                                    ? const Icon(
+                                      Icons.cancel,
+                                      size: 16,
+                                      color: Colors.white,
+                                    )
+                                    : null,
+                            onDeleted:
+                                _isTagEditing
+                                    ? () => _confirmRemoveTag(tag)
+                                    : null,
+                          ),
+                        ),
+                      ),
+                    IconButton(
+                      icon: Icon(
+                        _isTagEditing
+                            ? Icons.check_circle_outline
+                            : Icons.edit_rounded,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isTagEditing = !_isTagEditing;
+                          if (!_isTagEditing) {
+                            _selectedTagCategory = null;
+                            _selectedTagIdToAdd = null;
+                          }
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                if (_isTagEditing) ...[
+                  const SizedBox(height: 16),
+                  _buildTagPickerSection(),
+                ],
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.stackLg),
+
+            // Details section title & edit mode switch (duplicated just above the fields as well for quick editing)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Student Details',
+                  style: AppTextStyles.headerSmall.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SizedBox(
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _saveDetails,
+                ),
+                if (!_isLoading && _errorMessage == null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _isEditable ? '' : 'Edit?',
+                        style: AppTextStyles.labelXs.copyWith(
+                          color:
+                              _isEditable
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Switch.adaptive(
+                        value: _isEditable,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: (value) {
+                          setState(() {
+                            _isEditable = value;
+                            if (!_isEditable) {
+                              _resetForm();
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else if (_errorMessage != null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
+                    children: [
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: AppColors.errorText),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _loadData,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry Loading Details'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          elevation: 0,
                         ),
-                        child:
-                            _isSaving
-                                ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                                : const Text(
-                                  'Save Details',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
                       ),
+                    ],
+                  ),
+                ),
+              )
+            else ...[
+              _buildSectionCard(
+                title: 'Profile Details',
+                icon: Icons.assignment_ind_rounded,
+                children: [
+                  _buildFieldWrapper(
+                    'Student Name',
+                    _buildTextField(
+                      _nameController,
+                      placeholder: 'Student Name',
+                      errorText: _nameError,
                     ),
+                  ),
+                  _buildFieldWrapper(
+                    'School',
+                    _buildDropdownField<String>(
+                      value: _selectedSchoolId,
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Not Selected'),
+                        ),
+                        ...widget.schools.map(
+                          (s) => DropdownMenuItem(
+                            value: s['id']?.toString(),
+                            child: Text(s['name']?.toString() ?? ''),
+                          ),
+                        ),
+                      ],
+                      onChanged:
+                          _isEditable
+                              ? (val) => setState(() => _selectedSchoolId = val)
+                              : null,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Class',
+                    _buildDropdownField<String>(
+                      value: _selectedClassId,
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Not Selected'),
+                        ),
+                        ...widget.classes.map(
+                          (c) => DropdownMenuItem(
+                            value: c['id']?.toString(),
+                            child: Text(c['name']?.toString() ?? ''),
+                          ),
+                        ),
+                      ],
+                      onChanged:
+                          _isEditable
+                              ? (val) => setState(() => _selectedClassId = val)
+                              : null,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Section',
+                    _buildDropdownField<String>(
+                      value: _selectedSectionId,
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Not Selected'),
+                        ),
+                        ...widget.sections.map(
+                          (s) => DropdownMenuItem(
+                            value: s['id']?.toString(),
+                            child: Text(s['name']?.toString() ?? ''),
+                          ),
+                        ),
+                      ],
+                      onChanged:
+                          _isEditable
+                              ? (val) =>
+                                  setState(() => _selectedSectionId = val)
+                              : null,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Roll No.',
+                    _buildTextField(
+                      _rollNoController,
+                      placeholder: 'Roll No.',
+                      keyboardType: TextInputType.number,
+                      errorText: _rollNoError,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Password',
+                    _buildTextField(
+                      _passwordController,
+                      placeholder: 'Password',
+                    ),
+                  ),
+                  _buildFieldWrapper('Date of Birth', _buildDobField()),
+                  _buildFieldWrapper(
+                    'Gender',
+                    _buildDropdownField<String>(
+                      value: _selectedGender,
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Not Selected'),
+                        ),
+                        ..._genders.map(
+                          (g) => DropdownMenuItem(
+                            value: g,
+                            child: Text(
+                              g == 'male'
+                                  ? 'Male'
+                                  : (g == 'female' ? 'Female' : g),
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged:
+                          _isEditable
+                              ? (val) => setState(() => _selectedGender = val)
+                              : null,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Category',
+                    _buildDropdownField<String>(
+                      value: _selectedCategory,
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Not Selected'),
+                        ),
+                        ..._categories.map(
+                          (c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(c.toUpperCase()),
+                          ),
+                        ),
+                      ],
+                      onChanged:
+                          _isEditable
+                              ? (val) => setState(() => _selectedCategory = val)
+                              : null,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'FL Batch',
+                    _buildDropdownField<String>(
+                      value: _selectedFlBatchId,
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Not Selected'),
+                        ),
+                        ..._alumni.map(
+                          (a) => DropdownMenuItem(
+                            value: a['id']?.toString(),
+                            child: Text(a['name']?.toString() ?? ''),
+                          ),
+                        ),
+                      ],
+                      onChanged:
+                          _isEditable
+                              ? (val) =>
+                                  setState(() => _selectedFlBatchId = val)
+                              : null,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Father\'s Name',
+                    _buildTextField(
+                      _fatherNameController,
+                      placeholder: 'Father\'s Name',
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Mother\'s Name',
+                    _buildTextField(
+                      _motherNameController,
+                      placeholder: 'Mother\'s Name',
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Email Address',
+                    _buildTextField(
+                      _emailController,
+                      placeholder: 'Email Address',
+                      keyboardType: TextInputType.emailAddress,
+                      errorText: _emailError,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Phone 1',
+                    _buildTextField(
+                      _phone1Controller,
+                      placeholder: 'Phone 1',
+                      keyboardType: TextInputType.phone,
+                      errorText: _phone1Error,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Phone 2',
+                    _buildTextField(
+                      _phone2Controller,
+                      placeholder: 'Phone 2',
+                      keyboardType: TextInputType.phone,
+                      errorText: _phone2Error,
+                    ),
+                  ),
+                  _buildFieldWrapper(
+                    'Address',
+                    _buildTextField(_addressController, placeholder: 'Address'),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: OutlinedButton.icon(
-                  onPressed: _isSaving ? null : _confirmDeleteStudent,
-                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.errorText),
-                  label: const Text('Delete Student', style: TextStyle(color: AppColors.errorText, fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.errorText),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+
+              if (_isEditable) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 54,
+                        child: OutlinedButton(
+                          onPressed:
+                              _isSaving
+                                  ? null
+                                  : () {
+                                    setState(() {
+                                      _isEditable = false;
+                                      _resetForm();
+                                    });
+                                  },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: SizedBox(
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : _saveDetails,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                          child:
+                              _isSaving
+                                  ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Text(
+                                    'Save Details',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: _isSaving ? null : _confirmDeleteStudent,
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: AppColors.errorText,
+                    ),
+                    label: const Text(
+                      'Delete Student',
+                      style: TextStyle(
+                        color: AppColors.errorText,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.errorText),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
+              ],
             ],
           ],
         ],
@@ -1825,4 +2383,3 @@ class _StudentCapturePanelState extends State<StudentCapturePanel> {
     );
   }
 }
-

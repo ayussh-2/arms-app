@@ -16,7 +16,7 @@ class AppConstants {
     return '$r2Host/$schoolName/students/${rollNo}_thumb.jpg?v=2';
   }
 
-  API Configuration & Versioning
+  //  API Configuration & Versioning
   static const String defaultApiEndpoint = String.fromEnvironment(
     'BASE_API_URL',
     defaultValue: 'https://arms.pariksit.com/api/graphql',
