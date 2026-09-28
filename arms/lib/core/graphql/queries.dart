@@ -546,6 +546,14 @@ class GqlQueries {
           assignedByType
           assignedByLabel
         }
+        comments {
+          id
+          comment_text
+          author_id
+          author_type
+          author_name
+          created_at
+        }
       }
     }
   ''';
@@ -603,6 +611,38 @@ class GqlQueries {
   static const String removeStudentTag = r'''
     mutation RemoveStudentTag($studentId: ID!, $tagId: ID!) {
       removeStudentTag(studentId: $studentId, tagId: $tagId)
+    }
+  ''';
+
+  static const String addStudentComment = r'''
+    mutation AddStudentComment($studentId: ID!, $commentText: String!, $authorId: ID!, $authorType: String!) {
+      addStudentComment(studentId: $studentId, commentText: $commentText, authorId: $authorId, authorType: $authorType) {
+        id
+        comment_text
+        author_id
+        author_type
+        author_name
+        created_at
+      }
+    }
+  ''';
+
+  static const String updateStudentComment = r'''
+    mutation UpdateStudentComment($commentId: ID!, $commentText: String!, $authorId: ID!) {
+      updateStudentComment(commentId: $commentId, commentText: $commentText, authorId: $authorId) {
+        id
+        comment_text
+        author_id
+        author_type
+        author_name
+        created_at
+      }
+    }
+  ''';
+
+  static const String deleteStudentComment = r'''
+    mutation DeleteStudentComment($commentId: ID!, $authorId: ID!) {
+      deleteStudentComment(commentId: $commentId, authorId: $authorId)
     }
   ''';
 }
