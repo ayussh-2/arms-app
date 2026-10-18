@@ -251,6 +251,8 @@ class _StudentScorecardScreenState extends State<StudentScorecardScreen> {
       await ScorecardPdfGenerator.previewAndShareScorecardPdf(
         context: context,
         scorecard: scorecard,
+        organisationId: _effectiveOrgId,
+        mode: _currentMode,
       );
     } finally {
       if (mounted) {
