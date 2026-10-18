@@ -119,17 +119,6 @@ class _StudentScorecardScreenState extends State<StudentScorecardScreen> {
         variables['sessionYear'] = _selectedSessionYear;
       }
 
-      debugPrint('\n================ [SCORECARD QUERY EXECUTION] ================');
-      debugPrint('[SCORECARD] Target Student ID   : ${widget.studentId}');
-      debugPrint('[SCORECARD] Target Student Name : ${widget.studentName}');
-      debugPrint('[SCORECARD] Organization ID     : $orgId');
-      debugPrint('[SCORECARD] Grouping Mode       : $_currentMode');
-      debugPrint('[SCORECARD] Session Year Filter : $_selectedSessionYear');
-      debugPrint('[SCORECARD] Variables           : $variables');
-      debugPrint('[SCORECARD] Query Document:\n${GqlQueries.getStudentAcademicScorecard}');
-      debugPrint('=============================================================\n');
-
-      final startTime = DateTime.now();
       final result = await client.query(
         QueryOptions(
           document: gql(GqlQueries.getStudentAcademicScorecard),
@@ -138,16 +127,8 @@ class _StudentScorecardScreenState extends State<StudentScorecardScreen> {
         ),
       );
 
-      final elapsedMs = DateTime.now().difference(startTime).inMilliseconds;
-      debugPrint('[SCORECARD] Query returned in ${elapsedMs}ms');
-
       if (result.hasException) {
         final exception = result.exception;
-        debugPrint('❌ [SCORECARD HAS EXCEPTION]');
-        debugPrint('GraphQL Errors: ${exception?.graphqlErrors}');
-        debugPrint('Link Exception: ${exception?.linkException}');
-        debugPrint('Raw Exception : $exception');
-
         String message = 'Failed to load academic scorecard.';
         if (exception?.graphqlErrors.isNotEmpty ?? false) {
           message = exception!.graphqlErrors.first.message;
@@ -162,14 +143,6 @@ class _StudentScorecardScreenState extends State<StudentScorecardScreen> {
       }
 
       final data = result.data?['studentAcademicScorecard'] as Map<String, dynamic>?;
-      debugPrint('✅ [SCORECARD RAW RESPONSE RECEIVED]');
-      debugPrint('[SCORECARD] raw data null? ${result.data == null}');
-      debugPrint('[SCORECARD] studentAcademicScorecard null? ${data == null}');
-      if (data != null) {
-        debugPrint('[SCORECARD] overview: ${data['overview']}');
-        debugPrint('[SCORECARD] groups count: ${(data['groups'] as List?)?.length}');
-        debugPrint('[SCORECARD] historical sessions: ${(data['session']?['historicalSessions'] as List?)?.map((s) => s['label']).toList()}');
-      }
 
       if (data == null) {
         setState(() {
@@ -180,15 +153,13 @@ class _StudentScorecardScreenState extends State<StudentScorecardScreen> {
       }
 
       final parsed = StudentAcademicScorecard.fromJson(data);
-      debugPrint('[SCORECARD] Successfully parsed model! Groups: ${parsed.groups.length}');
 
       setState(() {
         _scorecard = parsed;
         _selectedSessionYear = parsed.session.selectedSessionYear;
         _isLoading = false;
       });
-    } catch (e, st) {
-      debugPrint('❌ [SCORECARD PARSING / RUNTIME ERROR]: $e\n$st');
+    } catch (e) {
       setState(() {
         _errorMessage = 'An error occurred: $e';
         _isLoading = false;
