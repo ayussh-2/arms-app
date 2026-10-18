@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'debug_service.dart';
 import '../services/app_logger.dart';
@@ -22,6 +23,7 @@ class LoggingHttpLink extends HttpLink {
     final urlString = uri.toString();
 
     // Log the request
+    debugPrint('[GraphQL Request] $operationName -> $urlString | Variables: ${request.variables}');
     debugService.logNetworkRequest(
       method: operationName,
       url: urlString,
@@ -39,6 +41,7 @@ class LoggingHttpLink extends HttpLink {
 
           // Check if there are errors in the response
           if (response.errors != null && response.errors!.isNotEmpty) {
+            debugPrint('[GraphQL Error] $operationName -> Errors: ${response.errors}');
             for (var error in response.errors!) {
               debugService.logError(
                 error: error.toString(),
@@ -51,6 +54,7 @@ class LoggingHttpLink extends HttpLink {
               );
             }
           } else {
+            debugPrint('[GraphQL Response] $operationName -> 200 OK (${duration.inMilliseconds}ms)');
             // Log successful response
             debugService.logNetworkResponse(
               method: operationName,

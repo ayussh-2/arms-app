@@ -6,6 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../widgets/arms_dropdown_selector.dart';
 import 'student_empty_state.dart';
 import '../../../widgets/components/arms_avatar.dart';
+import '../student_scorecard_screen.dart';
 
 class StudentListPanel extends StatelessWidget {
   const StudentListPanel({
@@ -206,9 +207,33 @@ class StudentListPanel extends StatelessWidget {
                                                   'Roll: $rollNo',
                                                   style: AppTextStyles.labelXs,
                                                 ),
-                                                trailing: const Icon(
-                                                  Icons.chevron_right_rounded,
-                                                  color: AppColors.textSecondary,
+                                                trailing: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(Icons.analytics_outlined, color: AppColors.primary),
+                                                      tooltip: 'Academic Scorecard',
+                                                      onPressed: () {
+                                                        Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder: (_) => StudentScorecardScreen(
+                                                              studentId: student['id']?.toString() ?? '',
+                                                              studentName: name,
+                                                              rollNo: rollNo.toString(),
+                                                              className: selectedClassName,
+                                                              sectionName: selectedSectionName,
+                                                              imageUrl: imgUrl,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                    const Icon(
+                                                      Icons.chevron_right_rounded,
+                                                      color: AppColors.textSecondary,
+                                                    ),
+                                                  ],
                                                 ),
                                                 onTap: () => onStudentSelected(Map<String, dynamic>.from(student)),
                                               ),
