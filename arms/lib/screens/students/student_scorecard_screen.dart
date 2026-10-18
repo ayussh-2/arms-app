@@ -237,16 +237,28 @@ class _StudentScorecardScreenState extends State<StudentScorecardScreen> {
     );
   }
 
-  void _onSharePdf() {
+  bool _isGeneratingPdf = false;
+
+  Future<void> _onSharePdf() async {
     final scorecard = _scorecard;
-    if (scorecard == null) {
-      ArmsSnackbar.showInfo(context, 'Scorecard is still loading.');
-      return;
+    if (scorecard == null || _isGeneratingPdf) return;
+
+    setState(() {
+      _isGeneratingPdf = true;
+    });
+
+    try {
+      await ScorecardPdfGenerator.previewAndShareScorecardPdf(
+        context: context,
+        scorecard: scorecard,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingPdf = false;
+        });
+      }
     }
-    ScorecardPdfGenerator.shareScorecardPdf(
-      context: context,
-      scorecard: scorecard,
-    );
   }
 
   @override
@@ -257,11 +269,26 @@ class _StudentScorecardScreenState extends State<StudentScorecardScreen> {
         title: 'Academic Scorecard',
         showBackButton: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share_outlined, color: AppColors.textMain),
-            tooltip: 'Share PDF',
-            onPressed: _scorecard != null ? _onSharePdf : null,
-          ),
+          if (_isGeneratingPdf)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.share_outlined, color: AppColors.textMain),
+              tooltip: 'Share PDF',
+              onPressed: _scorecard != null ? _onSharePdf : null,
+            ),
         ],
       ),
       body: _buildBody(),
