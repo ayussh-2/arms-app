@@ -645,5 +645,176 @@ class GqlQueries {
       deleteStudentComment(commentId: $commentId, authorId: $authorId)
     }
   ''';
+
+  // ──────────── Scorecard ────────────
+
+  static const String getStudentAcademicScorecard = r'''
+    query GetStudentAcademicScorecard(
+      $studentId: ID!
+      $organisationId: ID!
+      $sessionYear: Int
+      $mode: String
+    ) {
+      studentAcademicScorecard(
+        studentId: $studentId
+        organisationId: $organisationId
+        sessionYear: $sessionYear
+        mode: $mode
+      ) {
+        student {
+          id
+          name
+          roll_no
+          school_id
+          school_name
+          class_id
+          class_name
+          section_id
+          section_name
+          image_url
+          phone1
+          phone2
+          father_name
+          mother_name
+          organisation_name
+          organisation_display_name
+          organisation_logo_url
+        }
+        session {
+          currentSessionYear
+          selectedSessionYear
+          label
+          fromDate
+          toDate
+          availableSessionYears
+          historicalSessions {
+            year
+            label
+            fromDate
+            toDate
+          }
+        }
+        overview {
+          totalExams
+          overallPercentage
+          overallRank
+          totalParticipants
+          bestPercentage
+          averagePercentage
+          overallObtained
+          overallMaxMarks
+        }
+        groups {
+          key
+          label
+          mode
+          averagePercentage
+          bestPercentage
+          averageMarks
+          bestMarks
+          charts {
+            percentage {
+              label
+              studentValue
+              bestValue
+              averageValue
+            }
+            marks {
+              label
+              studentValue
+              bestValue
+              averageValue
+            }
+            rank {
+              label
+              studentValue
+              bestValue
+              averageValue
+            }
+          }
+          exams {
+            examId
+            examName
+            seriesId
+            seriesName
+            examDate
+            totalMarks
+            obtained
+            maxMarks
+            percentage
+            rank
+            participants
+            bestPercentage
+            averagePercentage
+            bestMarks
+            averageMarks
+            subjects {
+              subjectId
+              subjectName
+              subjectCode
+              obtained
+              maxMarks
+              percentage
+              rank
+              participants
+              status
+              bestMarks
+              averageMarks
+              bestPercentage
+              averagePercentage
+            }
+          }
+        }
+        overallCharts {
+          percentage {
+            label
+            studentValue
+            bestValue
+            averageValue
+          }
+          marks {
+            label
+            studentValue
+            bestValue
+            averageValue
+          }
+          rank {
+            label
+            studentValue
+            bestValue
+            averageValue
+          }
+        }
+        attendance {
+          presentDays
+          workingDays
+          absentDays
+          leaveDays
+          holidayDays
+          percentage
+          calendar {
+            month
+            monthName
+            presentDays
+            workingDays
+            days {
+              date
+              day
+              status
+            }
+          }
+        }
+        tags
+        comments {
+          id
+          commentText
+          authorId
+          authorType
+          authorName
+          createdAt
+        }
+      }
+    }
+  ''';
 }
 

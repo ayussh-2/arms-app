@@ -28,4 +28,11 @@ class AppConstants {
     }
     return '$defaultApiEndpoint/version';
   }
+
+  static String get scorecardPdfApiEndpoint {
+    if (defaultApiEndpoint.endsWith('/graphql')) {
+      return defaultApiEndpoint.replaceAll('/graphql', '/scorecard-pdf');
+    }
+    return '$defaultApiEndpoint/scorecard-pdf';
+  }
 }

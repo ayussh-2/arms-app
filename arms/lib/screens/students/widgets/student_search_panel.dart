@@ -8,6 +8,7 @@ import '../../../core/utils/image_url_helper.dart';
 import '../../../widgets/arms_dropdown_selector.dart';
 import '../../../widgets/arms_picker_sheet.dart';
 import '../../../widgets/components/arms_search_field.dart';
+import '../student_scorecard_screen.dart';
 
 class StudentSearchPanel extends StatefulWidget {
   const StudentSearchPanel({
@@ -183,10 +184,34 @@ class _StudentSearchPanelState extends State<StudentSearchPanel> {
             ),
           ],
         ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios_rounded,
-          size: 16,
-          color: AppColors.textSecondary,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.analytics_outlined, color: AppColors.primary),
+              tooltip: 'Academic Scorecard',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StudentScorecardScreen(
+                      studentId: student['id']?.toString() ?? '',
+                      studentName: name,
+                      rollNo: rollNo.toString(),
+                      className: className,
+                      sectionName: sectionName,
+                      imageUrl: currentImgUrl,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+          ],
         ),
         onTap: () => widget.onStudentSelected(student),
       ),
