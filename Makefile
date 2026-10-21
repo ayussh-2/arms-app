@@ -1,13 +1,14 @@
 flags=--android-skip-build-dependency-validation --no-enable-impeller
 
 APP_DIR=arms
+PACKAGE_NAME=com.parikist.arms
 KEY_TOOL_DIR=D:/Softwares/Android/jbr/bin/keytool.exe
 KEYSTORE_NAME=keys/arms-release.jks
 KEY_ALIAS=arms-key
 BACKEND_DIR=D:/Projects/Personal/ARMS
 
 PAIR_IP=192.168.29.66:39903
-CONNECT_IP=192.168.29.66:41353
+CONNECT_IP=192.168.29.66:44567
 
 DEV_URL=http://192.168.29.188:6582/api/graphql
 PROD_URL=https://arms.pariksit.com/api/graphql
@@ -32,7 +33,10 @@ install:
 	adb install $(APP_DIR)/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
 uninstall:
-	adb uninstall com.parikist.arms
+	adb uninstall $(PACKAGE_NAME)
+
+
+dev-uninstall: uninstall-dev
 
 clean:
 	cd $(APP_DIR) && flutter clean

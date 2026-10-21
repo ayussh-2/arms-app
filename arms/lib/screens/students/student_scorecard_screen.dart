@@ -157,6 +157,10 @@ class _StudentScorecardScreenState extends State<StudentScorecardScreen> {
       setState(() {
         _scorecard = parsed;
         _selectedSessionYear = parsed.session.selectedSessionYear;
+        // Collapse all exam groups by default so exams are hidden initially
+        _collapsedGroupKeys
+          ..clear()
+          ..addAll(parsed.groups.map((g) => g.key));
         _isLoading = false;
       });
     } catch (e) {
